@@ -1,0 +1,32 @@
+# Local env and secrets
+.env
+.env.*
+!.env.example
+infra/.env
+
+# Runtime data
+infra/data/
+data/
+
+# Telegram sessions
+*.session
+*.session-journal
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
