@@ -1,0 +1,373 @@
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+import psycopg
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
+
+from .models import ClassificationResult, ModelResponse, NormalizedItem, ProcessingTask, RawItem, SourceMetadata
+from .normalization import severity_for
+
+
+class Database:
+    def __init__(self, database_url: str) -> None:
+        self._database_url = database_url
+        self._conn: psycopg.AsyncConnection[Any] | None = None
+
+    async def connect(self) -> None:
+        self._conn = await psycopg.AsyncConnection.connect(self._database_url, row_factory=dict_row)
+
+    async def close(self) -> None:
+        if self._conn:
+            await self._conn.close()
+            self._conn = None
+
+    @property
+    def conn(self) -> psycopg.AsyncConnection[Any]:
+        if not self._conn:
+            raise RuntimeError("database is not connected")
+        return self._conn
+
+    async def claim_next_task(self, *, worker_id: str) -> ProcessingTask | None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                with claimed as (
+                  select p.id
+                  from raw_item_processing p
+                  where p.status in ('pending', 'retry')
+                    and (p.next_retry_at is null or p.next_retry_at <= now())
+                  order by p.created_at
+                  for update skip locked
+                  limit 1
+                )
+                update raw_item_processing p
+                set status = 'running',
+                    stage = 'normalize',
+                    locked_by = %(worker_id)s,
+                    locked_at = now(),
+                    attempt_count = p.attempt_count + 1,
+                    error_message = null
+                from claimed
+                where p.id = claimed.id
+                returning p.*
+                """,
+                {"worker_id": worker_id},
+            )
+            processing = await cur.fetchone()
+            if not processing:
+                await self.conn.commit()
+                return None
+
+            await cur.execute(
+                """
+                select
+                  r.*,
+                  s.name as source_name,
+                  s.handle_or_url,
+                  s.source_type,
+                  s.source_group,
+                  s.official_level,
+                  s.stance,
+                  s.language as source_language,
+                  s.priority,
+                  s.reliability_score,
+                  s.latency_score,
+                  s.requires_confirmation
+                from raw_items r
+                join sources s on s.id = r.source_id
+                where r.id = %(raw_item_id)s
+                """,
+                {"raw_item_id": processing["raw_item_id"]},
+            )
+            row = await cur.fetchone()
+        await self.conn.commit()
+
+        if not row:
+            return None
+
+        return ProcessingTask(
+            id=processing["id"],
+            attempt_count=processing["attempt_count"],
+            raw_item=RawItem.model_validate(row),
+            source=SourceMetadata(
+                id=row["source_id"],
+                name=row["source_name"],
+                handle_or_url=row["handle_or_url"],
+                source_type=row["source_type"],
+                source_group=row["source_group"],
+                official_level=row["official_level"],
+                stance=row["stance"],
+                language=row["source_language"],
+                priority=row["priority"],
+                reliability_score=row["reliability_score"],
+                latency_score=row["latency_score"],
+                requires_confirmation=row["requires_confirmation"],
+            ),
+        )
+
+    async def update_normalized_item(self, *, raw_item_id: Any, normalized: NormalizedItem) -> None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_items
+                set text_clean = %(text_clean)s,
+                    language = %(language)s,
+                    updated_at = now()
+                where id = %(raw_item_id)s
+                """,
+                {
+                    "raw_item_id": raw_item_id,
+                    "text_clean": normalized.text_clean,
+                    "language": normalized.language,
+                },
+            )
+        await self.conn.commit()
+
+    async def complete_skipped(self, *, processing_id: Any, normalized: NormalizedItem) -> None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_item_processing
+                set stage = 'completed',
+                    status = 'skipped',
+                    is_relevant = false,
+                    relevance_score = %(relevance_score)s,
+                    filter_reason = %(filter_reason)s,
+                    normalized_json = %(normalized_json)s,
+                    locked_by = null,
+                    locked_at = null,
+                    updated_at = now()
+                where id = %(processing_id)s
+                """,
+                {
+                    "processing_id": processing_id,
+                    "relevance_score": normalized.keyword_score,
+                    "filter_reason": normalized.filter_reason,
+                    "normalized_json": Jsonb(normalized.model_dump(mode="json")),
+                },
+            )
+        await self.conn.commit()
+
+    async def complete_processed(
+        self,
+        *,
+        task: ProcessingTask,
+        normalized: NormalizedItem,
+        model_response: ModelResponse,
+        relevance_threshold_event: int,
+    ) -> Any | None:
+        event_id = None
+        result = model_response.result
+
+        async with self.conn.cursor() as cur:
+            if result.is_relevant and result.relevance_score >= relevance_threshold_event:
+                event_id = await self._insert_event(cur, task, normalized, model_response)
+                if result.claim_text:
+                    await self._insert_event_claim(cur, event_id, task, model_response)
+
+            await cur.execute(
+                """
+                update raw_item_processing
+                set stage = 'completed',
+                    status = 'completed',
+                    is_relevant = %(is_relevant)s,
+                    relevance_score = %(relevance_score)s,
+                    filter_reason = %(filter_reason)s,
+                    model_provider = %(model_provider)s,
+                    model_name = %(model_name)s,
+                    model_output_json = %(model_output_json)s,
+                    normalized_json = %(normalized_json)s,
+                    event_id = %(event_id)s,
+                    locked_by = null,
+                    locked_at = null,
+                    updated_at = now()
+                where id = %(processing_id)s
+                """,
+                {
+                    "processing_id": task.id,
+                    "is_relevant": result.is_relevant,
+                    "relevance_score": result.relevance_score,
+                    "filter_reason": None if result.is_relevant else result.reason or "model_not_relevant",
+                    "model_provider": model_response.provider,
+                    "model_name": model_response.model,
+                    "model_output_json": Jsonb(result.model_dump(mode="json")),
+                    "normalized_json": Jsonb(normalized.model_dump(mode="json")),
+                    "event_id": event_id,
+                },
+            )
+        await self.conn.commit()
+        return event_id
+
+    async def mark_failed(self, *, processing_id: Any, attempt_count: int, max_attempts: int, error_message: str) -> None:
+        status = "failed" if attempt_count >= max_attempts else "retry"
+        next_retry_at = None if status == "failed" else datetime.now(timezone.utc) + timedelta(seconds=30 * attempt_count)
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_item_processing
+                set status = %(status)s,
+                    next_retry_at = %(next_retry_at)s,
+                    locked_by = null,
+                    locked_at = null,
+                    error_message = %(error_message)s,
+                    updated_at = now()
+                where id = %(processing_id)s
+                """,
+                {
+                    "processing_id": processing_id,
+                    "status": status,
+                    "next_retry_at": next_retry_at,
+                    "error_message": error_message[:2000],
+                },
+            )
+        await self.conn.commit()
+
+    async def _insert_event(
+        self,
+        cur: psycopg.AsyncCursor[Any],
+        task: ProcessingTask,
+        normalized: NormalizedItem,
+        model_response: ModelResponse,
+    ) -> Any:
+        result = model_response.result
+        event_dedupe_key = f"raw-item:{task.raw_item.dedupe_key}"
+        severity = severity_for(result.relevance_score, task.source)
+        await cur.execute(
+            """
+            insert into events (
+              event_time,
+              event_type,
+              region,
+              primary_actor,
+              secondary_actor,
+              source_id,
+              source_group,
+              severity,
+              relevance_score,
+              confidence,
+              confirmation_state,
+              title,
+              summary_zh,
+              summary_en,
+              market_relevance,
+              xauusd_impact_channel,
+              requires_confirmation,
+              raw_item_ids,
+              processing_id,
+              model_provider,
+              model_name,
+              model_output_json,
+              dedupe_key
+            )
+            values (
+              %(event_time)s,
+              %(event_type)s,
+              %(region)s,
+              %(primary_actor)s,
+              %(secondary_actor)s,
+              %(source_id)s,
+              %(source_group)s,
+              %(severity)s,
+              %(relevance_score)s,
+              %(confidence)s,
+              %(confirmation_state)s,
+              %(title)s,
+              %(summary_zh)s,
+              %(summary_en)s,
+              %(market_relevance)s,
+              %(xauusd_impact_channel)s,
+              %(requires_confirmation)s,
+              %(raw_item_ids)s,
+              %(processing_id)s,
+              %(model_provider)s,
+              %(model_name)s,
+              %(model_output_json)s,
+              %(dedupe_key)s
+            )
+            on conflict (dedupe_key) where dedupe_key is not null
+            do update set updated_at = now()
+            returning id
+            """,
+            {
+                "event_time": task.raw_item.published_at or task.raw_item.ingested_at,
+                "event_type": result.event_type,
+                "region": result.region,
+                "primary_actor": result.primary_actor or (result.actors[0] if result.actors else None),
+                "secondary_actor": result.secondary_actor,
+                "source_id": task.source.id,
+                "source_group": task.source.source_group,
+                "severity": severity,
+                "relevance_score": result.relevance_score,
+                "confidence": result.confidence,
+                "confirmation_state": "unconfirmed",
+                "title": task.raw_item.title,
+                "summary_zh": result.summary_zh,
+                "summary_en": result.summary_en,
+                "market_relevance": result.market_relevance,
+                "xauusd_impact_channel": result.xauusd_impact_channel,
+                "requires_confirmation": result.requires_confirmation,
+                "raw_item_ids": [task.raw_item.id],
+                "processing_id": task.id,
+                "model_provider": model_response.provider,
+                "model_name": model_response.model,
+                "model_output_json": Jsonb(result.model_dump(mode="json")),
+                "dedupe_key": event_dedupe_key,
+            },
+        )
+        row = await cur.fetchone()
+        return row["id"]
+
+    async def _insert_event_claim(
+        self,
+        cur: psycopg.AsyncCursor[Any],
+        event_id: Any,
+        task: ProcessingTask,
+        model_response: ModelResponse,
+    ) -> None:
+        result = model_response.result
+        await cur.execute(
+            """
+            insert into event_claims (
+              event_id,
+              source_id,
+              raw_item_id,
+              claim_group_id,
+              claim_text,
+              claim_direction,
+              stance,
+              confidence,
+              model_provider,
+              model_name,
+              model_output_json
+            )
+            values (
+              %(event_id)s,
+              %(source_id)s,
+              %(raw_item_id)s,
+              %(claim_group_id)s,
+              %(claim_text)s,
+              %(claim_direction)s,
+              %(stance)s,
+              %(confidence)s,
+              %(model_provider)s,
+              %(model_name)s,
+              %(model_output_json)s
+            )
+            """,
+            {
+                "event_id": event_id,
+                "source_id": task.source.id,
+                "raw_item_id": task.raw_item.id,
+                "claim_group_id": result.event_type,
+                "claim_text": result.claim_text,
+                "claim_direction": result.claim_direction,
+                "stance": result.source_stance or task.source.stance,
+                "confidence": result.confidence,
+                "model_provider": model_response.provider,
+                "model_name": model_response.model,
+                "model_output_json": Jsonb(result.model_dump(mode="json")),
+            },
+        )

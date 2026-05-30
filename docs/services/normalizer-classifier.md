@@ -40,11 +40,11 @@ V1 不包含：
 | --- | --- | --- |
 | Language | Python 3.12+ | V1 主語言 |
 | Database | PostgreSQL 16+ | 讀寫 processing、events、alerts |
-| DB driver | psycopg 3 / asyncpg | 支援 task locking |
+| DB driver | psycopg 3 | 支援 task locking |
 | Text cleanup | regex / trafilatura 可選 | V1 以輕量清洗為主 |
-| Language detection | lingua-py / fastText / pycld3 | 視部署便利性選擇 |
-| Similarity | rapidfuzz / pg_trgm | 近似重複檢測 |
-| Local model | Ollama / llama.cpp server | local 8B model route，可由 HomeLab 另一台 server 提供 |
+| Language detection | source metadata + lightweight script detection | V1 先用來源設定與簡單 script fallback |
+| Similarity | rapidfuzz / pg_trgm | 近似重複檢測，V1 先保留依賴與 DB index |
+| Local model | OpenAI-compatible local endpoint | local 8B model route，可由 HomeLab 另一台 server 提供 |
 | Cloud model | OpenAI-compatible API | cloud small model route，例如 GPT 5.5 mini 類模型 |
 | Agent SDK | Claude Code Agent SDK，備選 | 高階模型能力，非 V1 必需依賴 |
 | Schema validation | pydantic | 驗證模型 JSON output |
@@ -179,7 +179,9 @@ V1 支援以下模型路徑：
 | `cloud_small` | P0 / P1 高價值來源或 local parse failed | 提高可靠度 |
 | `claude_code_agent` | 後續需要高階模型能力或工具型推理 | 備選 route，不阻塞 V1 |
 
-可先只實作其中一種，但 code interface 應抽象為：
+目前骨架已實作 `local_8b` 與 `cloud_small` 兩種 OpenAI-compatible `/chat/completions` route；兩者都使用相同的 JSON schema。`claude_code_agent` 保留在文件與部署設定中，尚未接入 runtime。
+
+code interface 抽象為：
 
 ```text
 class ModelClient:
@@ -199,12 +201,18 @@ class ModelClient:
   "event_type": "IRAN_NUCLEAR",
   "source_stance": "iran_irgc_adjacent",
   "claim_direction": "deny",
+  "claim_text": "Tasnim denies Iran will abandon uranium enrichment.",
   "summary_zh": "Tasnim 否認伊朗將放棄濃縮鈾的說法。",
+  "summary_en": "Tasnim denies Iran will abandon uranium enrichment.",
   "actors": ["Iran", "Trump", "IRGC"],
   "xauusd_impact_channel": ["safe_haven", "oil_inflation"],
   "requires_confirmation": true,
   "confidence": 76,
-  "reason": "來源與伊朗核談判、Trump 敘事及 IRGC-adjacent 口徑相關。"
+  "reason": "來源與伊朗核談判、Trump 敘事及 IRGC-adjacent 口徑相關。",
+  "region": "Middle East",
+  "primary_actor": "Iran",
+  "secondary_actor": "Trump",
+  "market_relevance": "可能影響避險需求與制裁預期。"
 }
 ```
 
@@ -331,9 +339,10 @@ DATABASE_URL=postgresql://...
 WORKER_CONCURRENCY=4
 POLL_INTERVAL_SECONDS=2
 MODEL_ROUTE=local_8b
-LOCAL_MODEL_BASE_URL=http://localhost:11434
+LOCAL_MODEL_BASE_URL=http://localhost:11434/v1
+LOCAL_MODEL_API_KEY=
 LOCAL_MODEL_NAME=...
-CLOUD_MODEL_BASE_URL=...
+CLOUD_MODEL_BASE_URL=https://api.openai.com/v1
 CLOUD_MODEL_API_KEY=...
 CLOUD_MODEL_NAME=...
 CLAUDE_CODE_AGENT_ENABLED=false
@@ -343,6 +352,8 @@ RELEVANCE_THRESHOLD_EVENT=70
 RELEVANCE_THRESHOLD_PUSHOVER=85
 LOG_LEVEL=INFO
 ```
+
+`LOCAL_MODEL_BASE_URL` 與 `CLOUD_MODEL_BASE_URL` 都應指向 OpenAI-compatible `/v1` base URL；service 會呼叫 `{BASE_URL}/chat/completions`。若 local endpoint 不需要 key，`LOCAL_MODEL_API_KEY` 可留空。
 
 ## 18. 測試需求
 
@@ -373,3 +384,27 @@ LOG_LEVEL=INFO
 - 模型 JSON output 驗證失敗時可 retry 或 fallback。
 - duplicate / near-duplicate 不重複建立事件。
 - 不輸出交易方向或自動交易建議。
+
+## 20. 目前骨架實作狀態
+
+已完成：
+
+- `normalizer-classifier run` CLI。
+- Python 3.12 service package 與 Dockerfile。
+- `raw_item_processing` polling worker，使用 `for update skip locked` claim task。
+- `raw_items` + `sources` metadata 載入。
+- text cleanup、language fallback、keyword prefilter。
+- OpenAI-compatible model client。
+- pydantic model output validation。
+- processing result 回寫。
+- relevance threshold 達標時建立 `events`。
+- 有 `claim_text` 時建立簡化 `event_claims`。
+- model failure retry / failed state。
+
+尚未完成：
+
+- `LISTEN raw_item_created` wake-up，現在先使用 polling。
+- local route parse failed 時自動 fallback cloud route。
+- 近似重複合併到既有 event。
+- Claude Code Agent SDK route。
+- metrics endpoint。
