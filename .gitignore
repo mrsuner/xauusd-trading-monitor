@@ -2,11 +2,13 @@
 .env
 .env.*
 !.env.example
+!infra/.env.dev.example
 infra/.env
 
 # Runtime data
 infra/data/
 data/
+var/
 
 # Telegram sessions
 *.session
