@@ -24,6 +24,37 @@ mkdir -p "$PID_DIR" "$LOG_DIR" "$ROOT_DIR/infra/data/telegram-sessions"
 echo "Starting dev PostgreSQL..."
 docker compose --env-file "$ENV_PATH" -f "$ROOT_DIR/infra/docker-compose.dev.yml" up -d postgres
 
+wait_for_postgres() {
+  local container_id
+  container_id="$(docker compose --env-file "$ENV_PATH" -f "$ROOT_DIR/infra/docker-compose.dev.yml" ps -q postgres)"
+
+  if [[ -z "$container_id" ]]; then
+    echo "PostgreSQL container was not created"
+    exit 1
+  fi
+
+  echo "Waiting for dev PostgreSQL to become healthy..."
+  for _ in {1..60}; do
+    local status
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
+    if [[ "$status" == "healthy" ]]; then
+      return
+    fi
+    if [[ "$status" == "exited" || "$status" == "dead" ]]; then
+      echo "PostgreSQL container stopped before becoming healthy"
+      docker compose --env-file "$ENV_PATH" -f "$ROOT_DIR/infra/docker-compose.dev.yml" logs postgres
+      exit 1
+    fi
+    sleep 1
+  done
+
+  echo "Timed out waiting for PostgreSQL healthcheck"
+  docker compose --env-file "$ENV_PATH" -f "$ROOT_DIR/infra/docker-compose.dev.yml" logs postgres
+  exit 1
+}
+
+wait_for_postgres
+
 echo "Running database migrations..."
 (
   cd "$ROOT_DIR"
