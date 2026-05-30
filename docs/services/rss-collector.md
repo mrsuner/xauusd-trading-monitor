@@ -242,6 +242,27 @@ USER_AGENT=XAUUSD-Event-Radar/1.0
 LOG_LEVEL=INFO
 ```
 
+目前實作的 container command：
+
+```bash
+rss-collector run
+```
+
+V1 實作會從 `sources.source_config` 讀取 `poll_interval_seconds`、`request_timeout_seconds`、`etag`、`last_modified`。輪詢成功後會把新的 `etag` / `last_modified` 回寫到同一個 `source_config`，下次 request 會帶上 `If-None-Match` / `If-Modified-Since`。
+
+HTML polling 需要明確 selector 設定：
+
+```json
+{
+  "list_selector": ".item",
+  "title_selector": "a",
+  "url_selector": "a",
+  "published_selector": "time"
+}
+```
+
+若 HTML source 尚未設定 selector，服務會把該 source 標記為 degraded，不會影響其他 source 輪詢。
+
 ## 14. 安全需求
 
 - 不將付費 feed token 提交到 repo。
@@ -278,4 +299,3 @@ LOG_LEVEL=INFO
 - source health 可查詢最近輪詢與錯誤狀態。
 - 單一 source 失敗不影響其他 source。
 - 服務不做 AI 判斷、不做通知、不輸出交易建議。
-
