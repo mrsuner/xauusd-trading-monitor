@@ -390,6 +390,15 @@ Docker volume 建議：
 3. 產生 session 檔案。
 4. 正式服務使用該 session 檔案啟動。
 
+目前實作的 container command：
+
+```bash
+telegram-collector login
+telegram-collector run
+```
+
+HomeLab 第一次建立 session 時，建議先用與正式服務相同的 session volume 執行一次 `login`，確認 `/app/sessions` 內已產生 session 檔後，再啟動常駐 `run`。
+
 ## 17. Source Refresh
 
 服務應支援定期重新讀取 `sources` 表。
@@ -486,4 +495,3 @@ MVP `telegram-collector` 完成標準：
 - Telegram source onboarding 管理 UI。
 - 重要 source 掉線時告警。
 - 與 normalizer 的 edited item reprocess 流程。
-
