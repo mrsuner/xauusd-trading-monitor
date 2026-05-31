@@ -31,6 +31,7 @@ test:
 	@cd services/telegram-collector && uv run --group dev pytest
 	@cd services/rss-collector && uv run --group dev pytest
 	@cd services/normalizer-classifier && uv run --group dev pytest
+	@cd services/alert-dispatcher && uv run --group dev pytest
 	@cd services/dashboard-api && uv run --group dev pytest
 
 web-build:

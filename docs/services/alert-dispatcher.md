@@ -40,14 +40,25 @@ Telegram Bot / Pushover
 - DB schema：`alerts` table、dedupe index、delivery claim index。
 - DB trigger：`events` insert 後 `pg_notify('event_created', event_id)`。
 - Production Compose placeholder：`infra/docker-compose.prod.yml` 已定義 `alert-dispatcher` service。
-- 文檔規格：本文件。
-
-尚未完成 runtime code：
-
 - `services/alert-dispatcher` Python service。
 - Telegram / Pushover provider adapter。
 - `make dev` 本機啟動整合。
 - 單元測試與整合測試。
+- 文檔規格：本文件。
+
+V1 runtime 已實作：
+
+- 以 polling fallback 掃描 `events` 並建立 `alerts` decision rows。
+- 根據 policy 對 `telegram` / `pushover` 建立 `pending` 或 `skipped` alert。
+- claim `pending` / `retry` alerts 並發送 provider request。
+- 支援 `ALERT_DRY_RUN`，開發模式可記錄決策但不實際推送。
+- 支援 provider error retry / backoff / max attempts。
+- 已加入 `make dev` 與 production Compose。
+
+後續可補強：
+
+- 直接使用 PostgreSQL `LISTEN event_created` 降低延遲。
+- 更細緻的 user preference / quiet hours / 多 chat routing。
 
 ## 3. 非目標
 

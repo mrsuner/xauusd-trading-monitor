@@ -97,6 +97,8 @@ start_service() {
     export MAX_CLASSIFICATION_CALLS_PER_RUN="${MAX_CLASSIFICATION_CALLS_PER_RUN:-$MAX_MODEL_CALLS_PER_RUN}"
     export MAX_TRANSLATION_CALLS_PER_RUN="${MAX_TRANSLATION_CALLS_PER_RUN:-20}"
     export MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN="${MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN:-20}"
+    export ALERT_DRY_RUN="${ALERT_DRY_RUN:-true}"
+    export DISPATCH_EXISTING_EVENTS_ON_START="${DISPATCH_EXISTING_EVENTS_ON_START:-false}"
     exec uv run --project "$project_dir" "$@"
   ) >"$log_file" 2>&1 &
 
@@ -106,6 +108,7 @@ start_service() {
 start_service "telegram-collector" "services/telegram-collector" telegram-collector run
 start_service "rss-collector" "services/rss-collector" rss-collector run
 start_service "normalizer-classifier" "services/normalizer-classifier" normalizer-classifier run
+start_service "alert-dispatcher" "services/alert-dispatcher" alert-dispatcher run
 start_service "dashboard-api" "services/dashboard-api" dashboard-api run
 
 start_web() {

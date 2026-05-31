@@ -23,9 +23,10 @@ telegram-collector / rss-collector
   → raw_items (+ raw_item_processing pending row)
   → normalizer-classifier  (polls the queue)
   → events / event_claims  (+ translation/summary fields on raw_items)
+  → alert-dispatcher  (records/sends Telegram and Pushover alerts)
   → dashboard-api → dashboard-web
 ```
-`alert-dispatcher` is specified but has **no runtime code yet** (not in `make dev`).
+`alert-dispatcher` runtime code exists and is included in `make dev`. Development defaults are safe: `ALERT_DRY_RUN=true` and `DISPATCH_EXISTING_EVENTS_ON_START=false`.
 
 Key architectural facts:
 - **Work queue, not pub/sub.** `normalizer-classifier` claims tasks from `raw_item_processing` using `SELECT ... FOR UPDATE SKIP LOCKED`, so multiple workers/concurrency are safe. Each task carries `status / attempt_count / next_retry_at / locked_by / locked_at / error_message` for crash recovery. See `services/normalizer-classifier/src/normalizer_classifier/worker.py` and `db.py`.

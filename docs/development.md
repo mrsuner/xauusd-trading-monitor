@@ -29,7 +29,7 @@ make dev
 5. 用 `npm run dev` 背景啟動：
    - `dashboard-web`
 
-目前 `alert-dispatcher` 尚未有 runtime code，後續實作後會加入 `make dev`。
+`alert-dispatcher` 已加入 `make dev`。本機預設 `ALERT_DRY_RUN=true` 與 `DISPATCH_EXISTING_EVENTS_ON_START=false`，避免開發資料庫已有歷史事件時直接大量推送。
 
 ## 3. 查看狀態與 logs
 
