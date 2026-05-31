@@ -161,6 +161,11 @@ export type ProcessingPipelineItem = {
   translation_error?: string | null;
   translation_input_chars?: number | null;
   translation_updated_at?: string | null;
+  translation_call_count: number;
+  translation_input_tokens: number;
+  translation_output_tokens: number;
+  translation_total_tokens: number;
+  translation_estimated_cost_usd: string | number;
   classification_processing_id?: string | null;
   classification_stage?: string | null;
   classification_status?: string | null;
@@ -173,6 +178,11 @@ export type ProcessingPipelineItem = {
   classification_locked_at?: string | null;
   classification_error?: string | null;
   classification_updated_at?: string | null;
+  classification_call_count: number;
+  classification_input_tokens: number;
+  classification_output_tokens: number;
+  classification_total_tokens: number;
+  classification_estimated_cost_usd: string | number;
   pipeline_updated_at: string;
 };
 

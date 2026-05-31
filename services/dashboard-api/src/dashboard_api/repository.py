@@ -423,6 +423,11 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
           r.translation_error,
           r.translation_input_chars,
           r.translation_updated_at,
+          coalesce(translation_usage.call_count, 0) as translation_call_count,
+          coalesce(translation_usage.input_tokens, 0) as translation_input_tokens,
+          coalesce(translation_usage.output_tokens, 0) as translation_output_tokens,
+          coalesce(translation_usage.total_tokens, 0) as translation_total_tokens,
+          coalesce(translation_usage.estimated_cost_usd, 0) as translation_estimated_cost_usd,
           s.name as source_name,
           s.source_type,
           s.source_group,
@@ -440,6 +445,11 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
           p.locked_at as classification_locked_at,
           p.error_message as classification_error,
           p.updated_at as classification_updated_at,
+          coalesce(classification_usage.call_count, 0) as classification_call_count,
+          coalesce(classification_usage.input_tokens, 0) as classification_input_tokens,
+          coalesce(classification_usage.output_tokens, 0) as classification_output_tokens,
+          coalesce(classification_usage.total_tokens, 0) as classification_total_tokens,
+          coalesce(classification_usage.estimated_cost_usd, 0) as classification_estimated_cost_usd,
           greatest(
             coalesce(r.translation_updated_at, '-infinity'::timestamptz),
             coalesce(p.updated_at, '-infinity'::timestamptz),
@@ -448,6 +458,28 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
         from raw_items r
         join sources s on s.id = r.source_id
         left join raw_item_processing p on p.raw_item_id = r.id
+        left join lateral (
+          select
+            count(*) as call_count,
+            coalesce(sum(input_tokens), 0) as input_tokens,
+            coalesce(sum(output_tokens), 0) as output_tokens,
+            coalesce(sum(total_tokens), 0) as total_tokens,
+            coalesce(sum(estimated_cost_usd), 0) as estimated_cost_usd
+          from ai_model_calls c
+          where c.raw_item_id = r.id
+            and c.ai_layer = 'translation_summary'
+        ) translation_usage on true
+        left join lateral (
+          select
+            count(*) as call_count,
+            coalesce(sum(input_tokens), 0) as input_tokens,
+            coalesce(sum(output_tokens), 0) as output_tokens,
+            coalesce(sum(total_tokens), 0) as total_tokens,
+            coalesce(sum(estimated_cost_usd), 0) as estimated_cost_usd
+          from ai_model_calls c
+          where c.raw_item_id = r.id
+            and c.ai_layer = 'classification_reasoning'
+        ) classification_usage on true
         """,
         base_count="""
         select count(*) as total

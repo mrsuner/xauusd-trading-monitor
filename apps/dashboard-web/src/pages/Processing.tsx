@@ -70,6 +70,42 @@ function LayerBlock({
   );
 }
 
+function UsageRow({
+  callCount,
+  totalTokens,
+  inputTokens,
+  outputTokens,
+  cost
+}: {
+  callCount?: number | null;
+  totalTokens?: number | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  cost?: string | number | null;
+}) {
+  return (
+    <>
+      <div>
+        <span className="mr-2 font-medium text-base-content/75">AI calls</span>
+        <span>{callCount ?? 0}</span>
+      </div>
+      <div>
+        <span className="mr-2 font-medium text-base-content/75">tokens</span>
+        <span>
+          {formatCompactNumber(totalTokens)}{" "}
+          <span className="text-base-content/50">
+            (in {formatCompactNumber(inputTokens)} / out {formatCompactNumber(outputTokens)})
+          </span>
+        </span>
+      </div>
+      <div>
+        <span className="mr-2 font-medium text-base-content/75">cost</span>
+        <span>{formatUsd(cost)}</span>
+      </div>
+    </>
+  );
+}
+
 export function Processing() {
   const [q, setQ] = useState("");
   const [sourceType, setSourceType] = useState("");
@@ -304,6 +340,13 @@ export function Processing() {
                     <span className="mr-2 font-medium text-base-content/75">input chars</span>
                     <span>{item.translation_input_chars ?? "-"}</span>
                   </div>
+                  <UsageRow
+                    callCount={item.translation_call_count}
+                    totalTokens={item.translation_total_tokens}
+                    inputTokens={item.translation_input_tokens}
+                    outputTokens={item.translation_output_tokens}
+                    cost={item.translation_estimated_cost_usd}
+                  />
                 </LayerBlock>
 
                 <LayerBlock
@@ -325,6 +368,13 @@ export function Processing() {
                     <span className="mr-2 font-medium text-base-content/75">score</span>
                     <Score value={item.relevance_score} />
                   </div>
+                  <UsageRow
+                    callCount={item.classification_call_count}
+                    totalTokens={item.classification_total_tokens}
+                    inputTokens={item.classification_input_tokens}
+                    outputTokens={item.classification_output_tokens}
+                    cost={item.classification_estimated_cost_usd}
+                  />
                   {item.filter_reason ? (
                     <div>
                       <span className="mr-2 font-medium text-base-content/75">reason</span>
