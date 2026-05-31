@@ -3,7 +3,7 @@ SHELL := /bin/bash
 DEV_ENV ?= infra/.env.dev
 DEV_COMPOSE := docker compose --env-file $(DEV_ENV) -f infra/docker-compose.dev.yml
 
-.PHONY: dev dev-stop dev-status dev-logs dev-db dev-migrate compose-config test
+.PHONY: dev dev-stop dev-status dev-logs dev-db dev-migrate compose-config test web-build
 
 dev:
 	@infra/scripts/dev-up.sh "$(DEV_ENV)"
@@ -32,3 +32,6 @@ test:
 	@cd services/rss-collector && uv run --group dev pytest
 	@cd services/normalizer-classifier && uv run --group dev pytest
 	@cd services/dashboard-api && uv run --group dev pytest
+
+web-build:
+	@cd apps/dashboard-web && npm run build

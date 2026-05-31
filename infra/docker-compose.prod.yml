@@ -165,6 +165,21 @@ services:
     networks:
       - xauusd
 
+  dashboard-web:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/dashboard-web:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      dashboard-api:
+        condition: service_started
+    environment:
+      DASHBOARD_API_BASE_URL: ${DASHBOARD_API_BASE_URL}
+      DASHBOARD_API_TOKEN: ${DASHBOARD_API_TOKEN}
+      TZ: ${TZ}
+    ports:
+      - "5173:8080"
+    networks:
+      - xauusd
+
 volumes:
   postgres-data:
 

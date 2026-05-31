@@ -1,0 +1,1 @@
+window.__XAUUSD_DASHBOARD_CONFIG__ = window.__XAUUSD_DASHBOARD_CONFIG__ || {};

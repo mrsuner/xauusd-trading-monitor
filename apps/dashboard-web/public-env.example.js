@@ -1,0 +1,4 @@
+window.__XAUUSD_DASHBOARD_CONFIG__ = {
+  DASHBOARD_API_BASE_URL: "http://localhost:8080",
+  DASHBOARD_API_TOKEN: ""
+};

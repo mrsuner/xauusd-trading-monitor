@@ -53,6 +53,13 @@ V1 不包含：
 
 `dashboard-web` 只透過 `dashboard-api` 讀取資料。V1 不直接連 PostgreSQL。
 
+目前前端已建立 API integration：
+
+- `src/api/client.ts` 統一呼叫 `dashboard-api`。
+- TanStack Query 負責 cache、polling 與 retry。
+- Dev mode 讀取 `VITE_DASHBOARD_API_BASE_URL` / `VITE_DASHBOARD_API_TOKEN`。
+- Production image 透過 runtime `/env.js` 讀取 `DASHBOARD_API_BASE_URL` / `DASHBOARD_API_TOKEN`，避免 image build 時綁死 HomeLab API URL。
+
 必要 API：
 
 ```text
@@ -439,8 +446,24 @@ Production deployment：
 必要 env：
 
 ```text
-DASHBOARD_API_BASE_URL=http://dashboard-api:8000
+DASHBOARD_API_BASE_URL=/api
 DASHBOARD_API_TOKEN=
+```
+
+Production image 會由 nginx 將 `/api/*` proxy 到 Compose network 內的 `dashboard-api:8080`。若前端部署在獨立主機或其他 reverse proxy 後面，也可以把 `DASHBOARD_API_BASE_URL` 改成外部可訪問的 API URL。
+
+本機開發：
+
+```text
+cd apps/dashboard-web
+npm install
+npm run dev
+```
+
+或使用整體開發啟動：
+
+```text
+make dev
 ```
 
 ## 12. 驗收標準

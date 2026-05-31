@@ -16,6 +16,7 @@ fi
 
 command -v docker >/dev/null || { echo "docker is required"; exit 1; }
 command -v uv >/dev/null || { echo "uv is required"; exit 1; }
+command -v npm >/dev/null || { echo "npm is required"; exit 1; }
 
 mkdir -p "$PID_DIR" "$LOG_DIR" "$ROOT_DIR/infra/data/telegram-sessions"
 
@@ -102,6 +103,33 @@ start_service "telegram-collector" "services/telegram-collector" telegram-collec
 start_service "rss-collector" "services/rss-collector" rss-collector run
 start_service "normalizer-classifier" "services/normalizer-classifier" normalizer-classifier run
 start_service "dashboard-api" "services/dashboard-api" dashboard-api run
+
+start_web() {
+  local name="dashboard-web"
+  local project_dir="apps/dashboard-web"
+  local log_file="$LOG_DIR/$name.log"
+  local pid_file="$PID_DIR/$name.pid"
+  : > "$log_file"
+
+  echo "Starting $name..."
+  (
+    cd "$ROOT_DIR/$project_dir"
+    set -a
+    # shellcheck source=/dev/null
+    source "$ENV_PATH"
+    set +a
+    export VITE_DASHBOARD_API_BASE_URL="${DASHBOARD_API_BASE_URL:-http://localhost:8080}"
+    export VITE_DASHBOARD_API_TOKEN="${DASHBOARD_API_TOKEN:-${API_TOKEN:-}}"
+    if [[ ! -d node_modules ]]; then
+      npm install
+    fi
+    exec npm run dev
+  ) >"$log_file" 2>&1 &
+
+  echo "$!" > "$pid_file"
+}
+
+start_web
 
 sleep 2
 
