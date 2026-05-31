@@ -16,12 +16,23 @@ from .models import PollingSource
 
 
 WHITESPACE_RE = re.compile(r"\s+")
+HTML_TAG_RE = re.compile(r"<[a-zA-Z/!][^>]*>")
 
 
 def normalize_text(value: str | None) -> str:
     if not value:
         return ""
     return WHITESPACE_RE.sub(" ", value).strip()
+
+
+def html_to_text(value: str | None) -> str:
+    if not value:
+        return ""
+    if not HTML_TAG_RE.search(value):
+        return normalize_text(value)
+    text = HTMLParser(value).text(separator=" ")
+    text = re.sub(r"@\s+", "@", text)
+    return normalize_text(text)
 
 
 def sha256_text(value: str) -> str:
@@ -89,13 +100,13 @@ def feed_dedupe_key(source: PollingSource, external_id: str) -> str:
 
 def entry_text(entry: dict[str, Any]) -> str:
     if entry.get("summary"):
-        return normalize_text(str(entry["summary"]))
+        return html_to_text(str(entry["summary"]))
     content = entry.get("content")
     if isinstance(content, list) and content:
         value = content[0].get("value") if isinstance(content[0], dict) else str(content[0])
-        return normalize_text(str(value))
+        return html_to_text(str(value))
     if entry.get("description"):
-        return normalize_text(str(entry["description"]))
+        return html_to_text(str(entry["description"]))
     return ""
 
 

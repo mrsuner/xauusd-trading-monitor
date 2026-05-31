@@ -236,6 +236,7 @@ def create_app() -> FastAPI:
         ingested_from: datetime | None = None,
         ingested_to: datetime | None = None,
         q: str | None = None,
+        include_empty_text: bool = False,
         page: Annotated[int, Query(ge=1)] = 1,
         page_size: Annotated[int | None, Query(ge=1)] = None,
     ) -> dict[str, Any]:
@@ -250,6 +251,7 @@ def create_app() -> FastAPI:
                 "ingested_from": ingested_from,
                 "ingested_to": ingested_to,
                 "q": q,
+                "include_empty_text": include_empty_text,
             }
         )
         return await list_response(repository, builder, page, page_size, default_page_size)

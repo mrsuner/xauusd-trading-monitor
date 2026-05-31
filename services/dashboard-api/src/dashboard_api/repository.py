@@ -552,6 +552,23 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
         "q",
         filters.get("q"),
     )
+    if not filters.get("include_empty_text"):
+        builder.where.append(
+            """
+            (
+              nullif(btrim(regexp_replace(coalesce(r.summary_zh, ''), '<[^>]+>', ' ', 'g')), '') is not null
+              or nullif(btrim(regexp_replace(coalesce(r.summary_en, ''), '<[^>]+>', ' ', 'g')), '') is not null
+              or nullif(btrim(regexp_replace(coalesce(r.full_translation_zh, ''), '<[^>]+>', ' ', 'g')), '') is not null
+              or nullif(btrim(regexp_replace(coalesce(r.full_translation_en, ''), '<[^>]+>', ' ', 'g')), '') is not null
+              or nullif(btrim(regexp_replace(coalesce(r.text_clean, ''), '<[^>]+>', ' ', 'g')), '') is not null
+              or nullif(btrim(regexp_replace(coalesce(r.text_raw, ''), '<[^>]+>', ' ', 'g')), '') is not null
+              or (
+                nullif(btrim(coalesce(r.title, '')), '') is not null
+                and r.title !~* '^\\[no title\\]'
+              )
+            )
+            """
+        )
     return builder
 
 

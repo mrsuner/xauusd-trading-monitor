@@ -56,6 +56,48 @@ def test_parse_feed_items() -> None:
     assert str(items[0]["dedupe_key"]).startswith("rss:")
 
 
+def test_parse_feed_items_strips_html_summary() -> None:
+    body = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+      <channel>
+        <title>Example Feed</title>
+        <item>
+          <guid>item-1</guid>
+          <title>Trump post</title>
+          <link>https://example.com/news/item-1</link>
+          <description><![CDATA[<p>RT <span><a href="https://truthsocial.com/@realDonaldTrump">@<span>realDonaldTrump</span></a></span>I am pleased<br>Done</p>]]></description>
+        </item>
+      </channel>
+    </rss>
+    """
+
+    items = parse_feed_items(source(), body)
+
+    assert items[0]["text_raw"] == "RT @realDonaldTrump I am pleased Done"
+    assert items[0]["text_clean"] == "RT @realDonaldTrump I am pleased Done"
+
+
+def test_parse_feed_items_empty_html_summary_stays_empty() -> None:
+    body = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+      <channel>
+        <title>Example Feed</title>
+        <item>
+          <guid>item-1</guid>
+          <title>[No Title] - Post from May 31, 2026</title>
+          <link>https://example.com/news/item-1</link>
+          <description><![CDATA[<p></p>]]></description>
+        </item>
+      </channel>
+    </rss>
+    """
+
+    items = parse_feed_items(source(), body)
+
+    assert items[0]["text_raw"] == ""
+    assert items[0]["text_clean"] == ""
+
+
 def test_parse_html_items() -> None:
     html_source = source(
         "html_polling",
