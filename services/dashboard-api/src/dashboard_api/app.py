@@ -165,6 +165,7 @@ def create_app() -> FastAPI:
         repository: DashboardRepository = Depends(repo),
         default_page_size: int = Depends(page_size_default),
         source_id: UUID | None = None,
+        source_type: str | None = None,
         source_group: str | None = None,
         published_from: datetime | None = None,
         published_to: datetime | None = None,
@@ -177,6 +178,7 @@ def create_app() -> FastAPI:
         builder = build_raw_items_query(
             {
                 "source_id": source_id,
+                "source_type": source_type,
                 "source_group": source_group,
                 "published_from": published_from,
                 "published_to": published_to,

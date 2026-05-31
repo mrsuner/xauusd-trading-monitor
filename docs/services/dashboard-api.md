@@ -156,6 +156,7 @@ source_type
 
 ```text
 source_id
+source_type
 source_group
 published_from
 published_to

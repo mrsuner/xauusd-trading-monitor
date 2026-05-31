@@ -236,6 +236,7 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
         order_by="order by coalesce(r.published_at, r.ingested_at) desc",
     )
     builder.add_equal("r.source_id", "source_id", filters.get("source_id"))
+    builder.add_equal("s.source_type", "source_type", filters.get("source_type"))
     builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
     builder.add_gte("r.published_at", "published_from", filters.get("published_from"))
     builder.add_lte("r.published_at", "published_to", filters.get("published_to"))

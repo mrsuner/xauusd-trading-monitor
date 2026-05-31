@@ -103,21 +103,21 @@ POST /sources/{source_id}/backfill
 
 主要元素：
 
+- source type tabs：
+  - Telegram
+  - RSS
 - 頂部 filter bar：
   - source group
-  - severity
-  - processing status
-  - time range
   - keyword search
-- timeline list：
+- timeline card list：
   - published time
   - source name / source group
   - official level badge
   - priority badge
-  - title / short text
-  - processing status
-  - event severity
-  - relevance score
+  - raw item id
+  - source url / original url
+  - title，若 raw item 有 `title` 則獨立顯示
+  - message body，優先使用 `summary_zh`，fallback 到 `text_clean`，再 fallback 到 `text_raw`
 - auto-refresh toggle：
   - default enabled
   - interval 10-30 秒
