@@ -348,6 +348,8 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 
 ### Phase 1: 通知降噪
 
+實作狀態：已於 `0005_source_alert_policy` migration 與 `alert-dispatcher` policy 中完成第一版。
+
 - 調整 schema：source alert policy 欄位。
 - 更新 seed source 的 Pushover allowlist。
 - 修改 `alert-dispatcher` policy。
@@ -399,7 +401,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 
 ## 7. 開放問題
 
-- `alert_score` 是否應保存到 `alerts` 表，方便後續 audit？建議保存。
+- `alert_score` 已保存到 `alerts` 表，方便後續 audit。
 - Pushover allowlist 放在 source 欄位還是全局 policy config？V1 建議 source 欄位，便於 Dashboard 管理。
 - AI token usage 是否需要保存 prompt hash？建議保存 hash，不保存完整 prompt，避免資料量與隱私問題。
 - Source management 的 `DELETE` 是否命名為 `archive` 更清楚？API 可用 `DELETE`，UI 顯示為 Disable / Archive。

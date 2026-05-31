@@ -16,6 +16,13 @@ class SourceContext(BaseModel):
     official_level: str | None = None
     priority: str | None = None
     requires_confirmation: bool | None = None
+    telegram_alert_enabled: bool = True
+    pushover_alert_enabled: bool = False
+    telegram_min_severity: str = "B"
+    pushover_min_severity: str = "S"
+    alert_weight: int = 50
+    alert_rate_limit_per_hour: int | None = None
+    alert_cooldown_minutes: int | None = None
 
 
 class RawItemContext(BaseModel):
@@ -39,6 +46,7 @@ class EventContext(BaseModel):
     id: UUID
     event_time: datetime | None = None
     detected_at: datetime
+    created_at: datetime | None = None
     event_type: str
     severity: str
     relevance_score: int
@@ -63,7 +71,20 @@ class AlertDecision(BaseModel):
     delivery_status: str
     message: str
     dedupe_key: str
+    alert_score: int
     error_message: str | None = None
+
+
+class AlertChannelStats(BaseModel):
+    sent_or_pending_1h: int = 0
+    last_alert_at: datetime | None = None
+
+
+class AlertPolicyRuntime(BaseModel):
+    backfill_mode: str = "normal"
+    is_backfill: bool = False
+    telegram_stats: AlertChannelStats = Field(default_factory=AlertChannelStats)
+    pushover_stats: AlertChannelStats = Field(default_factory=AlertChannelStats)
 
 
 class AlertDelivery(BaseModel):

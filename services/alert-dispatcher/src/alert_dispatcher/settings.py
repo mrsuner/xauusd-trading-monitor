@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     enable_polling_fallback: bool = Field(default=True, alias="ENABLE_POLLING_FALLBACK")
     alert_dry_run: bool = Field(default=True, alias="ALERT_DRY_RUN")
     dispatch_existing_events_on_start: bool = Field(default=False, alias="DISPATCH_EXISTING_EVENTS_ON_START")
+    alert_backfill_mode: str = Field(default="telegram_only", alias="ALERT_BACKFILL_MODE")
 
     telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     telegram_chat_id: str | None = Field(default=None, alias="TELEGRAM_CHAT_ID")
@@ -69,4 +70,11 @@ class Settings(BaseSettings):
     def validate_positive_float(cls, value: float) -> float:
         if value <= 0:
             raise ValueError("value must be > 0")
+        return value
+
+    @field_validator("alert_backfill_mode")
+    @classmethod
+    def validate_alert_backfill_mode(cls, value: str) -> str:
+        if value not in {"skip", "telegram_only", "normal"}:
+            raise ValueError("alert_backfill_mode must be skip, telegram_only, or normal")
         return value

@@ -7,7 +7,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .models import AlertDecision, AlertDelivery, EventClaimContext, EventContext, RawItemContext, SourceContext
+from .models import AlertChannelStats, AlertDecision, AlertDelivery, EventClaimContext, EventContext, RawItemContext, SourceContext
 
 
 class Database:
@@ -64,6 +64,13 @@ class Database:
                   s.official_level,
                   s.priority as source_priority,
                   s.requires_confirmation as source_requires_confirmation,
+                  s.telegram_alert_enabled,
+                  s.pushover_alert_enabled,
+                  s.telegram_min_severity,
+                  s.pushover_min_severity,
+                  s.alert_weight,
+                  s.alert_rate_limit_per_hour,
+                  s.alert_cooldown_minutes,
                   r.id as raw_item_id,
                   r.title as raw_item_title,
                   r.url as raw_item_url,
@@ -107,6 +114,7 @@ class Database:
             id=row["id"],
             event_time=row["event_time"],
             detected_at=row["detected_at"],
+            created_at=row["created_at"],
             event_type=row["event_type"],
             severity=row["severity"],
             relevance_score=row["relevance_score"],
@@ -128,6 +136,13 @@ class Database:
                 official_level=row["official_level"],
                 priority=row["source_priority"],
                 requires_confirmation=row["source_requires_confirmation"],
+                telegram_alert_enabled=row["telegram_alert_enabled"] if row["telegram_alert_enabled"] is not None else True,
+                pushover_alert_enabled=row["pushover_alert_enabled"] if row["pushover_alert_enabled"] is not None else False,
+                telegram_min_severity=row["telegram_min_severity"] or "B",
+                pushover_min_severity=row["pushover_min_severity"] or "S",
+                alert_weight=row["alert_weight"] if row["alert_weight"] is not None else 50,
+                alert_rate_limit_per_hour=row["alert_rate_limit_per_hour"],
+                alert_cooldown_minutes=row["alert_cooldown_minutes"],
             ),
             raw_item=RawItemContext(
                 id=row["raw_item_id"],
@@ -139,6 +154,32 @@ class Database:
                 text_raw=row["raw_item_text_raw"],
             ),
             claims=[EventClaimContext.model_validate(claim) for claim in claim_rows],
+        )
+
+    async def alert_channel_stats(self, *, source_id: Any, channel: str) -> AlertChannelStats:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select
+                  count(*) filter (
+                    where a.created_at >= now() - interval '1 hour'
+                      and a.delivery_status in ('pending', 'sent', 'retry')
+                  ) as sent_or_pending_1h,
+                  max(a.created_at) filter (
+                    where a.delivery_status in ('pending', 'sent', 'retry')
+                  ) as last_alert_at
+                from alerts a
+                join events e on e.id = a.event_id
+                where e.source_id = %(source_id)s
+                  and a.channel = %(channel)s
+                """,
+                {"source_id": source_id, "channel": channel},
+            )
+            row = await cur.fetchone()
+        await self.conn.commit()
+        return AlertChannelStats(
+            sent_or_pending_1h=int(row["sent_or_pending_1h"] or 0) if row else 0,
+            last_alert_at=row["last_alert_at"] if row else None,
         )
 
     async def create_alert_decisions(self, decisions: list[AlertDecision]) -> None:
@@ -155,6 +196,7 @@ class Database:
                       dedupe_key,
                       message,
                       delivery_status,
+                      alert_score,
                       error_message
                     )
                     values (
@@ -164,6 +206,7 @@ class Database:
                       %(dedupe_key)s,
                       %(message)s,
                       %(delivery_status)s,
+                      %(alert_score)s,
                       %(error_message)s
                     )
                     on conflict (dedupe_key) do nothing

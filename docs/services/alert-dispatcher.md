@@ -50,8 +50,10 @@ V1 runtime 已實作：
 
 - 以 polling fallback 掃描 `events` 並建立 `alerts` decision rows。
 - 根據 policy 對 `telegram` / `pushover` 建立 `pending` 或 `skipped` alert。
+- 根據 source-level alert policy、`alert_score`、Pushover allowlist、rate limit 與 cooldown 進行通知降噪。
 - claim `pending` / `retry` alerts 並發送 provider request。
 - 支援 `ALERT_DRY_RUN`，開發模式可記錄決策但不實際推送。
+- 支援 `ALERT_BACKFILL_MODE=skip|telegram_only|normal`，避免 backfill 或首次啟動造成 Pushover spam。
 - 支援 provider error retry / backoff / max attempts。
 - 已加入 `make dev` 與 production Compose。
 
@@ -148,27 +150,55 @@ evaluate and send
 
 ## 7. Notification Policy
 
-V1 初始規則：
+V1+ 已改為 source-aware policy。`alert-dispatcher` 不再只依賴 `severity`，而是計算可 audit 的 `alert_score`：
 
-| 條件 | Telegram | Pushover | 說明 |
-| --- | --- | --- | --- |
-| `severity = S` | yes | high / emergency | 僅在高可信官方或半官方事件使用 emergency |
-| `severity = A` | yes | normal | V1 主要高價值事件 |
-| `severity = B` | yes | no | 只作 Telegram 提醒 |
-| `severity = C` | no | no | 只入庫 |
-| `relevance_score >= 85` 且來源 P0 / P1 | yes | normal / high | severity 缺失時的 fallback |
-| `relevance_score >= 70` | yes | no | 中等相關，避免手機高噪音 |
-| `relevance_score < 70` | no | no | 不通知 |
-| OSINT / aggregator 單源 | yes | no | 不單獨觸發 Pushover |
-| duplicate / near-duplicate | skip / merge | no | 由 normalizer 優先處理，dispatcher 做最後防線 |
+```text
+alert_score =
+  severity_score
+  + relevance_score_weight
+  + source_priority_score
+  + official_level_score
+  + source_alert_weight
+  - requires_confirmation_penalty
+  - aggregator_penalty
+  - low_confidence_penalty
+```
+
+Channel decision：
+
+| Channel | 條件 |
+| --- | --- |
+| Telegram | `source.telegram_alert_enabled = true`、達到 `source.telegram_min_severity`、未超過 source rate limit / cooldown、`alert_score >= 45`；S 級事件可用較低 threshold |
+| Pushover | `source.pushover_alert_enabled = true`、達到 `source.pushover_min_severity`、不是 aggregator source、未超過 source rate limit / cooldown、`alert_score >= 85` |
+
+Source-level policy 欄位：
+
+| 欄位 | 說明 |
+| --- | --- |
+| `telegram_alert_enabled` | 此 source 是否允許 Telegram 通知 |
+| `pushover_alert_enabled` | 此 source 是否允許 Pushover 通知 |
+| `telegram_min_severity` | Telegram 最低通知等級 |
+| `pushover_min_severity` | Pushover 最低通知等級 |
+| `alert_weight` | source-level 權重，0-100 |
+| `alert_rate_limit_per_hour` | 單一 source 每小時最多 pending/sent/retry alert 數量 |
+| `alert_cooldown_minutes` | 同一 source 兩次通知的最小間隔 |
 
 `Pushover emergency` 必須保守使用。V1 只允許以下情境進入 emergency 候選：
 
 - `severity = S`。
+- `alert_score >= 95`。
 - `source.priority in ('P0', 'P1')`。
 - `source.official_level in ('official', 'semi_official')`。
 - `source.source_group` 不屬於 `osint_aggregator` 或純 `market_squawk`。
 - `requires_confirmation = false`，或已有官方 / 半官方來源確認。
+
+Backfill policy：
+
+| `ALERT_BACKFILL_MODE` | 行為 |
+| --- | --- |
+| `skip` | 對 dispatcher 啟動前已存在的 event 建立 skipped decision，不實際推送 |
+| `telegram_only` | 啟動前 event 只允許 Telegram，不允許 Pushover |
+| `normal` | 啟動前 event 依正常 policy 判斷 |
 
 ## 8. Event Context
 

@@ -9,7 +9,7 @@ from uuid import uuid4
 import httpx
 
 from .db import Database
-from .models import AlertDelivery
+from .models import AlertDelivery, AlertPolicyRuntime
 from .policy import notification_decisions
 from .providers import AlertProvider, build_providers
 from .settings import Settings
@@ -74,7 +74,14 @@ class AlertDispatcher:
             event = await self.db.get_event_context(event_id=event_id)
             if not event:
                 continue
-            await self.db.create_alert_decisions(notification_decisions(event))
+            runtime = AlertPolicyRuntime(
+                backfill_mode=self.settings.alert_backfill_mode,
+                is_backfill=bool(event.created_at and event.created_at < self._startup_cutoff),
+            )
+            if event.source.id:
+                runtime.telegram_stats = await self.db.alert_channel_stats(source_id=event.source.id, channel="telegram")
+                runtime.pushover_stats = await self.db.alert_channel_stats(source_id=event.source.id, channel="pushover")
+            await self.db.create_alert_decisions(notification_decisions(event, runtime=runtime))
 
     async def _deliver_alert(self, alert: AlertDelivery, providers: dict[str, AlertProvider]) -> None:
         if self.settings.alert_dry_run:

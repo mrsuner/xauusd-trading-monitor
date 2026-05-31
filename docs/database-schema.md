@@ -163,6 +163,13 @@ create table sources (
   translation_priority text not null default 'normal',
   translation_max_chars integer,
   always_full_translate boolean not null default false,
+  telegram_alert_enabled boolean not null default true,
+  pushover_alert_enabled boolean not null default false,
+  telegram_min_severity text not null default 'B',
+  pushover_min_severity text not null default 'S',
+  alert_weight smallint not null default 50,
+  alert_rate_limit_per_hour integer,
+  alert_cooldown_minutes integer,
   enabled boolean not null default true,
   source_config jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
@@ -191,6 +198,21 @@ create table sources (
   ),
   constraint sources_translation_max_chars_check check (
     translation_max_chars is null or translation_max_chars >= 0
+  ),
+  constraint sources_telegram_min_severity_check check (
+    telegram_min_severity in ('S', 'A', 'B', 'C')
+  ),
+  constraint sources_pushover_min_severity_check check (
+    pushover_min_severity in ('S', 'A', 'B', 'C')
+  ),
+  constraint sources_alert_weight_check check (
+    alert_weight >= 0 and alert_weight <= 100
+  ),
+  constraint sources_alert_rate_limit_per_hour_check check (
+    alert_rate_limit_per_hour is null or alert_rate_limit_per_hour >= 0
+  ),
+  constraint sources_alert_cooldown_minutes_check check (
+    alert_cooldown_minutes is null or alert_cooldown_minutes >= 0
   )
 );
 ```
@@ -203,6 +225,18 @@ Translation policy 用於 deterministic translation scope，不由低成本模�
 | `translation_priority` | `normal` / `high`，高優先來源可使用較大的文字長度限制 |
 | `translation_max_chars` | source-level override；P0/P1 seed 預設可設為 `100000` |
 | `always_full_translate` | 指定來源永遠使用 full translation policy |
+
+Alert policy 用於 `alert-dispatcher` 的 deterministic 通知降噪：
+
+| 欄位 | 說明 |
+| --- | --- |
+| `telegram_alert_enabled` | 此 source 是否允許 Telegram 通知 |
+| `pushover_alert_enabled` | 此 source 是否允許 Pushover 通知；V1 預設 false，靠 allowlist 開啟 |
+| `telegram_min_severity` | Telegram 最低通知等級 |
+| `pushover_min_severity` | Pushover 最低通知等級 |
+| `alert_weight` | source-level 通知權重，參與 `alert_score` |
+| `alert_rate_limit_per_hour` | 單一 source 每小時最多建立 pending/sent/retry alert 的數量 |
+| `alert_cooldown_minutes` | 同一 source 兩次通知的最小間隔 |
 
 ### 6.3 source_group V1 建議值
 
@@ -696,6 +730,7 @@ create table alerts (
   locked_at timestamptz,
   provider_response_json jsonb,
   error_message text,
+  alert_score integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
@@ -707,6 +742,9 @@ create table alerts (
   ),
   constraint alerts_delivery_status_check check (
     delivery_status in ('pending', 'sent', 'failed', 'skipped', 'retry')
+  ),
+  constraint alerts_alert_score_check check (
+    alert_score is null or alert_score >= 0
   )
 );
 ```
