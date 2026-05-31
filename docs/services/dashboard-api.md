@@ -92,6 +92,11 @@ GET /events/{event_id}
 GET /alerts
 GET /stats/overview
 GET /stats/ai-usage
+POST /sources
+PATCH /sources/{source_id}
+POST /sources/{source_id}/enable
+POST /sources/{source_id}/disable
+POST /sources/{source_id}/archive
 ```
 
 可選：
@@ -100,11 +105,9 @@ GET /stats/ai-usage
 GET /stats/ingestion
 ```
 
-後續 source 管理 endpoints：
+後續可選 source operations：
 
 ```text
-POST /sources
-PATCH /sources/{source_id}
 POST /sources/{source_id}/test
 POST /sources/{source_id}/backfill
 ```
@@ -112,8 +115,9 @@ POST /sources/{source_id}/backfill
 用途：
 
 - 從 Dashboard 新增 Telegram channel，例如 `@fbsanalytics`。
-- 測試 source 是否可 resolve / fetch。
 - 啟用或停用 source。
+- archive source，但不 hard delete，避免破壞歷史 `raw_items` / `events` 外鍵關聯。
+- 後續才加入測試 source 是否可 resolve / fetch。
 - 觸發小範圍 backfill，確認 raw item 能入庫。
 
 ## 7. 查詢需求
@@ -127,12 +131,15 @@ source_type
 source_group
 priority
 enabled
+archived
 ```
 
 用途：
 
 - 確認 source registry。
 - 查看來源立場與官方程度。
+- 管理 source scoring、translation policy 與 alert policy。
+- 查看 `raw_items_24h`、`events_24h`、`last_raw_item_at` 等近期活躍度。
 
 ### 7.2 Source Health
 
@@ -333,13 +340,14 @@ Logs：
 - test database query。
 - list/detail endpoints。
 - filter combinations。
-- read-only DB behavior。
+- source create / update / enable / disable / archive behavior。
 
 ## 13. 驗收標準
 
 - `/health` 可回傳服務狀態。
 - 可查 sources、source health、raw items、processing、events、alerts。
+- 可從 Dashboard API 新增、修改、停用與 archive source；不提供 hard delete。
 - list endpoints 支援 pagination。
 - detail endpoints 可查看 debug 所需內容。
-- API 不修改核心資料。
+- mutation endpoints 僅修改 source registry 與 source policy，不直接改寫歷史 raw/event 資料。
 - response 可直接被 TanStack Query 消費。

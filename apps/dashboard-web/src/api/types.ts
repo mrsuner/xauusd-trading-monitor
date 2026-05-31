@@ -67,9 +67,47 @@ export type Source = {
   translation_priority: string;
   translation_max_chars?: number | null;
   always_full_translate: boolean;
+  telegram_alert_enabled: boolean;
+  pushover_alert_enabled: boolean;
+  telegram_min_severity: string;
+  pushover_min_severity: string;
+  alert_weight: number;
+  alert_rate_limit_per_hour?: number | null;
+  alert_cooldown_minutes?: number | null;
   enabled: boolean;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
+  last_raw_item_at?: string | null;
+  raw_items_24h?: number;
+  events_24h?: number;
+};
+
+export type SourcePayload = {
+  name: string;
+  handle_or_url: string;
+  source_type: string;
+  source_group: string;
+  official_level: string;
+  stance?: string | null;
+  language?: string | null;
+  priority: string;
+  reliability_score: number;
+  latency_score: number;
+  requires_confirmation: boolean;
+  translation_policy: string;
+  translation_priority: string;
+  translation_max_chars?: number | null;
+  always_full_translate: boolean;
+  telegram_alert_enabled: boolean;
+  pushover_alert_enabled: boolean;
+  telegram_min_severity: string;
+  pushover_min_severity: string;
+  alert_weight: number;
+  alert_rate_limit_per_hour?: number | null;
+  alert_cooldown_minutes?: number | null;
+  enabled: boolean;
+  source_config?: Record<string, unknown>;
 };
 
 export type SourceHealth = {

@@ -10,6 +10,7 @@ import type {
   ProcessingPipelineItem,
   RawItem,
   Source,
+  SourcePayload,
   SourceHealth
 } from "./types";
 
@@ -35,11 +36,20 @@ function toQuery(params: Record<string, QueryValue> = {}) {
   return query ? `?${query}` : "";
 }
 
-async function request<T>(path: string, params?: Record<string, QueryValue>): Promise<T> {
-  const headers: HeadersInit = {};
+async function request<T>(path: string, params?: Record<string, QueryValue>, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (init?.headers instanceof Headers) {
+    init.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+  } else if (Array.isArray(init?.headers)) {
+    for (const [key, value] of init.headers) headers[key] = value;
+  } else if (init?.headers) {
+    Object.assign(headers, init.headers);
+  }
   if (apiConfig.token) headers.Authorization = `Bearer ${apiConfig.token}`;
 
-  const response = await fetch(`${apiConfig.baseUrl}${path}${toQuery(params)}`, { headers });
+  const response = await fetch(`${apiConfig.baseUrl}${path}${toQuery(params)}`, { ...init, headers });
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
@@ -55,6 +65,21 @@ export const api = {
   overview: () => request<OverviewStats>("/stats/overview"),
   aiUsage: (params?: Record<string, QueryValue>) => request<AIUsageStats>("/stats/ai-usage", params),
   sources: (params?: Record<string, QueryValue>) => request<Page<Source>>("/sources", params),
+  createSource: (payload: SourcePayload) =>
+    request<Source>("/sources", undefined, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }),
+  updateSource: (sourceId: string, payload: Partial<SourcePayload>) =>
+    request<Source>(`/sources/${sourceId}`, undefined, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }),
+  enableSource: (sourceId: string) => request<Source>(`/sources/${sourceId}/enable`, undefined, { method: "POST" }),
+  disableSource: (sourceId: string) => request<Source>(`/sources/${sourceId}/disable`, undefined, { method: "POST" }),
+  archiveSource: (sourceId: string) => request<Source>(`/sources/${sourceId}/archive`, undefined, { method: "POST" }),
   sourceHealth: (params?: Record<string, QueryValue>) => request<Page<SourceHealth>>("/source-health", params),
   rawItems: (params?: Record<string, QueryValue>) => request<Page<RawItem>>("/raw-items", params),
   processing: (params?: Record<string, QueryValue>) => request<Page<ProcessingItem>>("/processing", params),

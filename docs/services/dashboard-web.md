@@ -227,7 +227,7 @@ POST /sources/{source_id}/backfill
 
 主要元素：
 
-- source table：
+- source card list：
   - name
   - handle_or_url
   - source_type
@@ -236,6 +236,10 @@ POST /sources/{source_id}/backfill
   - priority
   - reliability_score
   - enabled
+  - archived state
+  - alert policy summary
+  - raw_items_24h / events_24h
+  - last_raw_item_at
   - last_success_at
   - last_error
   - 1h / 24h ingest count
@@ -244,14 +248,34 @@ POST /sources/{source_id}/backfill
   - source_group
   - priority
   - enabled
+  - archived
 
-V1 可以只讀。後續版本加入：
+V1 Source management 已包含：
 
 - add source modal
-- edit source drawer
+- edit source modal
+- enable / disable toggle
+- archive action
+
+Source 表單中可枚舉欄位必須使用 dropdown，不讓使用者自由輸入，例如：
+
+- `source_type`
+- `source_group`
+- `official_level`
+- `priority`
+- `language`
+- `translation_policy`
+- `translation_priority`
+- `telegram_min_severity`
+- `pushover_min_severity`
+
+V1 不提供 hard delete，archive 只會讓 source 退出 active registry，歷史資料仍保留外鍵關聯。
+
+後續版本加入：
+
 - test source action
 - backfill source action
-- enable / disable toggle
+- collector registry auto-reload 狀態提示
 
 ### 6.5 Processing
 
@@ -493,7 +517,7 @@ V1 `dashboard-web` 完成時應滿足：
 - `/timeline` 可查詢 raw items / events。
 - `/events` 可按 severity 查看事件。
 - `/events/:eventId` 可查看事件 detail。
-- `/sources` 可查看 source registry 與 health。
+- `/sources` 可查看與管理 source registry、health、scoring、translation policy、alert policy。
 - `/processing` 可查看 pending / failed processing。
 - `/alerts` 可查看 delivery status。
 - 所有列表支援基本 pagination。
@@ -504,7 +528,7 @@ V1 `dashboard-web` 完成時應滿足：
 
 V1 之後可逐步加入：
 
-- Source 管理 UI。
+- Source test / backfill action。
 - Claim Groups 專用頁面。
 - Market Move Review。
 - XAUUSD / DXY / US10Y / oil chart overlay。

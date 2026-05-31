@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import UUID
 
@@ -35,6 +36,167 @@ class DashboardRepository:
             select *
             from sources
             where id = %(source_id)s
+            """,
+            {"source_id": source_id},
+        )
+
+    async def source_exists(self, *, source_type: str, handle_or_url: str, exclude_source_id: UUID | None = None) -> bool:
+        row = await self._db.fetch_one(
+            """
+            select 1
+            from sources
+            where source_type = %(source_type)s
+              and lower(handle_or_url) = lower(%(handle_or_url)s)
+              and (%(exclude_source_id)s::uuid is null or id <> %(exclude_source_id)s::uuid)
+            limit 1
+            """,
+            {
+                "source_type": source_type,
+                "handle_or_url": handle_or_url,
+                "exclude_source_id": exclude_source_id,
+            },
+        )
+        return bool(row)
+
+    async def create_source(self, values: dict[str, Any]) -> dict[str, Any]:
+        params = dict(values)
+        params["source_config"] = json.dumps(params.get("source_config") or {})
+        return await self._db.fetch_one(
+            """
+            insert into sources (
+              name,
+              handle_or_url,
+              source_type,
+              source_group,
+              official_level,
+              stance,
+              language,
+              priority,
+              reliability_score,
+              latency_score,
+              requires_confirmation,
+              translation_policy,
+              translation_priority,
+              translation_max_chars,
+              always_full_translate,
+              telegram_alert_enabled,
+              pushover_alert_enabled,
+              telegram_min_severity,
+              pushover_min_severity,
+              alert_weight,
+              alert_rate_limit_per_hour,
+              alert_cooldown_minutes,
+              enabled,
+              source_config
+            )
+            values (
+              %(name)s,
+              %(handle_or_url)s,
+              %(source_type)s,
+              %(source_group)s,
+              %(official_level)s,
+              %(stance)s,
+              %(language)s,
+              %(priority)s,
+              %(reliability_score)s,
+              %(latency_score)s,
+              %(requires_confirmation)s,
+              %(translation_policy)s,
+              %(translation_priority)s,
+              %(translation_max_chars)s,
+              %(always_full_translate)s,
+              %(telegram_alert_enabled)s,
+              %(pushover_alert_enabled)s,
+              %(telegram_min_severity)s,
+              %(pushover_min_severity)s,
+              %(alert_weight)s,
+              %(alert_rate_limit_per_hour)s,
+              %(alert_cooldown_minutes)s,
+              %(enabled)s,
+              %(source_config)s::jsonb
+            )
+            returning *
+            """,
+            params,
+        ) or {}
+
+    async def update_source(self, source_id: UUID, values: dict[str, Any]) -> dict[str, Any] | None:
+        if not values:
+            return await self.get_source(source_id)
+
+        allowed_columns = {
+            "name",
+            "handle_or_url",
+            "source_type",
+            "source_group",
+            "official_level",
+            "stance",
+            "language",
+            "priority",
+            "reliability_score",
+            "latency_score",
+            "requires_confirmation",
+            "translation_policy",
+            "translation_priority",
+            "translation_max_chars",
+            "always_full_translate",
+            "telegram_alert_enabled",
+            "pushover_alert_enabled",
+            "telegram_min_severity",
+            "pushover_min_severity",
+            "alert_weight",
+            "alert_rate_limit_per_hour",
+            "alert_cooldown_minutes",
+            "enabled",
+            "source_config",
+        }
+        params: dict[str, Any] = {"source_id": source_id}
+        assignments: list[str] = []
+        for key, value in values.items():
+            if key not in allowed_columns:
+                continue
+            params[key] = json.dumps(value or {}) if key == "source_config" else value
+            cast = "::jsonb" if key == "source_config" else ""
+            assignments.append(f"{key} = %({key})s{cast}")
+
+        if not assignments:
+            return await self.get_source(source_id)
+
+        if "enabled" in values:
+            assignments.append("archived_at = case when %(enabled)s then null else archived_at end")
+        assignments.append("updated_at = now()")
+        return await self._db.fetch_one(
+            f"""
+            update sources
+            set {", ".join(assignments)}
+            where id = %(source_id)s
+            returning *
+            """,
+            params,
+        )
+
+    async def set_source_enabled(self, source_id: UUID, *, enabled: bool) -> dict[str, Any] | None:
+        return await self._db.fetch_one(
+            """
+            update sources
+            set enabled = %(enabled)s,
+                archived_at = case when %(enabled)s then null else archived_at end,
+                updated_at = now()
+            where id = %(source_id)s
+            returning *
+            """,
+            {"source_id": source_id, "enabled": enabled},
+        )
+
+    async def archive_source(self, source_id: UUID) -> dict[str, Any] | None:
+        return await self._db.fetch_one(
+            """
+            update sources
+            set enabled = false,
+                archived_at = coalesce(archived_at, now()),
+                updated_at = now()
+            where id = %(source_id)s
+            returning *
             """,
             {"source_id": source_id},
         )
@@ -256,42 +418,62 @@ def build_sources_query(filters: dict[str, Any]) -> QueryBuilder:
     builder = QueryBuilder(
         base_select="""
         select
-          id,
-          name,
-          handle_or_url,
-          source_type,
-          source_group,
-          official_level,
-          stance,
-          language,
-          priority,
-          reliability_score,
-          latency_score,
-          requires_confirmation,
-          translation_policy,
-          translation_priority,
-          translation_max_chars,
-          always_full_translate,
-          telegram_alert_enabled,
-          pushover_alert_enabled,
-          telegram_min_severity,
-          pushover_min_severity,
-          alert_weight,
-          alert_rate_limit_per_hour,
-          alert_cooldown_minutes,
-          enabled,
-          source_config,
-          created_at,
-          updated_at
-        from sources
+          s.id,
+          s.name,
+          s.handle_or_url,
+          s.source_type,
+          s.source_group,
+          s.official_level,
+          s.stance,
+          s.language,
+          s.priority,
+          s.reliability_score,
+          s.latency_score,
+          s.requires_confirmation,
+          s.translation_policy,
+          s.translation_priority,
+          s.translation_max_chars,
+          s.always_full_translate,
+          s.telegram_alert_enabled,
+          s.pushover_alert_enabled,
+          s.telegram_min_severity,
+          s.pushover_min_severity,
+          s.alert_weight,
+          s.alert_rate_limit_per_hour,
+          s.alert_cooldown_minutes,
+          s.enabled,
+          s.archived_at,
+          s.source_config,
+          s.created_at,
+          s.updated_at,
+          stats.last_raw_item_at,
+          coalesce(stats.raw_items_24h, 0) as raw_items_24h,
+          coalesce(event_stats.events_24h, 0) as events_24h
+        from sources s
+        left join lateral (
+          select
+            max(r.ingested_at) as last_raw_item_at,
+            count(*) filter (where r.ingested_at >= now() - interval '24 hours') as raw_items_24h
+          from raw_items r
+          where r.source_id = s.id
+        ) stats on true
+        left join lateral (
+          select count(*) as events_24h
+          from events e
+          where e.source_id = s.id
+            and e.detected_at >= now() - interval '24 hours'
+        ) event_stats on true
         """,
-        base_count="select count(*) as total from sources",
-        order_by="order by source_group, priority, name",
+        base_count="select count(*) as total from sources s",
+        order_by="order by s.source_group, s.priority, s.name",
     )
-    builder.add_equal("source_type", "source_type", filters.get("source_type"))
-    builder.add_equal("source_group", "source_group", filters.get("source_group"))
-    builder.add_equal("priority", "priority", filters.get("priority"))
-    builder.add_equal("enabled", "enabled", filters.get("enabled"))
+    builder.add_equal("s.source_type", "source_type", filters.get("source_type"))
+    builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
+    builder.add_equal("s.priority", "priority", filters.get("priority"))
+    builder.add_equal("s.enabled", "enabled", filters.get("enabled"))
+    archived = filters.get("archived")
+    if archived is not None:
+        builder.where.append("s.archived_at is not null" if archived else "s.archived_at is null")
     return builder
 
 

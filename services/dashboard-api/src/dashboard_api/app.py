@@ -21,6 +21,7 @@ from .repository import (
     build_source_health_query,
     build_sources_query,
 )
+from .models import SourceCreateRequest, SourceUpdateRequest
 from .settings import Settings
 
 
@@ -53,7 +54,7 @@ def create_app() -> FastAPI:
             CORSMiddleware,
             allow_origins=settings.cors_origin_list,
             allow_credentials=False,
-            allow_methods=["GET"],
+            allow_methods=["GET", "POST", "PATCH"],
             allow_headers=["Authorization", "X-API-Token", "Content-Type"],
         )
 
@@ -129,6 +130,7 @@ def create_app() -> FastAPI:
         source_group: str | None = None,
         priority: str | None = None,
         enabled: bool | None = None,
+        archived: bool | None = None,
         page: Annotated[int, Query(ge=1)] = 1,
         page_size: Annotated[int | None, Query(ge=1)] = None,
     ) -> dict[str, Any]:
@@ -138,13 +140,66 @@ def create_app() -> FastAPI:
                 "source_group": source_group,
                 "priority": priority,
                 "enabled": enabled,
+                "archived": archived,
             }
         )
         return await list_response(repository, builder, page, page_size, default_page_size)
 
+    @app.post("/sources", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_token)])
+    async def create_source(payload: SourceCreateRequest, repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        if await repository.source_exists(source_type=payload.source_type, handle_or_url=payload.handle_or_url):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Source with same type and handle_or_url already exists")
+        return await repository.create_source(payload.model_dump())
+
     @app.get("/sources/{source_id}", dependencies=[Depends(require_token)])
     async def get_source(source_id: UUID, repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
         source = await repository.get_source(source_id)
+        if not source:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+        return source
+
+    @app.patch("/sources/{source_id}", dependencies=[Depends(require_token)])
+    async def update_source(
+        source_id: UUID,
+        payload: SourceUpdateRequest,
+        repository: DashboardRepository = Depends(repo),
+    ) -> dict[str, Any]:
+        current = await repository.get_source(source_id)
+        if not current:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+
+        changes = payload.model_dump(exclude_unset=True)
+        next_source_type = changes.get("source_type", current["source_type"])
+        next_handle_or_url = changes.get("handle_or_url", current["handle_or_url"])
+        if await repository.source_exists(
+            source_type=next_source_type,
+            handle_or_url=next_handle_or_url,
+            exclude_source_id=source_id,
+        ):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Source with same type and handle_or_url already exists")
+
+        source = await repository.update_source(source_id, changes)
+        if not source:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+        return source
+
+    @app.post("/sources/{source_id}/enable", dependencies=[Depends(require_token)])
+    async def enable_source(source_id: UUID, repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        source = await repository.set_source_enabled(source_id, enabled=True)
+        if not source:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+        return source
+
+    @app.post("/sources/{source_id}/disable", dependencies=[Depends(require_token)])
+    async def disable_source(source_id: UUID, repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        source = await repository.set_source_enabled(source_id, enabled=False)
+        if not source:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+        return source
+
+    @app.post("/sources/{source_id}/archive", dependencies=[Depends(require_token)])
+    async def archive_source(source_id: UUID, repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        source = await repository.archive_source(source_id)
         if not source:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
         return source

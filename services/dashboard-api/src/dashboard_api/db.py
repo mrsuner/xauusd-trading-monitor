@@ -44,3 +44,8 @@ class Database:
                 await cur.execute(sql, dict(params or {}))
                 rows = await cur.fetchall()
         return list(rows)
+
+    async def execute(self, sql: str, params: Mapping[str, Any] | None = None) -> None:
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(sql, dict(params or {}))
