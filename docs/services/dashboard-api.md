@@ -16,6 +16,21 @@ V1 不要求完整前端，但建議先建立 API 邊界，方便 debug 與後�
 - 支援 alerts 查詢。
 - 提供基本 health endpoint。
 
+## 2.1 實作狀態
+
+目前已建立 `services/dashboard-api` 最小服務骨架：
+
+- FastAPI app factory。
+- PostgreSQL connection pool。
+- API token middleware。
+- CORS 設定。
+- read-only list / detail endpoints。
+- pagination helper。
+- Dockerfile。
+- `make dev` 本機啟動整合。
+
+V1 實作仍維持 read-only，不包含 source 管理寫入。
+
 ## 3. 非目標
 
 V1 不包含：
@@ -238,22 +253,33 @@ V1 如果只部署在 HomeLab 內網，可先使用簡單 API token。
 要求：
 
 - read-only DB user，除 health endpoint 外不寫資料。
+- `GET /health` 不需要 token。
+- 其他 endpoints 若設定 `API_TOKEN`，需使用 `Authorization: Bearer <token>` 或 `X-API-Token: <token>`。
 - 不暴露 secrets。
 - 不在 API 回傳 Telegram session path。
 - `raw_json` detail endpoint 需避免回傳敏感 auth 資訊。
 - 若透過 Tailscale / reverse proxy 對外，必須加 token。
 
-## 10. 設定項
+## 10. Runtime 設定
+
+必要 env：
 
 ```text
-APP_ENV=development
-SERVICE_NAME=dashboard-api
-DATABASE_URL=postgresql://...
-API_TOKEN=...
+DATABASE_URL=postgresql://xauusd:password@postgres:5432/xauusd_event_radar
+API_TOKEN=change-me
 CORS_ORIGINS=http://localhost:5173
 DEFAULT_PAGE_SIZE=50
 MAX_PAGE_SIZE=200
+HOST=0.0.0.0
+PORT=8080
 LOG_LEVEL=INFO
+```
+
+本機開發：
+
+```text
+make dev
+curl http://localhost:8080/health
 ```
 
 ## 11. Observability

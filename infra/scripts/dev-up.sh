@@ -101,6 +101,7 @@ start_service() {
 start_service "telegram-collector" "services/telegram-collector" telegram-collector run
 start_service "rss-collector" "services/rss-collector" rss-collector run
 start_service "normalizer-classifier" "services/normalizer-classifier" normalizer-classifier run
+start_service "dashboard-api" "services/dashboard-api" dashboard-api run
 
 sleep 2
 
