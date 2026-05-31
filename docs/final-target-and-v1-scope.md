@@ -143,10 +143,11 @@ V1 允許兩種模型路徑：
 
 | 模型路徑 | 用途 | 適用情境 |
 | --- | --- | --- |
-| local 8B model | 初篩、分類、摘要、低成本批量處理 | HomeLab 可用、延遲可接受 |
-| cloud small model | 高可靠摘要、相關度判斷、複雜 claim extraction | 重要來源、高優先級消息 |
+| cloud small model | V1 主分類、相關度判斷、claim extraction、impact channel | 使用 `gpt-5.4-mini`，重要來源、高優先級消息 |
+| local 8B model | 摘要、翻譯、低成本輔助處理 | HomeLab 可用、低風險任務 |
+| cloud nano model | 摘要、翻譯、低成本輔助處理 | 例如 `gpt-5.4-nano`，不作最終分類 |
 
-V1 不要求一開始同時實作兩種模型，但資料結構與服務介面應允許切換。
+V1 預設用 `gpt-5.4-mini` 做最終分類。local LLM 與 nano model 可降低摘要與翻譯成本，但不應單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 severity input。
 
 ## 6. V1 服務範圍
 

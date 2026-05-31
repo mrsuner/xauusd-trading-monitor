@@ -175,11 +175,19 @@ V1 支援以下模型路徑：
 
 | Route | 條件 | 說明 |
 | --- | --- | --- |
-| `local_8b` | 一般通過初篩消息 | 成本低，適合批量處理 |
-| `cloud_small` | P0 / P1 高價值來源或 local parse failed | 提高可靠度 |
+| `cloud_small` | V1 事件分類預設路徑 | 使用 `gpt-5.4-mini`，負責相關度、claim direction、impact channel、event severity input |
+| `local_8b` | 摘要、翻譯、低風險輔助任務 | 成本低，但不作 V1 最終相關度與分級判斷 |
+| `cloud_nano` | 摘要、翻譯、低風險輔助任務 | 例如 `gpt-5.4-nano`，可用於快速 summary / translation，不作 V1 主分類 |
 | `claude_code_agent` | 後續需要高階模型能力或工具型推理 | 備選 route，不阻塞 V1 |
 
 目前骨架已實作 `local_8b` 與 `cloud_small` 兩種 OpenAI-compatible `/chat/completions` route；兩者都使用相同的 JSON schema。`claude_code_agent` 保留在文件與部署設定中，尚未接入 runtime。
+
+V1 決策：
+
+- `gpt-5.4-mini` 是預設分類模型。
+- local LLM 與 `gpt-5.4-nano` 只用於 summary / translation / 輔助預處理。
+- 不讓 local LLM 或 nano model 單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 `severity`。
+- 若 cloud model 不可用，local route 可以暫時保留事件候選，但應標記為較低信心或等待 cloud retry。
 
 code interface 抽象為：
 
@@ -338,7 +346,7 @@ SERVICE_NAME=normalizer-classifier
 DATABASE_URL=postgresql://...
 WORKER_CONCURRENCY=4
 POLL_INTERVAL_SECONDS=2
-MODEL_ROUTE=local_8b
+MODEL_ROUTE=cloud_small
 LOCAL_MODEL_BASE_URL=http://localhost:11434/v1
 LOCAL_MODEL_API_KEY=
 LOCAL_MODEL_NAME=...
@@ -346,7 +354,7 @@ LOCAL_MODEL_RESPONSE_FORMAT=none
 LOCAL_MODEL_REASONING_EFFORT=
 CLOUD_MODEL_BASE_URL=https://api.openai.com/v1
 CLOUD_MODEL_API_KEY=...
-CLOUD_MODEL_NAME=...
+CLOUD_MODEL_NAME=gpt-5.4-mini
 CLOUD_MODEL_RESPONSE_FORMAT=json_object
 CLOUD_MODEL_REASONING_EFFORT=
 CLAUDE_CODE_AGENT_ENABLED=false

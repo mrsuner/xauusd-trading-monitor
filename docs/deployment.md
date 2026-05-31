@@ -120,7 +120,7 @@ http://192.168.1.50:11434
 Local LLM server
 ```
 
-如果 Local LLM 能力不足，`normalizer-classifier` 可切換到 cloud small model，例如 OpenAI GPT 5.5 mini 類型的模型或其他 OpenAI-compatible API。
+V1 預設使用 cloud small model 做事件分類；Local LLM 保留給摘要、翻譯與低風險輔助處理。如果 Local LLM 後續品質足夠，仍可透過相同 OpenAI-compatible 介面切換或作 fallback。
 
 ## 5. Secret 管理
 
@@ -248,9 +248,12 @@ MODEL_ROUTE=claude_code_agent
 
 Local LLM 適合：
 
-- 低成本批量初篩。
-- 可接受較高延遲的摘要與分類。
+- 低成本批量摘要。
+- 翻譯波斯語、希伯來語、阿拉伯語等非英文內容。
+- 低風險預處理與輔助資訊抽取。
 - HomeLab 內網可用時。
+
+V1 不建議 Local LLM 單獨負責最終事件分類、相關度分數、claim direction 或 severity input。這些欄位預設由 `cloud_small` 產生。
 
 必要設定：
 
@@ -263,17 +266,21 @@ LOCAL_MODEL_NAME=...
 
 Cloud small model 適合：
 
+- V1 預設事件分類。
 - 高優先級來源。
-- Local LLM JSON output 不穩定時。
-- 重要消息 fallback。
+- 相關度、claim direction、impact channel 與 confidence。
+- Local LLM / nano summary 後的最終判斷。
 
 必要設定：
 
 ```text
-CLOUD_MODEL_BASE_URL=...
+CLOUD_MODEL_BASE_URL=https://api.openai.com/v1
 CLOUD_MODEL_API_KEY=...
-CLOUD_MODEL_NAME=...
+CLOUD_MODEL_NAME=gpt-5.4-mini
+CLOUD_MODEL_RESPONSE_FORMAT=json_object
 ```
+
+`gpt-5.4-nano` 可作 summary / translation 輔助，但 V1 不作主分類模型。
 
 ### 9.3 Claude Code Agent SDK，備選
 
