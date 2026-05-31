@@ -9,7 +9,7 @@
 - source 增加後，`normalizer-classifier` 可能處理不完待處理消息，需要多 worker queue 與水平擴展能力。
 - Telegram channel 可能出現一組圖片加一則文字，V1 Timeline 需要避免顯示多則空白圖片消息。
 - `sources.priority`、`reliability_score`、`latency_score` 只能描述來源本身，不等於單條消息一定有交易價值；P0 source 也會發布日常新聞。
-- 消息源需要在 Dashboard 中新增、刪除、停用與測試。
+- 消息源需要在 Dashboard 中新增、archive、停用與測試。
 
 本文不替代既有服務文檔，而是補充 V1+ 的產品與工程規劃。實作時仍應分別更新：
 
@@ -21,18 +21,20 @@
 
 ## 2. 優先級
 
-| 項目 | 優先級 | 原因 |
-| --- | --- | --- |
-| 通知降噪與 source-aware alert policy | P0 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
-| AI token / model usage 統計 | P0 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
-| Normalizer 多 worker queue | P0 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
-| Per-item value scoring / Timeline relevance UI | P0 | 高優先 source 也會有低價值消息，需要把 AI relevance 與 source metadata 融合 |
-| Timeline 非文本消息降噪 | P1 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
-| Source management | P1 | 目前新增 source 仍偏工程操作，後續需要 Dashboard 管理 |
+| 項目 | 優先級 | 狀態 | 原因 |
+| --- | --- | --- | --- |
+| 通知降噪與 source-aware alert policy | P0 | 已完成第一版 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
+| AI token / model usage 統計 | P0 | 已完成第一版 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
+| Normalizer 多 worker queue | P0 | 待實作 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
+| Per-item value scoring / Timeline relevance UI | P0 | 待實作 | 高優先 source 也會有低價值消息，需要把 AI relevance 與 source metadata 融合 |
+| Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
+| Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
 
 ## 3. 通知降噪規劃
 
 ### 3.1 問題
+
+實作狀態：已完成第一版。`0005_source_alert_policy` 已新增 source-level alert policy 欄位，`alert-dispatcher` 已整合 source-aware score、Pushover allowlist、rate limit / cooldown 與 backfill mode。
 
 V1 上線後，Telegram / RSS sources 的消息密度高。即使 classifier 已經做相關度判斷，仍可能產生過多事件與通知：
 
@@ -449,13 +451,16 @@ V1 簡化版：
 
 ### 7.1 問題
 
+實作狀態：部分完成。`dashboard-api` 與 `dashboard-web` 已支援 source create / edit / enable / disable / archive，且不提供 hard delete。尚未完成 source test、source backfill 與 collector registry auto-reload。
+
 目前 source registry 已在 DB 中，但管理仍偏 seed / migration / SQL 操作。後續需要從 Dashboard 完成：
 
-- 新增 Telegram channel。
-- 新增 RSS / HTML polling source。
-- 停用 noisy source。
-- 修改 priority、reliability、translation policy、alert policy。
-- 測試 source 是否可讀。
+- 新增 Telegram channel。已完成。
+- 新增 RSS / HTML polling source。已完成 UI / API 層，collector reload 仍待補強。
+- 停用 noisy source。已完成。
+- Archive retired source。已完成，不 hard delete。
+- 修改 priority、reliability、translation policy、alert policy。已完成。
+- 測試 source 是否可讀。待實作。
 
 ### 7.2 Dashboard API endpoints
 
@@ -466,17 +471,17 @@ GET /sources
 GET /sources/{source_id}
 POST /sources
 PATCH /sources/{source_id}
-DELETE /sources/{source_id}
 POST /sources/{source_id}/enable
 POST /sources/{source_id}/disable
+POST /sources/{source_id}/archive
 POST /sources/{source_id}/test
 POST /sources/{source_id}/backfill
 ```
 
-刪除策略：
+Archive 策略：
 
 - V1 不做 hard delete。
-- `DELETE /sources/{source_id}` 實際執行 soft delete 或 `enabled=false`。
+- `POST /sources/{source_id}/archive` 會設定 `enabled=false` 與 `archived_at`。
 - 保留歷史 `raw_items`、`events` 與 `alerts` 的外鍵語意。
 
 ### 7.3 Source test 行為
@@ -507,9 +512,10 @@ HTML polling source test：
 
 - Filter：source type、priority、enabled、source group、official level。
 - 列表：name、handle/url、priority、reliability、alert policy、translation policy、health。
-- Actions：enable、disable、edit、test、backfill。
+- Actions：create、edit、enable、disable、archive 已完成；test、backfill 待實作。
 - Edit drawer / modal：修改 source metadata。
 - Create source flow：選擇 Telegram / RSS / HTML polling 後填寫必要欄位。
+- 可枚舉欄位使用 dropdown，避免自由輸入造成 registry 不一致。
 
 ### 7.5 權限與安全
 
@@ -716,33 +722,47 @@ event_id / has_event
 
 ### Phase 6: Source management API
 
-- 新增 `dashboard-api` write endpoints。
-- 加入 source validation / test。
-- soft delete / enable / disable。
-- 支援小範圍 backfill。
+實作狀態：部分完成。
+
+- [x] 新增 `dashboard-api` write endpoints。
+- [x] 加入 pydantic source validation。
+- [x] enable / disable。
+- [x] archive，不做 hard delete。
+- [ ] source test。
+- [ ] 支援小範圍 backfill。
+- [ ] collector registry auto-reload。
 
 驗收：
 
-- 不改 SQL 即可停用 noisy source。
-- 可新增 Telegram / RSS source 並測試。
+- [x] 不改 SQL 即可停用 noisy source。
+- [x] 可新增 Telegram / RSS source。
+- [ ] 可測試 Telegram / RSS source 是否可讀。
+- [ ] 新增 source 後 collector 可不重啟生效。
 
 ### Phase 7: Source management UI
 
-- 新增 `Sources` 頁面。
-- 支援 create/edit/disable/test/backfill。
-- 在 Timeline / Processing filter 中使用 source metadata。
+實作狀態：部分完成。
+
+- [x] 新增 `Sources` 頁面。
+- [x] 支援 create / edit / enable / disable / archive。
+- [x] 可枚舉欄位使用 dropdown。
+- [x] 顯示 source alert policy、translation policy、health 與 24h activity。
+- [ ] test source action。
+- [ ] backfill source action。
+- [ ] 在 Timeline / Processing filter 中補齊所有 source metadata filter。
 
 驗收：
 
-- Dashboard 可完成日常 source registry 維護。
-- 修改 source policy 後 collector / dispatcher 可在短時間內生效。
+- [x] Dashboard 可完成日常 source registry 維護。
+- [x] 修改 source policy 後 dispatcher 可在下一輪查詢中使用新 policy。
+- [ ] 修改 collector source registry 後可在短時間內自動生效。
 
 ## 10. 開放問題
 
 - `alert_score` 已保存到 `alerts` 表，方便後續 audit。
 - Pushover allowlist 放在 source 欄位還是全局 policy config？V1 建議 source 欄位，便於 Dashboard 管理。
 - AI token usage 是否需要保存 prompt hash？建議保存 hash，不保存完整 prompt，避免資料量與隱私問題。
-- Source management 的 `DELETE` 是否命名為 `archive` 更清楚？API 可用 `DELETE`，UI 顯示為 Disable / Archive。
+- Source management 已採用 `POST /sources/{source_id}/archive`，不提供 `DELETE`。
 - Backfill 是否需要單獨標記到 `raw_item_processing`？建議新增 `ingest_mode` 或在 `raw_json` / processing metadata 保存 `backfill=true`。
 - Telegram media-only raw item 是否應在 API 層預設過濾，或由 Dashboard Web filter 控制？V1 建議 API 預設過濾，保留 query param 用於 debug。
 - 是否需要把 `item_value_score` 與 `relevance_score` 拆開？短期可共用 `relevance_score`，長期建議拆開，避免 source weighting 與模型相關度混在同一欄位。
