@@ -1,6 +1,6 @@
 # XAUUSD Event Radar MVP Overview
 
-> V1 實作範圍已收斂為新聞消息層：Telegram / RSS / 官方頁面採集、原始入庫、預處理、模型相關度判斷與通知。`mt5-collector`、`market_snapshots` 與行情異動反查屬於後續版本。最新範圍定義請見 [最終目標與 V1 實作範圍](./final-target-and-v1-scope.md)。
+> V1 實作範圍已收斂為新聞消息層：Telegram / RSS / 官方頁面採集、原始入庫、預處理、模型相關度判斷與通知。`mt5-collector`、`market_snapshots` 與行情異動反查屬於後續版本。最新範圍定義請見 [最終目標與 V1 實作範圍](./final-target-and-v1-scope.md)。首次 HomeLab 上線後的降噪、AI 成本統計與 source 管理規劃請見 [Production Feedback Roadmap](./production-feedback-roadmap.md)。
 
 ## 1. 專案定位
 
