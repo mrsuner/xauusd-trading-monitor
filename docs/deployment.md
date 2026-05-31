@@ -359,8 +359,8 @@ V1 對它的定位：
 | Service | Port | Exposure |
 | --- | --- | --- |
 | PostgreSQL | 5432 | Docker network only，除非需要管理 |
-| dashboard-api | 8080 | HomeLab / Tailscale only |
-| dashboard-web | 5173 | HomeLab / Tailscale only |
+| dashboard-api | `${DASHBOARD_API_HOST_PORT:-8080}` | 預設只綁定 `127.0.0.1`，供 debug 使用 |
+| dashboard-web | `${DASHBOARD_WEB_HOST_PORT:-5173}` | HomeLab / Tailscale only |
 | collectors | none | 不暴露 |
 | alert-dispatcher | none | 不暴露 |
 | normalizer-classifier | none | 不暴露 |
