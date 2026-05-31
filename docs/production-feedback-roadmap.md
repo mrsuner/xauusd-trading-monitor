@@ -8,6 +8,7 @@
 - AI 使用成本需要可觀測，包含 input token、output token、model、provider 與 route。
 - source 增加後，`normalizer-classifier` 可能處理不完待處理消息，需要多 worker queue 與水平擴展能力。
 - Telegram channel 可能出現一組圖片加一則文字，V1 Timeline 需要避免顯示多則空白圖片消息。
+- `sources.priority`、`reliability_score`、`latency_score` 只能描述來源本身，不等於單條消息一定有交易價值；P0 source 也會發布日常新聞。
 - 消息源需要在 Dashboard 中新增、刪除、停用與測試。
 
 本文不替代既有服務文檔，而是補充 V1+ 的產品與工程規劃。實作時仍應分別更新：
@@ -25,6 +26,7 @@
 | 通知降噪與 source-aware alert policy | P0 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
 | AI token / model usage 統計 | P0 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
 | Normalizer 多 worker queue | P0 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
+| Per-item value scoring / Timeline relevance UI | P0 | 高優先 source 也會有低價值消息，需要把 AI relevance 與 source metadata 融合 |
 | Timeline 非文本消息降噪 | P1 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 目前新增 source 仍偏工程操作，後續需要 Dashboard 管理 |
 
@@ -519,7 +521,125 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - test endpoint 需要 timeout。
 - backfill endpoint 需要限制時間窗口與數量。
 
-## 8. 建議實作順序
+## 8. Per-item Value Scoring 與 Timeline Relevance UI
+
+### 8.1 問題
+
+`sources.priority`、`sources.reliability_score`、`sources.latency_score` 描述的是來源層級，不是單條消息層級。上線後已觀察到：即使是 P0 / semi-official source，例如 Tasnim News，也會發布大量日常或背景性新聞。這些消息來源可靠，但未必與 XAUUSD、地緣衝突、Fed、制裁、能源或市場異動有直接關係。
+
+典型例子：
+
+```text
+在2024年9月20日和2025年3月20日，伊朗社會出現兩種截然不同的反應，為何會如此？本報採訪了大學教授阿米尼博士，探討其背後原因。
+
+Source:
+  name: Tasnim News
+  official_level: semi_official
+  priority: P0
+```
+
+這類消息不應因為 source 是 P0 就在 Timeline 視覺上被視為高價值，也不應提升通知權重。
+
+### 8.2 設計原則
+
+- Source priority 是來源權重，不是消息價值。
+- 單條消息的展示與通知應以 `raw_item_processing.relevance_score`、`events.relevance_score`、`event_type`、`claim_direction`、`market_relevance` 等 item-level / event-level 結果為主。
+- Source metadata 只作為加權因子，不應覆蓋 AI relevance 與 deterministic keyword / actor scoring。
+- P0 source 的低相關消息應能保留在 DB 與 Processing 頁，但 Timeline 預設可以降權、淡化或隱藏。
+- UI 應清楚區分：
+  - source priority：來源重要性。
+  - relevance score：此消息對本系統目標的相關性。
+  - alert score：此事件是否值得通知。
+
+### 8.3 Scoring fusion 方向
+
+後續 `normalizer-classifier` 與 `alert-dispatcher` 應採用可解釋的融合分數，而不是只看 source priority：
+
+```text
+item_value_score =
+  ai_relevance_score
+  + event_type_weight
+  + actor_weight
+  + keyword_weight
+  + source_priority_weight
+  + source_reliability_weight
+  - routine_news_penalty
+  - commentary_penalty
+  - duplicate_penalty
+```
+
+其中：
+
+| 因子 | 說明 |
+| --- | --- |
+| `ai_relevance_score` | Layer 2 對單條消息與 XAUUSD Event Radar 目標的相關度 |
+| `event_type_weight` | Fed、制裁、軍事、核、霍爾木茲、Trump 等高價值類型加權 |
+| `actor_weight` | Trump、Fed 官員、CENTCOM、IRGC、最高領袖、IDF 等行動者加權 |
+| `source_priority_weight` | P0/P1 source 的來源權重，但只能有限加分 |
+| `source_reliability_weight` | 官方/半官方/可信媒體可提高可信度 |
+| `routine_news_penalty` | 社會評論、歷史回顧、日常政治新聞、人物訪談等降權 |
+| `commentary_penalty` | 分析評論或非即時消息降權 |
+| `duplicate_penalty` | 重複轉述或同源重發降權 |
+
+重要限制：
+
+- `source_priority_weight` 不應大到讓低相關 P0 消息變成高價值消息。
+- `reliability_score` 應主要影響可信度，不應直接等同交易相關性。
+- `latency_score` 只應影響突發消息時效評估，不應讓日常消息提升通知等級。
+
+### 8.4 Timeline UI 方向
+
+Timeline 應加入 item-level relevance 展示與過濾：
+
+- 新增 filter：
+  - `min_relevance_score`
+  - `event_type`
+  - `is_relevant`
+  - `has_event`
+  - `source_priority`
+  - `source_group`
+- 卡片視覺分層：
+  - 高 relevance：正常或高亮顯示。
+  - 中 relevance：正常顯示但不突出。
+  - 低 relevance：預設可折疊、淡化或在「All raw items」模式才顯示。
+- 卡片上同時顯示：
+  - source priority badge。
+  - relevance score / item value score。
+  - classification reason / filter reason。
+  - 是否已產生 event。
+- Timeline 預設視圖建議由「所有 raw items」改為「relevant-first timeline」，保留 Debug / All 模式查看完整採集流。
+
+### 8.5 API / DB 方向
+
+V1 現有 `raw_item_processing.relevance_score` 可先作為 Timeline relevance 的主要來源，不必立即新增欄位。後續若需要更清楚分離概念，可新增：
+
+```text
+raw_item_processing.item_value_score
+raw_item_processing.routing_decision
+raw_item_processing.routine_news_score
+raw_item_processing.classification_tags
+```
+
+Dashboard API 可先在 Timeline / raw items endpoint join 最新 processing row，回傳：
+
+```text
+is_relevant
+relevance_score
+filter_reason
+classification_stage
+classification_status
+event_id / has_event
+```
+
+### 8.6 驗收
+
+- P0 source 的日常消息不會在 Timeline 被誤認為高價值。
+- Timeline 可以用 `min_relevance_score` 或 `is_relevant` 過濾低價值消息。
+- 卡片同時顯示 source priority 與 item relevance，避免概念混淆。
+- 通知策略不會因 source 是 P0 就放大低相關消息。
+- Processing / Debug 頁仍能查看被降權或跳過的消息，方便調整 prompt 與 scoring。
+
+## 9. 建議實作順序
 
 ### Phase 1: 通知降噪
 
@@ -567,7 +687,22 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - pending backlog 可被多 worker 加速消化。
 - crash / restart 後任務可恢復。
 
-### Phase 4: Timeline 非文本消息降噪
+### Phase 4: Per-item value scoring / Timeline relevance UI
+
+- Timeline / raw items endpoint join 最新 `raw_item_processing` 結果。
+- 回傳 `is_relevant`、`relevance_score`、`filter_reason` 與 `has_event`。
+- Timeline 新增 `min_relevance_score`、`is_relevant`、`has_event` filters。
+- Timeline card 同時顯示 source priority 與 item relevance。
+- 低 relevance 消息預設淡化或只在 Debug / All 模式顯示。
+- 調整 `alert-dispatcher` 權重，避免 source P0 放大低相關消息。
+
+驗收：
+
+- P0 source 的日常消息不再被視覺或通知策略誤判為高價值。
+- Timeline 可快速聚焦 relevant-first 事件流。
+- Processing 仍能查到低 relevance 消息與模型判斷原因。
+
+### Phase 5: Timeline 非文本消息降噪
 
 - Dashboard API / web 預設過濾 media-only raw item。
 - Timeline card fallback 僅在有 `summary_zh` / `summary_en` / `text_clean` / `text_raw` 時顯示。
@@ -579,7 +714,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - 帶 caption 的消息仍正常顯示。
 - 原始 media-only raw item 不從 DB 刪除。
 
-### Phase 5: Source management API
+### Phase 6: Source management API
 
 - 新增 `dashboard-api` write endpoints。
 - 加入 source validation / test。
@@ -591,7 +726,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - 不改 SQL 即可停用 noisy source。
 - 可新增 Telegram / RSS source 並測試。
 
-### Phase 6: Source management UI
+### Phase 7: Source management UI
 
 - 新增 `Sources` 頁面。
 - 支援 create/edit/disable/test/backfill。
@@ -602,7 +737,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - Dashboard 可完成日常 source registry 維護。
 - 修改 source policy 後 collector / dispatcher 可在短時間內生效。
 
-## 9. 開放問題
+## 10. 開放問題
 
 - `alert_score` 已保存到 `alerts` 表，方便後續 audit。
 - Pushover allowlist 放在 source 欄位還是全局 policy config？V1 建議 source 欄位，便於 Dashboard 管理。
@@ -610,3 +745,4 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - Source management 的 `DELETE` 是否命名為 `archive` 更清楚？API 可用 `DELETE`，UI 顯示為 Disable / Archive。
 - Backfill 是否需要單獨標記到 `raw_item_processing`？建議新增 `ingest_mode` 或在 `raw_json` / processing metadata 保存 `backfill=true`。
 - Telegram media-only raw item 是否應在 API 層預設過濾，或由 Dashboard Web filter 控制？V1 建議 API 預設過濾，保留 query param 用於 debug。
+- 是否需要把 `item_value_score` 與 `relevance_score` 拆開？短期可共用 `relevance_score`，長期建議拆開，避免 source weighting 與模型相關度混在同一欄位。
