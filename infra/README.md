@@ -12,6 +12,7 @@ Compose 啟動時會先等待 PostgreSQL healthy，再執行 `db-migrate` one-sh
 | --- | --- |
 | `docker-compose.prod.yml` | HomeLab production compose |
 | `.env.example` | production env template |
+| `scripts/docker-images.sh` | build / push production Docker images |
 
 實際 secrets 放在：
 
@@ -23,9 +24,24 @@ infra/.env
 
 ## 啟動
 
+開發機 build 並推送 images：
+
+```bash
+IMAGE_TAG=$(git rev-parse --short HEAD) make docker-build
+IMAGE_TAG=$(git rev-parse --short HEAD) make docker-push
+```
+
+HomeLab server 拉取並啟動：
+
 ```bash
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml pull
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d
+```
+
+Dashboard UI 預設位於：
+
+```text
+http://<homelab-host>:5173
 ```
 
 ## 更新

@@ -25,12 +25,12 @@ V1 只部署新聞消息層：
 - `normalizer-classifier`
 - `alert-dispatcher`
 - `dashboard-api`，可選但建議保留作為 debug API
+- `dashboard-web`，HomeLab 內網 Dashboard UI
 
 V1 不部署：
 
 - `mt5-collector`
 - market data collector
-- full dashboard web
 - RabbitMQ / Kafka
 
 ## 2. 目錄約定
@@ -42,6 +42,8 @@ infra/
   README.md
   docker-compose.prod.yml
   .env.example
+  scripts/
+    docker-images.sh
 ```
 
 未來可擴充：
@@ -67,6 +69,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>
+ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>
 ```
 
 Tag 策略：
@@ -82,21 +85,23 @@ HomeLab 部署建議使用 git SHA 或 semver，不建議長期使用 `latest`�
 開發機或 CI 的典型流程：
 
 ```bash
-docker build -t ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:<tag> -f services/telegram-collector/Dockerfile .
-docker push ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:<tag>
+IMAGE_TAG=$(git rev-parse --short HEAD) make docker-build
+IMAGE_TAG=$(git rev-parse --short HEAD) make docker-push
 ```
 
-其他服務同理：
+這會依序 build / push：
 
 ```text
+db-migrate
+telegram-collector
 rss-collector
 normalizer-classifier
 alert-dispatcher
 dashboard-api
-db-migrate
+dashboard-web
 ```
 
-實際 Dockerfile 路徑會在程式碼結構確定後固定。部署文件先約定 image 命名與發佈方式。
+`infra/scripts/docker-images.sh` 使用 monorepo root 作為 build context，並使用各服務自己的 Dockerfile。
 
 ## 4. HomeLab Runtime
 
@@ -178,6 +183,7 @@ Telethon session 特別重要：
 5. `normalizer-classifier`
 6. `alert-dispatcher`
 7. `dashboard-api`
+8. `dashboard-web`
 
 Docker Compose 使用 `depends_on.condition` 控制順序：application services 等待 PostgreSQL healthy，並等待 `db-migrate` `service_completed_successfully`。服務本身仍需實作 DB retry，不能只依賴 Compose 順序。
 
@@ -208,6 +214,18 @@ docker login ghcr.io
 ```bash
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml pull
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d
+```
+
+Dashboard 預設暴露在 HomeLab server：
+
+```text
+http://<homelab-host>:5173
+```
+
+Dashboard API 預設暴露在：
+
+```text
+http://<homelab-host>:8080
 ```
 
 ### 8.2 更新部署
@@ -336,6 +354,7 @@ V1 對它的定位：
 | --- | --- | --- |
 | PostgreSQL | 5432 | Docker network only，除非需要管理 |
 | dashboard-api | 8080 | HomeLab / Tailscale only |
+| dashboard-web | 5173 | HomeLab / Tailscale only |
 | collectors | none | 不暴露 |
 | alert-dispatcher | none | 不暴露 |
 | normalizer-classifier | none | 不暴露 |
@@ -373,3 +392,4 @@ V1 最低備份：
 - `normalizer-classifier` 能連到 Local LLM 或 cloud model。
 - `alert-dispatcher` 能發送 Telegram / Pushover。
 - `dashboard-api` 能查詢 health、events、alerts。
+- `dashboard-web` 能在 HomeLab 內網瀏覽 Timeline、Processing、Events 與 Alerts。

@@ -3,7 +3,7 @@ SHELL := /bin/bash
 DEV_ENV ?= infra/.env.dev
 DEV_COMPOSE := docker compose --env-file $(DEV_ENV) -f infra/docker-compose.dev.yml
 
-.PHONY: dev dev-stop dev-status dev-logs dev-db dev-migrate compose-config test web-build
+.PHONY: dev dev-stop dev-status dev-logs dev-db dev-migrate compose-config test web-build docker-build docker-push docker-build-push
 
 dev:
 	@infra/scripts/dev-up.sh "$(DEV_ENV)"
@@ -36,3 +36,12 @@ test:
 
 web-build:
 	@cd apps/dashboard-web && npm run build
+
+docker-build:
+	@infra/scripts/docker-images.sh build
+
+docker-push:
+	@infra/scripts/docker-images.sh push
+
+docker-build-push:
+	@infra/scripts/docker-images.sh build-push
