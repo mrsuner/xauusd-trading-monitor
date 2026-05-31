@@ -1,10 +1,119 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import type { RawItem } from "../api/types";
 import { OfficialBadge, PriorityBadge } from "../components/Badges";
 import { ErrorPanel } from "../components/DataState";
 import { formatTime } from "../components/Format";
 import { PageHeader } from "../components/Layout";
+
+/** Heuristic: only offer collapse when content is long enough to be clamped. */
+function isCollapsible(text: string): boolean {
+  return text.length > 280 || text.split("\n").length > 6;
+}
+
+function MetaField({ label, tip, children }: { label: string; tip?: string; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1" title={tip}>
+      <span className="text-[10px] font-medium uppercase tracking-wide text-base-content/40">{label}</span>
+      {children}
+    </span>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`transition-transform ${open ? "rotate-180" : ""}`}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function RawItemCard({ item }: { item: RawItem }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const summary = item.summary_zh || item.summary_en || item.text_clean || item.text_raw || "-";
+  const fullTranslation = item.full_translation_zh || item.full_translation_en;
+  const originalContent = item.text_clean || item.text_raw || "-";
+  const title = item.title || item.source_name;
+  const contentLabel = fullTranslation ? "Full translation" : "Original content";
+  const contentText = fullTranslation || originalContent;
+  const collapsible = isCollapsible(contentText);
+
+  return (
+    <article className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-base-content/60">
+        <span className="font-mono text-base-content/70">{formatTime(item.published_at || item.ingested_at)}</span>
+        <span className="font-medium text-base-content">{item.source_name}</span>
+        <MetaField label="Official" tip="Source official level">
+          <OfficialBadge value={item.official_level} />
+        </MetaField>
+        <MetaField label="Priority" tip="Source priority tier (P0 is highest)">
+          <PriorityBadge value={item.priority} />
+        </MetaField>
+        <MetaField label="Group" tip="Source group">
+          <span className="rounded bg-base-200 px-2 py-0.5">{item.source_group}</span>
+        </MetaField>
+        <MetaField label="Translation" tip="Translation pipeline status">
+          <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
+        </MetaField>
+      </div>
+      {item.title ? <h2 className="mb-2 text-sm font-semibold text-base-content">{title}</h2> : null}
+      <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-base-content/80">{summary}</p>
+      <div className="mb-3 rounded border border-base-200 bg-base-200/30 p-3">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-base-content/60">{contentLabel}</span>
+          {collapsible ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs gap-1 text-base-content/60"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? "Show less" : "Show more"}
+              <ChevronIcon open={expanded} />
+            </button>
+          ) : null}
+        </div>
+        <p
+          className={`whitespace-pre-wrap text-sm leading-6 text-base-content/75 ${
+            collapsible && !expanded ? "line-clamp-6" : ""
+          }`}
+        >
+          {contentText}
+        </p>
+      </div>
+      <div className="grid gap-2 text-xs text-base-content/55 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className="min-w-0">
+          <span className="mr-2 font-medium text-base-content/70">id</span>
+          <span className="break-all font-mono">{item.id}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="mr-2 font-medium text-base-content/70">url</span>
+          {item.url ? (
+            <a className="link link-hover break-all" href={item.url} target="_blank" rel="noreferrer">
+              {item.url}
+            </a>
+          ) : (
+            <span>-</span>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 const SOURCE_TYPES = [
   { label: "All source types", value: "" },
@@ -104,51 +213,7 @@ export function Timeline() {
             No raw items in selected range.
           </div>
         ) : null}
-        {query.data?.items.map((item) => {
-          const summary = item.summary_zh || item.summary_en || item.text_clean || item.text_raw || "-";
-          const fullTranslation = item.full_translation_zh || item.full_translation_en;
-          const originalContent = item.text_clean || item.text_raw || "-";
-          const title = item.title || item.source_name;
-
-          return (
-            <article key={item.id} className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-base-content/60">
-                <span>{formatTime(item.published_at || item.ingested_at)}</span>
-                <span className="font-medium text-base-content">{item.source_name}</span>
-                <OfficialBadge value={item.official_level} />
-                <PriorityBadge value={item.priority} />
-                <span className="rounded bg-base-200 px-2 py-0.5">{item.source_group}</span>
-                <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
-              </div>
-              {item.title ? <h2 className="mb-2 text-sm font-semibold text-base-content">{title}</h2> : null}
-              <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-base-content/80">{summary}</p>
-              <div className="mb-3 rounded border border-base-200 bg-base-200/30 p-3">
-                <div className="mb-1 text-xs font-medium text-base-content/60">
-                  {fullTranslation ? "Full translation" : "Original content"}
-                </div>
-                <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-6 text-base-content/75">
-                  {fullTranslation || originalContent}
-                </p>
-              </div>
-              <div className="grid gap-2 text-xs text-base-content/55 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-                <div className="min-w-0">
-                  <span className="mr-2 font-medium text-base-content/70">id</span>
-                  <span className="break-all font-mono">{item.id}</span>
-                </div>
-                <div className="min-w-0">
-                  <span className="mr-2 font-medium text-base-content/70">url</span>
-                  {item.url ? (
-                    <a className="link link-hover break-all" href={item.url} target="_blank" rel="noreferrer">
-                      {item.url}
-                    </a>
-                  ) : (
-                    <span>-</span>
-                  )}
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        {query.data?.items.map((item) => <RawItemCard key={item.id} item={item} />)}
       </div>
     </>
   );
