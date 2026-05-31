@@ -114,6 +114,13 @@ def create_app() -> FastAPI:
     async def stats_overview(repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
         return await repository.overview_stats()
 
+    @app.get("/stats/ai-usage", dependencies=[Depends(require_token)])
+    async def stats_ai_usage(
+        repository: DashboardRepository = Depends(repo),
+        hours: Annotated[int, Query(ge=1, le=720)] = 24,
+    ) -> dict[str, Any]:
+        return await repository.ai_usage_stats(hours=hours)
+
     @app.get("/sources", dependencies=[Depends(require_token)])
     async def list_sources(
         repository: DashboardRepository = Depends(repo),

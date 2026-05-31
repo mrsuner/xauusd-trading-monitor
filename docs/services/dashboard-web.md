@@ -265,9 +265,22 @@ V1 可以只讀。後續版本加入：
 
 - 排查 `normalizer-classifier` 的 pending / running / failed 任務。
 - 檢查模型結果與低相關消息過濾情況。
+- 查看 AI Layer 1 / Layer 2 的 24h token usage、估算成本與 latency。
 
 主要元素：
 
+- AI usage summary cards：
+  - 24h call count / failure count
+  - input / output / total tokens
+  - estimated cost
+  - top model
+- AI usage by layer：
+  - `translation_summary`
+  - `classification_reasoning`
+  - call count
+  - tokens
+  - estimated cost
+  - average latency
 - processing table：
   - raw item id
   - source

@@ -132,6 +132,7 @@ V1 必要資料表：
 | `events` | 已判定有價值的標準事件 |
 | `event_claims` | V1 簡化 claim 保存 |
 | `alerts` | Telegram / Pushover delivery tracking |
+| `ai_model_calls` | AI API call、token usage、model route 與成本估算 |
 | `source_health` | source 與 collector health |
 | `schema_migrations` | migration 版本紀錄，若不用 Alembic 可保留 |
 
@@ -771,15 +772,84 @@ create index alerts_channel_created_idx
   on alerts (channel, created_at desc);
 ```
 
-## 12. source_health
+## 12. ai_model_calls
 
 ### 12.1 用途
+
+`ai_model_calls` 保存 `normalizer-classifier` 每次 AI API 呼叫的 usage 與成本資料，用於評估運行成本、模型品質與不同 source 對 AI call 的消耗。
+
+記錄原則：
+
+- 優先使用 provider response 的 `usage.prompt_tokens`、`usage.completion_tokens`、`usage.total_tokens`。
+- 若 provider 未回傳 usage，使用 OpenAI 官方 tokenizer library `tiktoken` 估算，並在 `usage_json.estimated = true` 標記。
+- 保存 `request_hash`，不保存完整 prompt。
+- 成本先使用內建 pricing table，後續可移到 `infra/model-pricing.json`。
+
+目前 V1 pricing：
+
+| Provider / Model | Input / M token | Output / M token |
+| --- | --- | --- |
+| `openai_compatible:gpt-5.4-mini` | `$0.75` | `$4.50` |
+| `openrouter:openai/gpt-oss-20b` | `$0.029` | `$0.14` |
+| `openrouter:openai/gpt-oss-20b:free` | `$0` | `$0` |
+
+### 12.2 欄位
+
+```sql
+create table ai_model_calls (
+  id uuid primary key default gen_random_uuid(),
+  raw_item_id uuid references raw_items(id) on delete set null,
+  event_id uuid references events(id) on delete set null,
+  source_id uuid references sources(id) on delete set null,
+  service_name text not null,
+  ai_layer text not null,
+  route_name text not null,
+  provider text not null,
+  model_name text not null,
+  request_kind text not null,
+  input_tokens integer,
+  output_tokens integer,
+  total_tokens integer,
+  estimated_cost_usd numeric(12, 6),
+  latency_ms integer,
+  success boolean not null,
+  error_type text,
+  error_message text,
+  response_format text,
+  usage_json jsonb not null default '{}'::jsonb,
+  request_hash text,
+  created_at timestamptz not null default now()
+);
+```
+
+### 12.3 Indexes
+
+```sql
+create index ai_model_calls_created_idx
+  on ai_model_calls (created_at desc);
+
+create index ai_model_calls_model_idx
+  on ai_model_calls (provider, model_name, created_at desc);
+
+create index ai_model_calls_source_idx
+  on ai_model_calls (source_id, created_at desc);
+
+create index ai_model_calls_layer_idx
+  on ai_model_calls (ai_layer, created_at desc);
+
+create index ai_model_calls_raw_item_idx
+  on ai_model_calls (raw_item_id, created_at desc);
+```
+
+## 13. source_health
+
+### 13.1 用途
 
 `source_health` 保存 collector 對每個 source 的運行狀態，供 Dashboard API 與人工排障使用。
 
 同一個 source 可能被不同 service 使用，因此 unique key 應包含 `service_name`。
 
-### 12.2 欄位
+### 13.2 欄位
 
 ```sql
 create table source_health (
@@ -811,7 +881,7 @@ create table source_health (
 );
 ```
 
-### 12.3 Indexes
+### 13.3 Indexes
 
 ```sql
 create unique index source_health_source_service_uidx
@@ -824,7 +894,7 @@ create index source_health_service_idx
   on source_health (service_name, updated_at desc);
 ```
 
-## 13. schema_migrations
+## 14. schema_migrations
 
 若使用 Alembic，Alembic 會管理版本表。若不用 Alembic，可使用簡單表：
 
@@ -837,9 +907,9 @@ create table schema_migrations (
 
 V1 建議使用 Alembic，因為 Python 後端服務為主。incremental migration 與 Docker Compose boot-time migration job 詳見 [Database Migration 策略](./database-migrations.md)。
 
-## 14. Triggers 與 NOTIFY
+## 15. Triggers 與 NOTIFY
 
-### 14.1 updated_at trigger
+### 15.1 updated_at trigger
 
 所有有 `updated_at` 的表建議共用：
 
@@ -863,7 +933,7 @@ for each row execute function set_updated_at();
 
 其他表同理。
 
-### 14.2 raw item processing task trigger
+### 15.2 raw item processing task trigger
 
 V1 建議在 `raw_items` insert 後自動建立 processing row：
 
@@ -889,7 +959,7 @@ after insert on raw_items
 for each row execute function enqueue_raw_item_processing();
 ```
 
-### 14.3 event created notify
+### 15.3 event created notify
 
 `events` insert 後通知 `alert-dispatcher`：
 
@@ -911,9 +981,9 @@ after insert on events
 for each row execute function notify_event_created();
 ```
 
-## 15. Worker 狀態流
+## 16. Worker 狀態流
 
-### 15.1 raw_item_processing
+### 16.1 raw_item_processing
 
 ```text
 pending
@@ -935,7 +1005,7 @@ running / retry
 failed
 ```
 
-### 15.2 alerts
+### 16.2 alerts
 
 ```text
 pending
@@ -957,11 +1027,11 @@ pending
 skipped
 ```
 
-## 16. Dashboard API 查詢支援
+## 17. Dashboard API 查詢支援
 
 V1 Dashboard API 需要以下查詢高效：
 
-### 16.1 Live Timeline
+### 17.1 Live Timeline
 
 ```sql
 select *
@@ -976,7 +1046,7 @@ limit 50;
 events_detected_idx
 ```
 
-### 16.2 High Impact Events
+### 17.2 High Impact Events
 
 ```sql
 select *
@@ -992,7 +1062,7 @@ limit 50;
 events_severity_detected_idx
 ```
 
-### 16.3 Source Health
+### 17.3 Source Health
 
 ```sql
 select *
@@ -1007,7 +1077,7 @@ order by updated_at desc;
 source_health_service_idx
 ```
 
-### 16.4 Processing Debug
+### 17.4 Processing Debug
 
 ```sql
 select *
@@ -1022,7 +1092,7 @@ order by created_at desc;
 raw_item_processing_claim_idx
 ```
 
-## 17. V1 Seed Data
+## 18. V1 Seed Data
 
 V1 建議準備 seed migration 或 seed script 寫入 sources。
 
@@ -1072,11 +1142,11 @@ Seed data 應包含：
 - `requires_confirmation`
 - `source_config`
 
-## 18. 後續版本 Schema
+## 19. 後續版本 Schema
 
 以下不進 V1 migration。
 
-### 18.1 market_snapshots，V3
+### 19.1 market_snapshots，V3
 
 用途：保存 XAUUSD 與關聯市場行情。
 
@@ -1094,7 +1164,7 @@ source
 created_at
 ```
 
-### 18.2 market_move_reviews，V3
+### 19.2 market_move_reviews，V3
 
 用途：行情先動後反查新聞。
 
@@ -1111,7 +1181,7 @@ summary_zh
 created_at
 ```
 
-### 18.3 event_raw_items，V2 / V3
+### 19.3 event_raw_items，V2 / V3
 
 用途：完整支援多 raw items 合併成同一 event。
 
@@ -1122,7 +1192,7 @@ relation_type
 created_at
 ```
 
-### 18.4 raw_item_versions，V2+
+### 19.4 raw_item_versions，V2+
 
 用途：保存 Telegram edited message 或 RSS item 更新前後版本。
 
@@ -1136,7 +1206,7 @@ raw_json
 created_at
 ```
 
-### 18.5 claim_groups，V2
+### 19.5 claim_groups，V2
 
 用途：完整口徑衝突識別。
 
@@ -1150,7 +1220,7 @@ created_at
 updated_at
 ```
 
-## 19. Migration 順序
+## 20. Migration 順序
 
 建議 migration 順序：
 
@@ -1166,7 +1236,7 @@ updated_at
 10. triggers：`updated_at`、`enqueue_raw_item_processing`、`notify_event_created`。
 11. seed sources。
 
-## 20. 開放問題
+## 21. 開放問題
 
 以下細節可在實作 migration 前最後確認：
 

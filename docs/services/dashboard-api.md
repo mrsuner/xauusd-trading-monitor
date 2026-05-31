@@ -90,12 +90,13 @@ GET /processing
 GET /events
 GET /events/{event_id}
 GET /alerts
+GET /stats/overview
+GET /stats/ai-usage
 ```
 
 可選：
 
 ```text
-GET /stats/overview
 GET /stats/ingestion
 ```
 
@@ -165,6 +166,21 @@ ingested_from
 ingested_to
 q
 ```
+
+### 7.6 AI Usage
+
+`GET /stats/ai-usage` 支援：
+
+```text
+hours=24
+```
+
+回傳：
+
+- totals：call count、success/failure、input/output/total token、estimated cost、average latency。
+- by_model：按 provider / model / route 分組。
+- by_layer：按 `translation_summary` / `classification_reasoning` 分組。
+- by_source：按 source 分組，用於找出最消耗 AI call 的消息源。
 
 要求：
 

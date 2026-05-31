@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 import httpx
@@ -9,6 +10,7 @@ from pydantic import ValidationError
 from .models import (
     AuxiliaryModelResponse,
     AuxiliaryTextResult,
+    AIModelCallUsage,
     ClassificationResult,
     ModelResponse,
     NormalizedItem,
@@ -16,10 +18,20 @@ from .models import (
     SourceMetadata,
 )
 from .settings import Settings
+from .usage import (
+    estimated_cost_usd,
+    estimate_messages_tokens,
+    estimate_text_tokens,
+    infer_api_provider,
+    request_hash,
+    usage_from_response,
+)
 
 
 class ModelClientError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, usage: AIModelCallUsage | None = None) -> None:
+        super().__init__(message)
+        self.usage = usage
 
 
 class OpenAIStyleModelClient:
@@ -39,6 +51,7 @@ class OpenAIStyleModelClient:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
+        self.api_provider = infer_api_provider(base_url)
         self.timeout_seconds = timeout_seconds
         self.response_format = response_format
         self.reasoning_effort = reasoning_effort
@@ -80,16 +93,54 @@ class OpenAIStyleModelClient:
             ],
         }
         self._apply_common_payload_options(payload, classification_json_schema_response_format())
-        body = await self._post_chat_completions(payload)
+        started = time.perf_counter()
+        try:
+            body = await self._post_chat_completions(payload)
+        except Exception as exc:
+            usage = self._build_usage(
+                payload=payload,
+                ai_layer="classification_reasoning",
+                request_kind="classify_raw_item",
+                started=started,
+                success=False,
+                error=exc,
+            )
+            raise ModelClientError(f"model request failed: {exc}", usage=usage) from exc
 
         content = extract_message_content(body)
         try:
             decoded = json.loads(content)
             result = ClassificationResult.model_validate(decoded)
         except (KeyError, TypeError, json.JSONDecodeError, ValidationError) as exc:
-            raise ModelClientError(f"invalid model response: {exc}") from exc
+            usage = self._build_usage(
+                payload=payload,
+                body=body,
+                output_text=content,
+                ai_layer="classification_reasoning",
+                request_kind="classify_raw_item",
+                started=started,
+                success=False,
+                error=exc,
+            )
+            raise ModelClientError(f"invalid model response: {exc}", usage=usage) from exc
 
-        return ModelResponse(provider=self.provider, model=self.model, result=result, raw_output=body)
+        usage = self._build_usage(
+            payload=payload,
+            body=body,
+            output_text=content,
+            ai_layer="classification_reasoning",
+            request_kind="classify_raw_item",
+            started=started,
+            success=True,
+        )
+        return ModelResponse(
+            provider=self.provider,
+            api_provider=self.api_provider,
+            model=self.model,
+            result=result,
+            raw_output=body,
+            usage=usage,
+        )
 
     async def summarize_and_translate(
         self,
@@ -137,16 +188,54 @@ class OpenAIStyleModelClient:
             ],
         }
         self._apply_common_payload_options(payload, auxiliary_text_json_schema_response_format())
-        body = await self._post_chat_completions(payload)
+        started = time.perf_counter()
+        try:
+            body = await self._post_chat_completions(payload)
+        except Exception as exc:
+            usage = self._build_usage(
+                payload=payload,
+                ai_layer="translation_summary",
+                request_kind="translate_summary",
+                started=started,
+                success=False,
+                error=exc,
+            )
+            raise ModelClientError(f"auxiliary model request failed: {exc}", usage=usage) from exc
 
         content = extract_message_content(body)
         try:
             decoded = json.loads(content)
             result = AuxiliaryTextResult.model_validate(decoded)
         except (KeyError, TypeError, json.JSONDecodeError, ValidationError) as exc:
-            raise ModelClientError(f"invalid auxiliary model response: {exc}") from exc
+            usage = self._build_usage(
+                payload=payload,
+                body=body,
+                output_text=content,
+                ai_layer="translation_summary",
+                request_kind="translate_summary",
+                started=started,
+                success=False,
+                error=exc,
+            )
+            raise ModelClientError(f"invalid auxiliary model response: {exc}", usage=usage) from exc
 
-        return AuxiliaryModelResponse(provider=self.provider, model=self.model, result=result, raw_output=body)
+        usage = self._build_usage(
+            payload=payload,
+            body=body,
+            output_text=content,
+            ai_layer="translation_summary",
+            request_kind="translate_summary",
+            started=started,
+            success=True,
+        )
+        return AuxiliaryModelResponse(
+            provider=self.provider,
+            api_provider=self.api_provider,
+            model=self.model,
+            result=result,
+            raw_output=body,
+            usage=usage,
+        )
 
     async def _post_chat_completions(self, payload: dict[str, Any]) -> dict[str, Any]:
         headers = {"Content-Type": "application/json", **self.extra_headers}
@@ -167,6 +256,58 @@ class OpenAIStyleModelClient:
             payload["response_format"] = {"type": "text"}
         if self.reasoning_effort:
             payload["reasoning_effort"] = self.reasoning_effort
+
+    def _build_usage(
+        self,
+        *,
+        payload: dict[str, Any],
+        ai_layer: str,
+        request_kind: str,
+        started: float,
+        success: bool,
+        body: dict[str, Any] | None = None,
+        output_text: str | None = None,
+        error: Exception | None = None,
+    ) -> AIModelCallUsage:
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        response_usage = usage_from_response(body or {})
+        input_tokens = response_usage["input_tokens"]
+        output_tokens = response_usage["output_tokens"]
+        total_tokens = response_usage["total_tokens"]
+        usage_json = dict((body or {}).get("usage") or {})
+        usage_estimated = False
+
+        if input_tokens is None:
+            input_tokens = estimate_messages_tokens(self.model, payload.get("messages") or [])
+            usage_estimated = True
+        if output_tokens is None and output_text is not None:
+            output_tokens = estimate_text_tokens(self.model, output_text)
+            usage_estimated = True
+        if total_tokens is None and (input_tokens is not None or output_tokens is not None):
+            total_tokens = (input_tokens or 0) + (output_tokens or 0)
+            usage_estimated = True
+
+        if usage_estimated:
+            usage_json["estimated"] = True
+
+        return AIModelCallUsage(
+            ai_layer=ai_layer,
+            route_name=self.provider,
+            provider=self.api_provider,
+            model_name=self.model,
+            request_kind=request_kind,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=estimated_cost_usd(self.api_provider, self.model, input_tokens, output_tokens),
+            latency_ms=latency_ms,
+            success=success,
+            error_type=type(error).__name__ if error else None,
+            error_message=str(error)[:2000] if error else None,
+            response_format=self.response_format,
+            usage_json=usage_json,
+            request_hash=request_hash(payload),
+        )
 
 
 def build_model_client(settings: Settings) -> OpenAIStyleModelClient:

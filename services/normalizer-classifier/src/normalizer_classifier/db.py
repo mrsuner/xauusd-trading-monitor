@@ -8,6 +8,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .models import (
+    AIModelCallUsage,
     AuxiliaryModelResponse,
     ClassificationResult,
     ModelResponse,
@@ -15,7 +16,7 @@ from .models import (
     ProcessingTask,
     RawItem,
     SourceMetadata,
-)
+    )
 from .normalization import severity_for
 
 
@@ -123,6 +124,72 @@ class Database:
                 always_full_translate=row["always_full_translate"],
             ),
         )
+
+    async def insert_ai_model_call(
+        self,
+        *,
+        usage: AIModelCallUsage,
+        raw_item_id: Any | None = None,
+        event_id: Any | None = None,
+        source_id: Any | None = None,
+    ) -> None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                insert into ai_model_calls (
+                  raw_item_id,
+                  event_id,
+                  source_id,
+                  service_name,
+                  ai_layer,
+                  route_name,
+                  provider,
+                  model_name,
+                  request_kind,
+                  input_tokens,
+                  output_tokens,
+                  total_tokens,
+                  estimated_cost_usd,
+                  latency_ms,
+                  success,
+                  error_type,
+                  error_message,
+                  response_format,
+                  usage_json,
+                  request_hash
+                )
+                values (
+                  %(raw_item_id)s,
+                  %(event_id)s,
+                  %(source_id)s,
+                  %(service_name)s,
+                  %(ai_layer)s,
+                  %(route_name)s,
+                  %(provider)s,
+                  %(model_name)s,
+                  %(request_kind)s,
+                  %(input_tokens)s,
+                  %(output_tokens)s,
+                  %(total_tokens)s,
+                  %(estimated_cost_usd)s,
+                  %(latency_ms)s,
+                  %(success)s,
+                  %(error_type)s,
+                  %(error_message)s,
+                  %(response_format)s,
+                  %(usage_json)s,
+                  %(request_hash)s
+                )
+                """,
+                {
+                    **usage.model_dump(mode="python"),
+                    "raw_item_id": raw_item_id,
+                    "event_id": event_id,
+                    "source_id": source_id,
+                    "usage_json": Jsonb(usage.usage_json),
+                },
+            )
+        await self.conn.commit()
 
     async def update_normalized_item(self, *, raw_item_id: Any, normalized: NormalizedItem) -> None:
         async with self.conn.cursor() as cur:

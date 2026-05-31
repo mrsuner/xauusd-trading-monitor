@@ -163,6 +163,94 @@ class DashboardRepository:
         )
         return dict(row or {})
 
+    async def ai_usage_stats(self, *, hours: int = 24) -> dict[str, Any]:
+        params = {"hours": max(hours, 1)}
+        totals = await self._db.fetch_one(
+            """
+            select
+              count(*) as call_count,
+              count(*) filter (where success = true) as success_count,
+              count(*) filter (where success = false) as failure_count,
+              coalesce(sum(input_tokens), 0) as input_tokens,
+              coalesce(sum(output_tokens), 0) as output_tokens,
+              coalesce(sum(total_tokens), 0) as total_tokens,
+              coalesce(sum(estimated_cost_usd), 0) as estimated_cost_usd,
+              round(avg(latency_ms))::integer as avg_latency_ms
+            from ai_model_calls
+            where created_at >= now() - (%(hours)s * interval '1 hour')
+            """,
+            params,
+        )
+        by_model = await self._db.fetch_all(
+            """
+            select
+              provider,
+              model_name,
+              route_name,
+              count(*) as call_count,
+              count(*) filter (where success = false) as failure_count,
+              coalesce(sum(input_tokens), 0) as input_tokens,
+              coalesce(sum(output_tokens), 0) as output_tokens,
+              coalesce(sum(total_tokens), 0) as total_tokens,
+              coalesce(sum(estimated_cost_usd), 0) as estimated_cost_usd,
+              round(avg(latency_ms))::integer as avg_latency_ms
+            from ai_model_calls
+            where created_at >= now() - (%(hours)s * interval '1 hour')
+            group by provider, model_name, route_name
+            order by estimated_cost_usd desc, total_tokens desc, call_count desc
+            """,
+            params,
+        )
+        by_layer = await self._db.fetch_all(
+            """
+            select
+              ai_layer,
+              count(*) as call_count,
+              count(*) filter (where success = false) as failure_count,
+              coalesce(sum(input_tokens), 0) as input_tokens,
+              coalesce(sum(output_tokens), 0) as output_tokens,
+              coalesce(sum(total_tokens), 0) as total_tokens,
+              coalesce(sum(estimated_cost_usd), 0) as estimated_cost_usd,
+              round(avg(latency_ms))::integer as avg_latency_ms
+            from ai_model_calls
+            where created_at >= now() - (%(hours)s * interval '1 hour')
+            group by ai_layer
+            order by estimated_cost_usd desc, total_tokens desc, call_count desc
+            """,
+            params,
+        )
+        by_source = await self._db.fetch_all(
+            """
+            select
+              c.source_id,
+              s.name as source_name,
+              s.source_type,
+              s.source_group,
+              s.priority,
+              count(*) as call_count,
+              count(*) filter (where c.success = false) as failure_count,
+              coalesce(sum(c.input_tokens), 0) as input_tokens,
+              coalesce(sum(c.output_tokens), 0) as output_tokens,
+              coalesce(sum(c.total_tokens), 0) as total_tokens,
+              coalesce(sum(c.estimated_cost_usd), 0) as estimated_cost_usd,
+              round(avg(c.latency_ms))::integer as avg_latency_ms
+            from ai_model_calls c
+            left join sources s on s.id = c.source_id
+            where c.created_at >= now() - (%(hours)s * interval '1 hour')
+            group by c.source_id, s.name, s.source_type, s.source_group, s.priority
+            order by estimated_cost_usd desc, total_tokens desc, call_count desc
+            limit 20
+            """,
+            params,
+        )
+        return {
+            "hours": params["hours"],
+            "totals": dict(totals or {}),
+            "by_model": by_model,
+            "by_layer": by_layer,
+            "by_source": by_source,
+        }
+
 
 def build_sources_query(filters: dict[str, Any]) -> QueryBuilder:
     builder = QueryBuilder(

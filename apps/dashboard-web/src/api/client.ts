@@ -1,5 +1,6 @@
 import type {
   AlertItem,
+  AIUsageStats,
   EventDetail,
   EventItem,
   Health,
@@ -52,6 +53,7 @@ async function request<T>(path: string, params?: Record<string, QueryValue>): Pr
 export const api = {
   health: () => request<Health>("/health"),
   overview: () => request<OverviewStats>("/stats/overview"),
+  aiUsage: (params?: Record<string, QueryValue>) => request<AIUsageStats>("/stats/ai-usage", params),
   sources: (params?: Record<string, QueryValue>) => request<Page<Source>>("/sources", params),
   sourceHealth: (params?: Record<string, QueryValue>) => request<Page<SourceHealth>>("/source-health", params),
   rawItems: (params?: Record<string, QueryValue>) => request<Page<RawItem>>("/raw-items", params),

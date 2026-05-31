@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -109,13 +110,37 @@ class AuxiliaryTextResult(BaseModel):
 
 class ModelResponse(BaseModel):
     provider: str
+    api_provider: str
     model: str
     result: ClassificationResult
     raw_output: dict[str, Any]
+    usage: "AIModelCallUsage"
 
 
 class AuxiliaryModelResponse(BaseModel):
     provider: str
+    api_provider: str
     model: str
     result: AuxiliaryTextResult
     raw_output: dict[str, Any]
+    usage: "AIModelCallUsage"
+
+
+class AIModelCallUsage(BaseModel):
+    service_name: str = "normalizer-classifier"
+    ai_layer: str
+    route_name: str
+    provider: str
+    model_name: str
+    request_kind: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+    estimated_cost_usd: Decimal | None = None
+    latency_ms: int | None = None
+    success: bool
+    error_type: str | None = None
+    error_message: str | None = None
+    response_format: str | None = None
+    usage_json: dict[str, Any] = Field(default_factory=dict)
+    request_hash: str | None = None

@@ -177,6 +177,8 @@ TELEGRAM_ALERT_ENABLED=true|false
 
 ### 4.2 建議新增資料表：`ai_model_calls`
 
+實作狀態：已於 `0006_ai_model_calls` migration 與 `normalizer-classifier` model client wrapper 中完成第一版。
+
 ```sql
 create table ai_model_calls (
   id uuid primary key default gen_random_uuid(),
@@ -225,48 +227,34 @@ create table ai_model_calls (
 
 ### 4.4 成本估算
 
-新增 model pricing config：
+V1+ 先使用內建 pricing table：
 
-```text
-AI_PRICING_CONFIG_PATH=infra/model-pricing.json
-```
+| Provider / Model | Input / M token | Output / M token |
+| --- | --- | --- |
+| `openai_compatible:gpt-5.4-mini` | `$0.75` | `$4.50` |
+| `openrouter:openai/gpt-oss-20b` | `$0.029` | `$0.14` |
+| `openrouter:openai/gpt-oss-20b:free` | `$0` | `$0` |
 
-範例：
-
-```json
-{
-  "openrouter:openai/gpt-oss-20b": {
-    "input_per_1m_usd": 0.0,
-    "output_per_1m_usd": 0.0
-  },
-  "openai_compatible:gpt-5.4-mini": {
-    "input_per_1m_usd": null,
-    "output_per_1m_usd": null
-  }
-}
-```
-
-若價格未知，`estimated_cost_usd` 可留空，但 token 必須記錄。
+若價格未知，`estimated_cost_usd` 可留空，但 token 必須記錄。後續可將 pricing table 移到 `infra/model-pricing.json`。
 
 ### 4.5 Dashboard 統計頁
 
-`dashboard-api` 後續新增：
+`dashboard-api` 已新增：
 
 ```text
 GET /stats/ai-usage
-GET /stats/ai-usage/by-model
-GET /stats/ai-usage/by-source
-GET /stats/ai-usage/by-layer
 ```
 
-`dashboard-web` 後續新增 AI Usage view：
+目前 `/stats/ai-usage` 一次回傳 totals、by-model、by-source 與 by-layer。
 
-- 今日 / 24h / 7d token。
+`dashboard-web` Processing 頁已新增 AI Usage summary：
+
+- 24h token。
 - 按 model 分組。
 - 按 source 分組。
 - 按 AI layer 分組。
-- Error rate / latency p50 / p95。
-- Backfill 導致的 call 可單獨標記。
+- failure count / average latency。
+- Backfill 導致的 call 可後續單獨標記。
 
 ## 5. Source Management
 
@@ -364,6 +352,8 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - Backfill 不再造成 Pushover spam。
 
 ### Phase 2: AI usage 統計
+
+實作狀態：已完成第一版。
 
 - 新增 `ai_model_calls` migration。
 - 在 Layer 1 / Layer 2 client wrapper 中記錄 usage。

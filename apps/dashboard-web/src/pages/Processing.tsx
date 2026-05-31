@@ -25,6 +25,14 @@ function modelLabel(provider?: string | null, model?: string | null) {
   return model || provider || "-";
 }
 
+function formatCompactNumber(value?: number | null) {
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value || 0));
+}
+
+function formatUsd(value?: string | number | null) {
+  return `$${Number(value || 0).toFixed(6)}`;
+}
+
 function LayerBlock({
   title,
   status,
@@ -107,9 +115,62 @@ export function Processing() {
     refetchInterval: 15000
   });
 
+  const aiUsage = useQuery({
+    queryKey: ["ai-usage", 24],
+    queryFn: () => api.aiUsage({ hours: 24 }),
+    refetchInterval: 30000
+  });
+
   return (
     <>
       <PageHeader title="Processing" description="AI pipeline monitor for translation-summary and classification-reasoning layers." />
+
+      <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs uppercase text-base-content/50">AI calls / 24h</div>
+          <div className="mt-1 text-2xl font-semibold">{aiUsage.data?.totals.call_count ?? 0}</div>
+          <div className="mt-1 text-xs text-base-content/55">failed {aiUsage.data?.totals.failure_count ?? 0}</div>
+        </div>
+        <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs uppercase text-base-content/50">tokens / 24h</div>
+          <div className="mt-1 text-2xl font-semibold">{formatCompactNumber(aiUsage.data?.totals.total_tokens)}</div>
+          <div className="mt-1 text-xs text-base-content/55">
+            in {formatCompactNumber(aiUsage.data?.totals.input_tokens)} / out {formatCompactNumber(aiUsage.data?.totals.output_tokens)}
+          </div>
+        </div>
+        <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs uppercase text-base-content/50">estimated cost / 24h</div>
+          <div className="mt-1 text-2xl font-semibold">{formatUsd(aiUsage.data?.totals.estimated_cost_usd)}</div>
+          <div className="mt-1 text-xs text-base-content/55">based on configured model pricing</div>
+        </div>
+        <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs uppercase text-base-content/50">top model</div>
+          <div className="mt-1 truncate text-sm font-semibold">
+            {aiUsage.data?.by_model[0] ? `${aiUsage.data.by_model[0].route_name} / ${aiUsage.data.by_model[0].model_name}` : "-"}
+          </div>
+          <div className="mt-1 text-xs text-base-content/55">
+            {aiUsage.data?.by_model[0] ? `${formatCompactNumber(aiUsage.data.by_model[0].total_tokens)} tokens` : "no calls"}
+          </div>
+        </div>
+      </section>
+
+      {aiUsage.data?.by_layer.length ? (
+        <section className="mb-4 rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="mb-3 text-xs font-semibold uppercase text-base-content/55">AI usage by layer</div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {aiUsage.data.by_layer.map((layer) => (
+              <div key={layer.ai_layer || "unknown"} className="rounded bg-base-200/40 p-3 text-xs">
+                <div className="mb-1 font-semibold text-base-content">{layer.ai_layer}</div>
+                <div className="grid gap-1 text-base-content/65">
+                  <span>calls {layer.call_count} / failed {layer.failure_count}</span>
+                  <span>tokens {formatCompactNumber(layer.total_tokens)} / cost {formatUsd(layer.estimated_cost_usd)}</span>
+                  <span>avg latency {layer.avg_latency_ms ?? "-"}ms</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="mb-4 grid gap-2 xl:grid-cols-[minmax(220px,1fr)_170px_220px_110px_170px_170px]">
         <input className="input input-bordered input-sm" placeholder="Keyword search" value={q} onChange={(event) => setQ(event.target.value)} />

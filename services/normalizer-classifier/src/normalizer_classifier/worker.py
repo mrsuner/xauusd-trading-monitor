@@ -6,7 +6,7 @@ import socket
 from uuid import uuid4
 
 from .db import Database
-from .model_client import OpenAIStyleModelClient
+from .model_client import ModelClientError, OpenAIStyleModelClient
 from .normalization import normalize_item
 from .settings import Settings
 
@@ -77,6 +77,12 @@ class NormalizerClassifierWorker:
                     model_response=model_response,
                     relevance_threshold_event=self.settings.relevance_threshold_event,
                 )
+                await self.db.insert_ai_model_call(
+                    usage=model_response.usage,
+                    raw_item_id=task.raw_item.id,
+                    event_id=event_id,
+                    source_id=task.source.id,
+                )
                 await self._run_translation_summary(task, normalized)
                 logger.info(
                     "processed raw_item_id=%s relevant=%s score=%s event_id=%s",
@@ -87,6 +93,12 @@ class NormalizerClassifierWorker:
                 )
             except Exception as exc:
                 logger.exception("failed raw_item_id=%s", task.raw_item.id)
+                if isinstance(exc, ModelClientError) and exc.usage:
+                    await self.db.insert_ai_model_call(
+                        usage=exc.usage,
+                        raw_item_id=task.raw_item.id,
+                        source_id=task.source.id,
+                    )
                 await self.db.mark_failed(
                     processing_id=task.id,
                     attempt_count=task.attempt_count,
@@ -169,6 +181,11 @@ class NormalizerClassifierWorker:
                     status="completed_truncated" if truncated else "completed",
                     input_chars=len(text),
                 )
+                await self.db.insert_ai_model_call(
+                    usage=response.usage,
+                    raw_item_id=task.raw_item.id,
+                    source_id=task.source.id,
+                )
                 logger.info(
                     "translation summary raw_item_id=%s provider=%s model=%s truncated=%s",
                     task.raw_item.id,
@@ -179,6 +196,12 @@ class NormalizerClassifierWorker:
                 return
             except Exception as exc:
                 last_error = str(exc)
+                if isinstance(exc, ModelClientError) and exc.usage:
+                    await self.db.insert_ai_model_call(
+                        usage=exc.usage,
+                        raw_item_id=task.raw_item.id,
+                        source_id=task.source.id,
+                    )
                 logger.warning(
                     "translation summary failed raw_item_id=%s provider=%s model=%s error=%s",
                     task.raw_item.id,

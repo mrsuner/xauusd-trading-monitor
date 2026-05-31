@@ -22,6 +22,34 @@ export type OverviewStats = {
   failed_alerts: number;
 };
 
+export type AIUsageBreakdown = {
+  provider?: string | null;
+  model_name?: string | null;
+  route_name?: string | null;
+  ai_layer?: string | null;
+  source_id?: string | null;
+  source_name?: string | null;
+  source_type?: string | null;
+  source_group?: string | null;
+  priority?: string | null;
+  call_count: number;
+  success_count?: number;
+  failure_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: string | number;
+  avg_latency_ms?: number | null;
+};
+
+export type AIUsageStats = {
+  hours: number;
+  totals: AIUsageBreakdown;
+  by_model: AIUsageBreakdown[];
+  by_layer: AIUsageBreakdown[];
+  by_source: AIUsageBreakdown[];
+};
+
 export type Source = {
   id: string;
   name: string;

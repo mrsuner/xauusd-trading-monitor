@@ -49,6 +49,7 @@ V1 不包含：
 | OpenRouter translation-summary model | OpenRouter OpenAI-compatible API | 雙語摘要與全文翻譯，可測試 free / cheap models |
 | Agent SDK | Claude Code Agent SDK，備選 | 高階模型能力，非 V1 必需依賴 |
 | Schema validation | pydantic | 驗證模型 JSON output |
+| Token usage | tiktoken | OpenAI 官方 tokenizer library；provider 未回 usage 時用於估算 token |
 | Logging | structlog / standard logging | structured logs |
 | Packaging | uv | dependency 管理 |
 | Container | Docker | HomeLab 部署 |
@@ -72,6 +73,7 @@ Go 可作為後續備選，但 V1 建議 Python，因為文字處理與模型 SD
 - `raw_item_processing` / `processed_items`。
 - `events`。
 - `event_claims`，V1 可簡化。
+- `ai_model_calls`，保存 Layer 1 / Layer 2 的 token usage、model route、latency 與估算成本。
 - `event_created` notification 或 alert processing task。
 
 ## 6. Processing Table
@@ -226,6 +228,26 @@ Layer 1 單次 API call 直接產生四項：
 ```
 
 Layer 2 只讀 `source` metadata、`text_clean` / `text_raw` 原文、rule prefilter 結果。它不讀 `summary_zh`、`summary_en` 或 full translation。
+
+## 10.1 AI Usage Tracking
+
+每次 AI API call 都應寫入 `ai_model_calls`：
+
+| Layer | `ai_layer` | `request_kind` | 主要模型 |
+| --- | --- | --- | --- |
+| Layer 1 | `translation_summary` | `translate_summary` | `openai/gpt-oss-20b:free`，fallback `openai/gpt-oss-20b` |
+| Layer 2 | `classification_reasoning` | `classify_raw_item` | `gpt-5.4-mini` |
+
+Token 來源：
+
+1. 優先使用 OpenAI-compatible response 的 `usage.prompt_tokens`、`usage.completion_tokens`、`usage.total_tokens`。
+2. 若 provider 未回 usage，使用 `tiktoken` 估算 input / output token，並在 `usage_json.estimated = true` 標記。
+3. 成本使用內建 pricing table 估算：
+   - `gpt-5.4-mini`: input `$0.75/M`，output `$4.50/M`
+   - `openai/gpt-oss-20b`: input `$0.029/M`，output `$0.14/M`
+   - `openai/gpt-oss-20b:free`: `$0`
+
+`request_hash` 用於排查重複 call，不保存完整 prompt。
 
 code interface 抽象為：
 
