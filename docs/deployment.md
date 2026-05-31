@@ -89,6 +89,12 @@ IMAGE_TAG=$(git rev-parse --short HEAD) make docker-build
 IMAGE_TAG=$(git rev-parse --short HEAD) make docker-push
 ```
 
+若 HomeLab 是 `linux/amd64`，而開發機是 Apple Silicon，需用 buildx 直接推送目標平台 image：
+
+```bash
+IMAGE_PLATFORM=linux/amd64 IMAGE_TAG=$(git rev-parse --short HEAD) make docker-build-push
+```
+
 這會依序 build / push：
 
 ```text

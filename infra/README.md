@@ -31,6 +31,12 @@ IMAGE_TAG=$(git rev-parse --short HEAD) make docker-build
 IMAGE_TAG=$(git rev-parse --short HEAD) make docker-push
 ```
 
+Apple Silicon 開發機部署到 `linux/amd64` HomeLab 時：
+
+```bash
+IMAGE_PLATFORM=linux/amd64 IMAGE_TAG=$(git rev-parse --short HEAD) make docker-build-push
+```
+
 HomeLab server 拉取並啟動：
 
 ```bash

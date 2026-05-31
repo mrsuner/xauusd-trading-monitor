@@ -6,6 +6,7 @@ ACTION="${1:-build}"
 IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
 IMAGE_NAMESPACE="${IMAGE_NAMESPACE:-mrsuner/xauusd-trading-monitor}"
 IMAGE_TAG="${IMAGE_TAG:-$(git rev-parse --short HEAD)}"
+IMAGE_PLATFORM="${IMAGE_PLATFORM:-}"
 
 SERVICES=(
   "db-migrate:services/db-migrate/Dockerfile"
@@ -25,6 +26,7 @@ Environment:
   IMAGE_REGISTRY   default: ghcr.io
   IMAGE_NAMESPACE  default: mrsuner/xauusd-trading-monitor
   IMAGE_TAG        default: current git short SHA
+  IMAGE_PLATFORM   optional, for example: linux/amd64
 EOF
 }
 
@@ -41,7 +43,24 @@ build_images() {
     image="$(image_for "$service")"
 
     echo "Building $image"
-    docker build -f "$dockerfile" -t "$image" .
+    local platform_args=()
+    if [[ -n "$IMAGE_PLATFORM" ]]; then
+      platform_args=(--platform "$IMAGE_PLATFORM")
+    fi
+
+    docker build "${platform_args[@]}" -f "$dockerfile" -t "$image" .
+  done
+}
+
+buildx_push_images() {
+  for entry in "${SERVICES[@]}"; do
+    local service="${entry%%:*}"
+    local dockerfile="${entry#*:}"
+    local image
+    image="$(image_for "$service")"
+
+    echo "Building and pushing $image"
+    docker buildx build --platform "$IMAGE_PLATFORM" -f "$dockerfile" -t "$image" --push .
   done
 }
 
@@ -64,8 +83,12 @@ case "$ACTION" in
     push_images
     ;;
   build-push)
-    build_images
-    push_images
+    if [[ -n "$IMAGE_PLATFORM" ]]; then
+      buildx_push_images
+    else
+      build_images
+      push_images
+    fi
     ;;
   -h|--help|help)
     usage
