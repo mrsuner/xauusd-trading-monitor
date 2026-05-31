@@ -22,7 +22,7 @@ V1 不包含：
 
 - 完整 dashboard web UI。
 - 使用者登入與多租戶。
-- source 編輯 UI。
+- source 編輯 UI；後續版本需要支援從 Dashboard 新增、停用與測試 Telegram/RSS sources。
 - alert preference UI。
 - market chart。
 - 行情事件疊加。
@@ -83,6 +83,22 @@ GET /alerts
 GET /stats/overview
 GET /stats/ingestion
 ```
+
+後續 source 管理 endpoints：
+
+```text
+POST /sources
+PATCH /sources/{source_id}
+POST /sources/{source_id}/test
+POST /sources/{source_id}/backfill
+```
+
+用途：
+
+- 從 Dashboard 新增 Telegram channel，例如 `@fbsanalytics`。
+- 測試 source 是否可 resolve / fetch。
+- 啟用或停用 source。
+- 觸發小範圍 backfill，確認 raw item 能入庫。
 
 ## 7. 查詢需求
 
@@ -281,4 +297,3 @@ Logs：
 - detail endpoints 可查看 debug 所需內容。
 - API 不修改核心資料。
 - response 可直接被 TanStack Query 消費。
-
