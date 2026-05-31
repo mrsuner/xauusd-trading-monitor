@@ -33,6 +33,7 @@ def test_raw_items_query_excludes_empty_text_by_default() -> None:
     sql = builder.list_sql()
 
     assert "regexp_replace(coalesce(r.text_clean" in sql
+    assert "regexp_replace(coalesce(r.summary_zh" not in sql
     assert "r.title !~* '^\\[no title\\]'" in sql
 
 
