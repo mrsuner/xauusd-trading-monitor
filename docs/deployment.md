@@ -242,8 +242,7 @@ V1 支援：
 MODEL_ROUTE=local_8b
 MODEL_ROUTE=cloud_small
 MODEL_ROUTE=claude_code_agent
-AUXILIARY_MODEL_ROUTE=disabled
-AUXILIARY_MODEL_ROUTE=openrouter_free
+TRANSLATION_MODEL_ENABLED=true
 ```
 
 ### 9.1 Local LLM
@@ -284,30 +283,38 @@ CLOUD_MODEL_RESPONSE_FORMAT=json_object
 
 `gpt-5.4-nano` 可作 summary / translation 輔助，但 V1 不作主分類模型。
 
-### 9.3 OpenRouter Auxiliary Model
+### 9.3 OpenRouter Translation-Summary Model
 
 OpenRouter 適合：
 
 - 測試 free / cheap models 的繁中摘要與翻譯品質。
-- 作為 local LLM 之外的外部輔助 route。
-- 處理 `summary_zh`、`translation_zh`、短文本標準化等低風險任務。
+- 作為 local LLM 之外的外部 translation-summary route。
+- 處理 `summary_zh`、`summary_en`、`full_translation_zh`、`full_translation_en` 等低風險任務。
 
 V1 不建議 OpenRouter free model 單獨負責最終事件分類、相關度分數、claim direction 或 severity input。這些欄位預設由 `cloud_small` 產生。
 
 必要設定：
 
 ```text
-AUXILIARY_MODEL_ENABLED=true
-AUXILIARY_MODEL_ROUTE=openrouter_free
 OPENROUTER_MODEL_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL_API_KEY=...
-OPENROUTER_MODEL_NAME=...
-OPENROUTER_MODEL_RESPONSE_FORMAT=json_object
 OPENROUTER_HTTP_REFERER=
 OPENROUTER_APP_TITLE=XAUUSD Event Radar
+TRANSLATION_MODEL_ENABLED=true
+TRANSLATION_MODEL_BASE_URL=https://openrouter.ai/api/v1
+TRANSLATION_MODEL_API_KEY=
+TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-oss-20b:free
+TRANSLATION_FALLBACK_MODEL_NAME=openai/gpt-oss-20b
+TRANSLATION_PAID_FALLBACK_ENABLED=true
+TRANSLATION_MODEL_RESPONSE_FORMAT=none
+TRANSLATION_DEFAULT_MAX_CHARS=20000
+TRANSLATION_HIGH_PRIORITY_MAX_CHARS=100000
+TRANSLATION_SINGLE_CALL_MAX_CHARS=100000
 ```
 
-若只想比較模型品質，先不要打開 `AUXILIARY_MODEL_ENABLED`，使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md) 在 OpenRouter UI 中測試。
+`TRANSLATION_MODEL_API_KEY` 可留空，此時 service 會 fallback 使用 `OPENROUTER_MODEL_API_KEY`。V1 預設 paid fallback 開啟；development 可用 `MAX_TRANSLATION_CALLS_PER_RUN` 與 `MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN` 控制成本。
+
+若只想比較模型品質，使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md) 在 OpenRouter UI 中測試。
 
 ### 9.4 Claude Code Agent SDK，備選
 

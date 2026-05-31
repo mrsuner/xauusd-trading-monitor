@@ -7,7 +7,15 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .models import ClassificationResult, ModelResponse, NormalizedItem, ProcessingTask, RawItem, SourceMetadata
+from .models import (
+    AuxiliaryModelResponse,
+    ClassificationResult,
+    ModelResponse,
+    NormalizedItem,
+    ProcessingTask,
+    RawItem,
+    SourceMetadata,
+)
 from .normalization import severity_for
 
 
@@ -75,7 +83,11 @@ class Database:
                   s.priority,
                   s.reliability_score,
                   s.latency_score,
-                  s.requires_confirmation
+                  s.requires_confirmation,
+                  s.translation_policy,
+                  s.translation_priority,
+                  s.translation_max_chars,
+                  s.always_full_translate
                 from raw_items r
                 join sources s on s.id = r.source_id
                 where r.id = %(raw_item_id)s
@@ -105,6 +117,10 @@ class Database:
                 reliability_score=row["reliability_score"],
                 latency_score=row["latency_score"],
                 requires_confirmation=row["requires_confirmation"],
+                translation_policy=row["translation_policy"],
+                translation_priority=row["translation_priority"],
+                translation_max_chars=row["translation_max_chars"],
+                always_full_translate=row["always_full_translate"],
             ),
         )
 
@@ -230,6 +246,90 @@ class Database:
             )
         await self.conn.commit()
         return event_id
+
+    async def update_translation_result(
+        self,
+        *,
+        raw_item_id: Any,
+        response: AuxiliaryModelResponse,
+        status: str,
+        input_chars: int,
+    ) -> None:
+        result = response.result
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_items
+                set summary_zh = %(summary_zh)s,
+                    summary_en = %(summary_en)s,
+                    full_translation_zh = %(full_translation_zh)s,
+                    full_translation_en = %(full_translation_en)s,
+                    translation_status = %(translation_status)s,
+                    translation_model_provider = %(translation_model_provider)s,
+                    translation_model = %(translation_model)s,
+                    translation_error = null,
+                    translation_input_chars = %(translation_input_chars)s,
+                    translation_updated_at = now(),
+                    updated_at = now()
+                where id = %(raw_item_id)s
+                """,
+                {
+                    "raw_item_id": raw_item_id,
+                    "summary_zh": result.summary_zh,
+                    "summary_en": result.summary_en,
+                    "full_translation_zh": result.full_translation_zh,
+                    "full_translation_en": result.full_translation_en,
+                    "translation_status": status,
+                    "translation_model_provider": response.provider,
+                    "translation_model": response.model,
+                    "translation_input_chars": input_chars,
+                },
+            )
+        await self.conn.commit()
+
+    async def update_translation_skipped(self, *, raw_item_id: Any, reason: str) -> None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_items
+                set translation_status = 'skipped',
+                    translation_error = %(translation_error)s,
+                    translation_updated_at = now(),
+                    updated_at = now()
+                where id = %(raw_item_id)s
+                """,
+                {"raw_item_id": raw_item_id, "translation_error": reason[:2000]},
+            )
+        await self.conn.commit()
+
+    async def update_translation_failed(
+        self,
+        *,
+        raw_item_id: Any,
+        provider: str | None,
+        model: str | None,
+        error_message: str,
+    ) -> None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_items
+                set translation_status = 'failed',
+                    translation_model_provider = %(translation_model_provider)s,
+                    translation_model = %(translation_model)s,
+                    translation_error = %(translation_error)s,
+                    translation_updated_at = now(),
+                    updated_at = now()
+                where id = %(raw_item_id)s
+                """,
+                {
+                    "raw_item_id": raw_item_id,
+                    "translation_model_provider": provider,
+                    "translation_model": model,
+                    "translation_error": error_message[:2000],
+                },
+            )
+        await self.conn.commit()
 
     async def mark_failed(self, *, processing_id: Any, attempt_count: int, max_attempts: int, error_message: str) -> None:
         status = "failed" if attempt_count >= max_attempts else "retry"

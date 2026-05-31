@@ -6,7 +6,11 @@ from uuid import uuid4
 
 import httpx
 
-from normalizer_classifier.model_client import OpenAIStyleModelClient, build_auxiliary_model_client
+from normalizer_classifier.model_client import (
+    OpenAIStyleModelClient,
+    build_auxiliary_model_client,
+    build_translation_model_clients,
+)
 from normalizer_classifier.models import NormalizedItem, RawItem, SourceMetadata
 from normalizer_classifier.settings import Settings
 
@@ -220,7 +224,9 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
         assert json["response_format"] == {"type": "json_object"}
         content = {
             "summary_zh": "Trump 稱伊朗協議接近完成。",
-            "translation_zh": "Trump 表示伊朗協議已接近完成。",
+            "summary_en": "Trump says an Iran deal is close.",
+            "full_translation_zh": "Trump 表示伊朗協議已接近完成。",
+            "full_translation_en": "Trump says Iran deal is close.",
             "detected_language": "en",
             "notes": None,
         }
@@ -249,6 +255,8 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     assert response.provider == "openrouter_free"
     assert response.model == "free-summary-model"
     assert response.result.summary_zh == "Trump 稱伊朗協議接近完成。"
+    assert response.result.summary_en == "Trump says an Iran deal is close."
+    assert response.result.full_translation_zh == "Trump 表示伊朗協議已接近完成。"
 
 
 def test_build_auxiliary_model_client_openrouter() -> None:
@@ -269,3 +277,20 @@ def test_build_auxiliary_model_client_openrouter() -> None:
     assert client.base_url == "https://openrouter.ai/api/v1"
     assert client.model == "free-summary-model"
     assert client.extra_headers["HTTP-Referer"] == "https://example.test"
+
+
+def test_build_translation_model_clients_use_free_then_paid_fallback() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://user:pass@localhost/db",
+        CLOUD_MODEL_API_KEY="test-key",
+        OPENROUTER_MODEL_API_KEY="openrouter-key",
+        TRANSLATION_MODEL_ENABLED="true",
+        TRANSLATION_PRIMARY_MODEL_NAME="openai/gpt-oss-20b:free",
+        TRANSLATION_FALLBACK_MODEL_NAME="openai/gpt-oss-20b",
+        TRANSLATION_PAID_FALLBACK_ENABLED="true",
+    )
+
+    clients = build_translation_model_clients(settings)
+
+    assert [client.provider for client in clients] == ["translation_primary", "translation_paid_fallback"]
+    assert [client.model for client in clients] == ["openai/gpt-oss-20b:free", "openai/gpt-oss-20b"]

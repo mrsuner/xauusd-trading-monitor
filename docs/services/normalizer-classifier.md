@@ -46,7 +46,7 @@ V1 不包含：
 | Similarity | rapidfuzz / pg_trgm | 近似重複檢測，V1 先保留依賴與 DB index |
 | Local model | OpenAI-compatible local endpoint | local 8B model route，可由 HomeLab 另一台 server 提供 |
 | Cloud model | OpenAI-compatible API | cloud small model route，例如 GPT 5.5 mini 類模型 |
-| OpenRouter auxiliary model | OpenRouter OpenAI-compatible API | 摘要、翻譯、低風險文字處理，可測試 free / cheap models |
+| OpenRouter translation-summary model | OpenRouter OpenAI-compatible API | 雙語摘要與全文翻譯，可測試 free / cheap models |
 | Agent SDK | Claude Code Agent SDK，備選 | 高階模型能力，非 V1 必需依賴 |
 | Schema validation | pydantic | 驗證模型 JSON output |
 | Logging | structlog / standard logging | structured logs |
@@ -66,7 +66,9 @@ Go 可作為後續備選，但 V1 建議 Python，因為文字處理與模型 SD
 輸出：
 
 - `raw_items.text_clean`，如果 collector 未清洗或需要補齊。
-- `raw_items.summary_zh`，模型回應後回寫繁體中文摘要，讓 Dashboard 可在 raw item 層直接顯示已處理消息摘要。
+- `raw_items.summary_zh` / `raw_items.summary_en`，translation-summary layer 回寫雙語摘要，讓 Dashboard 可在 raw item 層直接顯示已處理消息摘要。
+- `raw_items.full_translation_zh` / `raw_items.full_translation_en`，translation-summary layer 回寫雙語全文翻譯，供 raw item detail 閱讀。
+- `raw_items.translation_status` 與 translation model metadata。
 - `raw_item_processing` / `processed_items`。
 - `events`。
 - `event_claims`，V1 可簡化。
@@ -117,15 +119,18 @@ normalize text
 rule prefilter
   ↓
 dedupe / near-dedupe
+  ├── Layer 2 classification-reasoning
+  │     - input: source metadata + original text_clean/text_raw only
+  │     - output: relevance, event_type, claim_direction, event fields
+  │     - write processing result / create event / notify alert-dispatcher
   ↓
-model relevance scoring
-  ↓
-write processing result
-  ↓
-create event if relevant
-  ↓
-notify alert-dispatcher
+  Layer 1 translation-summary, best-effort after classification
+        - input: original text only
+        - output: summary_zh, summary_en, full_translation_zh, full_translation_en
+        - write raw_items translation fields
 ```
+
+Layer 1 不參與優先級、相關度、claim direction 或 severity 判斷。Layer 2 不使用 Layer 1 的翻譯結果作為 evidence，避免低成本翻譯模型的錯譯影響事件判斷。
 
 ## 8. 預處理規則
 
@@ -192,15 +197,35 @@ V1 決策：
 - 不讓 OpenRouter free model、local LLM 或 nano model 單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 `severity`。
 - 若 cloud model 不可用，local route 可以暫時保留事件候選，但應標記為較低信心或等待 cloud retry。
 
-目前 runtime 支援可選 auxiliary route：
+V1 runtime 支援兩個 AI layer：
 
 ```text
-AUXILIARY_MODEL_ENABLED=false
-AUXILIARY_MODEL_ROUTE=disabled
-AUXILIARY_MODEL_ROUTE=openrouter_free
+Layer 1: translation-summary
+  primary: openai/gpt-oss-20b:free
+  fallback: openai/gpt-oss-20b
+  output: raw_items.summary_zh / summary_en / full_translation_zh / full_translation_en
+
+Layer 2: classification-reasoning
+  basic: gpt-5.4-mini
+  advanced: reserved for Claude Code Agent SDK / stronger model
 ```
 
-當 `AUXILIARY_MODEL_ENABLED=true` 且 `AUXILIARY_MODEL_ROUTE=openrouter_free` 時，service 會在主分類模型完成後額外呼叫 OpenRouter，產生 `summary_zh` / `translation_zh`。`summary_zh` 會覆蓋主分類模型產生的摘要並回寫 `raw_items.summary_zh`；分類、相關度、claim 與 event 欄位仍由 `MODEL_ROUTE=cloud_small` 的主模型決定。Auxiliary call 是 best-effort，失敗時保留主分類模型原本的摘要，不讓免費模型的不穩定造成整筆處理失敗。
+Layer 1 使用 OpenRouter OpenAI-compatible API。預設先呼叫 `openai/gpt-oss-20b:free`；若 free route 429、timeout、invalid JSON 或其他 transient failure，且 `TRANSLATION_PAID_FALLBACK_ENABLED=true`，則 fallback 到 `openai/gpt-oss-20b`。Paid fallback 在 development 也預設開啟，但 `make dev` 會提供小的 translation budget 避免 backfill 時無限制消耗。
+
+Layer 1 單次 API call 直接產生四項：
+
+```json
+{
+  "summary_zh": "繁體中文摘要",
+  "summary_en": "English summary",
+  "full_translation_zh": "繁體中文全文翻譯",
+  "full_translation_en": "English full translation",
+  "detected_language": "fa",
+  "notes": null
+}
+```
+
+Layer 2 只讀 `source` metadata、`text_clean` / `text_raw` 原文、rule prefilter 結果。它不讀 `summary_zh`、`summary_en` 或 full translation。
 
 code interface 抽象為：
 
@@ -379,6 +404,22 @@ OPENROUTER_MODEL_RESPONSE_FORMAT=json_object
 OPENROUTER_MODEL_REASONING_EFFORT=
 OPENROUTER_HTTP_REFERER=
 OPENROUTER_APP_TITLE=XAUUSD Event Radar
+TRANSLATION_MODEL_ENABLED=true
+TRANSLATION_MODEL_BASE_URL=https://openrouter.ai/api/v1
+TRANSLATION_MODEL_API_KEY=
+TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-oss-20b:free
+TRANSLATION_FALLBACK_MODEL_NAME=openai/gpt-oss-20b
+TRANSLATION_PAID_FALLBACK_ENABLED=true
+TRANSLATION_MODEL_RESPONSE_FORMAT=none
+TRANSLATION_MODEL_REASONING_EFFORT=
+TRANSLATION_HTTP_REFERER=
+TRANSLATION_APP_TITLE=XAUUSD Event Radar
+TRANSLATION_DEFAULT_MAX_CHARS=20000
+TRANSLATION_HIGH_PRIORITY_MAX_CHARS=100000
+TRANSLATION_SINGLE_CALL_MAX_CHARS=100000
+MAX_CLASSIFICATION_CALLS_PER_RUN=0
+MAX_TRANSLATION_CALLS_PER_RUN=0
+MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN=0
 CLAUDE_CODE_AGENT_ENABLED=false
 CLAUDE_CODE_AGENT_MODEL=...
 MODEL_TIMEOUT_SECONDS=30
@@ -390,7 +431,7 @@ LOG_LEVEL=INFO
 
 `LOCAL_MODEL_BASE_URL`、`CLOUD_MODEL_BASE_URL` 與 `OPENROUTER_MODEL_BASE_URL` 都應指向 OpenAI-compatible `/v1` base URL；service 會呼叫 `{BASE_URL}/chat/completions`。若 local endpoint 不需要 key，`LOCAL_MODEL_API_KEY` 可留空。
 
-`OPENROUTER_MODEL_BASE_URL` 預設為 `https://openrouter.ai/api/v1`。OpenRouter 建議帶上 `HTTP-Referer` 與 `X-Title`，因此可透過 `OPENROUTER_HTTP_REFERER` 與 `OPENROUTER_APP_TITLE` 設定。若只想測試模型品質，不要打開 `AUXILIARY_MODEL_ENABLED`，可以先在 OpenRouter UI 或 curl 中使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md)。
+`OPENROUTER_MODEL_BASE_URL` 預設為 `https://openrouter.ai/api/v1`。OpenRouter 建議帶上 `HTTP-Referer` 與 `X-Title`，因此可透過 `OPENROUTER_HTTP_REFERER` / `TRANSLATION_HTTP_REFERER` 與 `OPENROUTER_APP_TITLE` / `TRANSLATION_APP_TITLE` 設定。若只想測試模型品質，可以先在 OpenRouter UI 或 curl 中使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md)。
 
 `*_MODEL_RESPONSE_FORMAT` 支援：
 

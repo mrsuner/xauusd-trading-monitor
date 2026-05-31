@@ -37,6 +37,31 @@ class Settings(BaseSettings):
     openrouter_http_referer: str | None = Field(default=None, alias="OPENROUTER_HTTP_REFERER")
     openrouter_app_title: str | None = Field(default="XAUUSD Event Radar", alias="OPENROUTER_APP_TITLE")
 
+    translation_model_enabled: bool = Field(default=True, alias="TRANSLATION_MODEL_ENABLED")
+    translation_model_base_url: str | None = Field(
+        default="https://openrouter.ai/api/v1", alias="TRANSLATION_MODEL_BASE_URL"
+    )
+    translation_model_api_key: str | None = Field(default=None, alias="TRANSLATION_MODEL_API_KEY")
+    translation_primary_model_name: str = Field(
+        default="openai/gpt-oss-20b:free", alias="TRANSLATION_PRIMARY_MODEL_NAME"
+    )
+    translation_fallback_model_name: str | None = Field(
+        default="openai/gpt-oss-20b", alias="TRANSLATION_FALLBACK_MODEL_NAME"
+    )
+    translation_paid_fallback_enabled: bool = Field(default=True, alias="TRANSLATION_PAID_FALLBACK_ENABLED")
+    translation_model_response_format: str = Field(default="none", alias="TRANSLATION_MODEL_RESPONSE_FORMAT")
+    translation_model_reasoning_effort: str | None = Field(default=None, alias="TRANSLATION_MODEL_REASONING_EFFORT")
+    translation_http_referer: str | None = Field(default=None, alias="TRANSLATION_HTTP_REFERER")
+    translation_app_title: str | None = Field(default="XAUUSD Event Radar", alias="TRANSLATION_APP_TITLE")
+    translation_default_max_chars: int = Field(default=20000, alias="TRANSLATION_DEFAULT_MAX_CHARS")
+    translation_high_priority_max_chars: int = Field(default=100000, alias="TRANSLATION_HIGH_PRIORITY_MAX_CHARS")
+    translation_single_call_max_chars: int = Field(default=100000, alias="TRANSLATION_SINGLE_CALL_MAX_CHARS")
+    max_classification_calls_per_run: int = Field(default=0, alias="MAX_CLASSIFICATION_CALLS_PER_RUN")
+    max_translation_calls_per_run: int = Field(default=0, alias="MAX_TRANSLATION_CALLS_PER_RUN")
+    max_translation_paid_fallback_calls_per_run: int = Field(
+        default=0, alias="MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN"
+    )
+
     model_timeout_seconds: float = Field(default=30.0, alias="MODEL_TIMEOUT_SECONDS")
     max_model_calls_per_run: int = Field(default=0, alias="MAX_MODEL_CALLS_PER_RUN")
     relevance_threshold_event: int = Field(default=70, alias="RELEVANCE_THRESHOLD_EVENT")
@@ -54,7 +79,21 @@ class Settings(BaseSettings):
     @classmethod
     def validate_max_model_calls_per_run(cls, value: int) -> int:
         if value < 0:
-            raise ValueError("MAX_MODEL_CALLS_PER_RUN must be >= 0")
+            raise ValueError("model call budgets must be >= 0")
+        return value
+
+    @field_validator(
+        "max_classification_calls_per_run",
+        "max_translation_calls_per_run",
+        "max_translation_paid_fallback_calls_per_run",
+        "translation_default_max_chars",
+        "translation_high_priority_max_chars",
+        "translation_single_call_max_chars",
+    )
+    @classmethod
+    def validate_non_negative_int(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("value must be >= 0")
         return value
 
     @field_validator("relevance_threshold_event")
@@ -64,7 +103,12 @@ class Settings(BaseSettings):
             raise ValueError("RELEVANCE_THRESHOLD_EVENT must be between 0 and 100")
         return value
 
-    @field_validator("local_model_response_format", "cloud_model_response_format", "openrouter_model_response_format")
+    @field_validator(
+        "local_model_response_format",
+        "cloud_model_response_format",
+        "openrouter_model_response_format",
+        "translation_model_response_format",
+    )
     @classmethod
     def validate_response_format(cls, value: str) -> str:
         allowed = {"none", "json_object", "json_schema", "text"}
@@ -78,6 +122,11 @@ class Settings(BaseSettings):
         "openrouter_model_reasoning_effort",
         "openrouter_http_referer",
         "openrouter_app_title",
+        "translation_model_api_key",
+        "translation_fallback_model_name",
+        "translation_model_reasoning_effort",
+        "translation_http_referer",
+        "translation_app_title",
     )
     @classmethod
     def normalize_optional_string(cls, value: str | None) -> str | None:

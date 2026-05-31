@@ -108,12 +108,25 @@ class DashboardRepository:
               r.title,
               r.text_raw,
               r.text_clean,
+              r.summary_zh,
+              r.summary_en,
+              r.full_translation_zh,
+              r.full_translation_en,
+              r.translation_status,
+              r.translation_model_provider,
+              r.translation_model,
+              r.translation_error,
+              r.translation_input_chars,
+              r.translation_updated_at,
               r.language,
               r.url,
               r.media_type,
               r.dedupe_key,
               s.name as source_name,
-              s.source_group
+              s.source_type,
+              s.source_group,
+              s.official_level,
+              s.priority
             from raw_items r
             join sources s on s.id = r.source_id
             where r.id = any(%(raw_item_ids)s::uuid[])
@@ -167,6 +180,10 @@ def build_sources_query(filters: dict[str, Any]) -> QueryBuilder:
           reliability_score,
           latency_score,
           requires_confirmation,
+          translation_policy,
+          translation_priority,
+          translation_max_chars,
+          always_full_translate,
           enabled,
           source_config,
           created_at,
@@ -216,10 +233,20 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
           r.published_at,
           r.ingested_at,
           r.edited_at,
-          r.title,
-          r.text_clean,
-          r.summary_zh,
-          r.language,
+              r.title,
+              r.text_raw,
+              r.text_clean,
+              r.summary_zh,
+              r.summary_en,
+              r.full_translation_zh,
+              r.full_translation_en,
+              r.translation_status,
+              r.translation_model_provider,
+              r.translation_model,
+              r.translation_error,
+              r.translation_input_chars,
+              r.translation_updated_at,
+              r.language,
           r.url,
           r.media_type,
           r.content_hash,
@@ -242,7 +269,11 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_lte("r.published_at", "published_to", filters.get("published_to"))
     builder.add_gte("r.ingested_at", "ingested_from", filters.get("ingested_from"))
     builder.add_lte("r.ingested_at", "ingested_to", filters.get("ingested_to"))
-    builder.add_search(("r.title", "r.text_clean", "r.summary_zh", "r.text_raw"), "q", filters.get("q"))
+    builder.add_search(
+        ("r.title", "r.text_clean", "r.summary_zh", "r.summary_en", "r.full_translation_zh", "r.full_translation_en", "r.text_raw"),
+        "q",
+        filters.get("q"),
+    )
     return builder
 
 

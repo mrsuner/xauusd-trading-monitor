@@ -5,7 +5,7 @@ import asyncio
 
 from .db import Database
 from .logging import configure_logging
-from .model_client import build_auxiliary_model_client, build_model_client
+from .model_client import build_model_client, build_translation_model_clients
 from .settings import Settings
 from .worker import NormalizerClassifierWorker
 
@@ -22,8 +22,8 @@ async def run_worker() -> None:
     configure_logging(settings.log_level)
     db = Database(settings.database_url)
     model_client = build_model_client(settings)
-    auxiliary_model_client = build_auxiliary_model_client(settings)
-    worker = NormalizerClassifierWorker(settings, db, model_client, auxiliary_model_client)
+    translation_model_clients = build_translation_model_clients(settings)
+    worker = NormalizerClassifierWorker(settings, db, model_client, translation_model_clients)
     await worker.run()
 
 

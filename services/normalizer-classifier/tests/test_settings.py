@@ -39,3 +39,17 @@ def test_settings_accepts_openrouter_auxiliary_route() -> None:
     assert settings.auxiliary_model_enabled is True
     assert settings.auxiliary_model_route == "openrouter_free"
     assert settings.openrouter_model_base_url == "https://openrouter.ai/api/v1"
+
+
+def test_settings_accepts_translation_model_defaults() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://user:pass@localhost/db",
+        CLOUD_MODEL_API_KEY="test-key",
+        OPENROUTER_MODEL_API_KEY="openrouter-key",
+    )
+
+    assert settings.translation_model_enabled is True
+    assert settings.translation_primary_model_name == "openai/gpt-oss-20b:free"
+    assert settings.translation_fallback_model_name == "openai/gpt-oss-20b"
+    assert settings.translation_paid_fallback_enabled is True
+    assert settings.translation_high_priority_max_chars == 100000

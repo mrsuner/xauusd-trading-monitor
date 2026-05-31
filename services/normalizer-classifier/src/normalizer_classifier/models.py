@@ -20,6 +20,10 @@ class SourceMetadata(BaseModel):
     reliability_score: int
     latency_score: int
     requires_confirmation: bool
+    translation_policy: str = "full"
+    translation_priority: str = "normal"
+    translation_max_chars: int | None = None
+    always_full_translate: bool = False
 
 
 class RawItem(BaseModel):
@@ -33,6 +37,15 @@ class RawItem(BaseModel):
     text_raw: str | None = None
     text_clean: str | None = None
     summary_zh: str | None = None
+    summary_en: str | None = None
+    full_translation_zh: str | None = None
+    full_translation_en: str | None = None
+    translation_status: str = "pending"
+    translation_model_provider: str | None = None
+    translation_model: str | None = None
+    translation_error: str | None = None
+    translation_input_chars: int | None = None
+    translation_updated_at: datetime | None = None
     language: str | None = None
     url: str | None = None
     media_type: str
@@ -87,7 +100,9 @@ class ClassificationResult(BaseModel):
 
 class AuxiliaryTextResult(BaseModel):
     summary_zh: str
-    translation_zh: str | None = None
+    summary_en: str
+    full_translation_zh: str | None = None
+    full_translation_en: str | None = None
     detected_language: str | None = None
     notes: str | None = None
 

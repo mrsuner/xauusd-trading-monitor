@@ -169,6 +169,8 @@ q
 
 - 預設按 `published_at desc`。
 - 需要 pagination。
+- list response 需包含 `summary_zh`、`summary_en`、`translation_status`，方便 timeline 顯示。
+- raw item detail / event detail 需包含 `full_translation_zh`、`full_translation_en`、`translation_model` 與 `translation_error`，方便閱讀與 debug。
 - 大欄位如 `raw_json` 可在 list response 中省略，detail endpoint 再回傳。
 
 ### 7.4 Processing

@@ -1,11 +1,11 @@
 # OpenRouter 摘要與翻譯模型測試 Prompt
 
-本文件用於比較 OpenRouter free / cheap models 是否適合 `normalizer-classifier` 的輔助摘要與翻譯任務。
+本文件用於比較 OpenRouter free / cheap models 是否適合 `normalizer-classifier` 的 translation-summary 任務。
 
 V1 判斷原則：
 
 - 核心分類仍使用 `gpt-5.4-mini`。
-- OpenRouter free / cheap models 只用於 `summary_zh`、`translation_zh`、低風險文字整理。
+- OpenRouter free / cheap models 只用於 `summary_zh`、`summary_en`、`full_translation_zh`、`full_translation_en`、低風險文字整理。
 - 測試時重點觀察 JSON 穩定性、繁體中文品質、翻譯忠實度、是否加入原文沒有的推論。
 
 ## 1. System Prompt
@@ -20,10 +20,13 @@ You must not provide trading instructions, entries, stop loss, take profit, posi
 You must not predict market direction.
 You must not add facts that are not present in the input.
 
-summary_zh must be a concise Traditional Chinese news summary, preferably under 90 Chinese characters.
+summary_zh must be a concise Traditional Chinese news summary.
+summary_en must be a concise English news summary.
 
-If the source text is not Chinese, translation_zh should be a faithful Traditional Chinese translation of the key content, preferably under 500 Chinese characters.
-If the source text is already Chinese, translation_zh should be null.
+If full_translation_required is true, full_translation_zh and full_translation_en must contain faithful full-text translations of the supplied text.
+If the original text is already English, full_translation_en may equal the supplied cleaned text.
+If the original text is already Chinese, full_translation_zh may equal the supplied cleaned text.
+If full_translation_required is false, return null for both full_translation fields.
 
 Preserve names, places, institutions, numbers, dates, source uncertainty, and quoted claims.
 If the text is rumor-like or unconfirmed, say so clearly.
@@ -31,7 +34,9 @@ If the text is rumor-like or unconfirmed, say so clearly.
 Return this exact JSON shape:
 {
   "summary_zh": "string",
-  "translation_zh": "string|null",
+  "summary_en": "string",
+  "full_translation_zh": "string|null",
+  "full_translation_en": "string|null",
   "detected_language": "string|null",
   "notes": "string|null"
 }
@@ -48,6 +53,11 @@ Return this exact JSON shape:
     "official_level": "semi_official",
     "priority": "P0",
     "stance": "IRGC-linked / hardline-adjacent"
+  },
+  "translation_scope": {
+    "summary_required": true,
+    "full_translation_required": true,
+    "truncated_input": false
   },
   "raw_item": {
     "title": "Iran nuclear talks",
@@ -133,6 +143,7 @@ Return this exact JSON shape:
 | --- | --- |
 | JSON 格式 | 可直接 `json.loads`，沒有 Markdown fence |
 | 繁中摘要 | `summary_zh` 自然、簡短、沒有簡體字 |
+| 英文摘要 | `summary_en` 自然、簡短，保留主要 claim |
 | 翻譯忠實度 | 不擴寫、不加入交易解讀、不改變不確定語氣 |
 | 名詞保留 | Trump、Tasnim、Fed、IRGC、uranium enrichment 等核心名詞不混淆 |
 | 風險控制 | 不輸出交易方向或建議 |
@@ -143,7 +154,9 @@ Return this exact JSON shape:
 ```json
 {
   "summary_zh": "Tasnim 稱伊朗否認已同意放棄濃縮鈾。",
-  "translation_zh": "Tasnim 報導稱，伊朗官員否認德黑蘭已同意放棄濃縮鈾的說法，並表示任何協議都必須保留伊朗的核權利並解除制裁。",
+  "summary_en": "Tasnim says Iran denied agreeing to abandon uranium enrichment.",
+  "full_translation_zh": "Tasnim 報導稱，伊朗官員否認德黑蘭已同意放棄濃縮鈾的說法，並表示任何協議都必須保留伊朗的核權利並解除制裁。",
+  "full_translation_en": "Tasnim reports that Iranian officials rejected claims that Tehran has agreed to abandon uranium enrichment, saying any agreement must preserve Iran's nuclear rights and remove sanctions.",
   "detected_language": "en",
   "notes": "消息來自半官方、強硬派相關來源；未加入交易方向判斷。"
 }

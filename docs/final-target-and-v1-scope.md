@@ -146,9 +146,23 @@ V1 允許兩種模型路徑：
 | cloud small model | V1 主分類、相關度判斷、claim extraction、impact channel | 使用 `gpt-5.4-mini`，重要來源、高優先級消息 |
 | local 8B model | 摘要、翻譯、低成本輔助處理 | HomeLab 可用、低風險任務 |
 | cloud nano model | 摘要、翻譯、低成本輔助處理 | 例如 `gpt-5.4-nano`，不作最終分類 |
-| OpenRouter free / cheap model | 摘要、翻譯、低風險文字處理 | 可作為 local LLM 之外的穩定外部輔助路徑，不作最終分類 |
+| OpenRouter translation model | 摘要、翻譯、低風險文字處理 | V1 預設 `openai/gpt-oss-20b:free`，失敗時 fallback `openai/gpt-oss-20b`，不作最終分類 |
 
 V1 預設用 `gpt-5.4-mini` 做最終分類。OpenRouter free / cheap model、local LLM 與 nano model 可降低摘要與翻譯成本，但不應單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 severity input。
+
+V1 將 AI 拆成兩層：
+
+```text
+Layer 1 translation-summary:
+  input: original text
+  output: summary_zh, summary_en, full_translation_zh, full_translation_en
+  rule: 不判斷優先級，不判斷交易相關度
+
+Layer 2 classification-reasoning:
+  input: original text + source metadata + deterministic prefilter result
+  output: relevance, event_type, claim_direction, event fields
+  rule: 不使用 Layer 1 翻譯結果作為 evidence
+```
 
 ## 6. V1 服務範圍
 

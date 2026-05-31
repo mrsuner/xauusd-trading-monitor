@@ -57,7 +57,7 @@ export function Timeline() {
           </div>
         ) : null}
         {query.data?.items.map((item) => {
-          const messageBody = item.summary_zh || item.text_clean || item.text_raw || "-";
+          const messageBody = item.summary_zh || item.summary_en || item.text_clean || item.text_raw || "-";
           const title = item.title || item.source_name;
 
           return (
@@ -68,6 +68,7 @@ export function Timeline() {
                 <OfficialBadge value={item.official_level} />
                 <PriorityBadge value={item.priority} />
                 <span className="rounded bg-base-200 px-2 py-0.5">{item.source_group}</span>
+                <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
               </div>
               {item.title ? <h2 className="mb-2 text-sm font-semibold text-base-content">{title}</h2> : null}
               <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-base-content/80">{messageBody}</p>

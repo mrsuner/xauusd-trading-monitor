@@ -117,7 +117,8 @@ POST /sources/{source_id}/backfill
   - raw item id
   - source url / original url
   - title，若 raw item 有 `title` 則獨立顯示
-  - message body，優先使用 `summary_zh`，fallback 到 `text_clean`，再 fallback 到 `text_raw`
+  - message body，優先使用 `summary_zh`，fallback 到 `summary_en`，再 fallback 到 `text_clean` / `text_raw`
+  - translation status badge，顯示 `pending` / `completed` / `completed_truncated` / `skipped` / `failed`
 - auto-refresh toggle：
   - default enabled
   - interval 10-30 秒
@@ -172,6 +173,9 @@ POST /sources/{source_id}/backfill
 - event summary：
   - title
   - summary_zh
+  - summary_en
+  - full_translation_zh
+  - full_translation_en
   - severity
   - confidence
   - relevance score

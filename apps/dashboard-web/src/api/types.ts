@@ -35,6 +35,10 @@ export type Source = {
   reliability_score: number;
   latency_score: number;
   requires_confirmation: boolean;
+  translation_policy: string;
+  translation_priority: string;
+  translation_max_chars?: number | null;
+  always_full_translate: boolean;
   enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -71,6 +75,15 @@ export type RawItem = {
   title?: string | null;
   text_clean?: string | null;
   summary_zh?: string | null;
+  summary_en?: string | null;
+  full_translation_zh?: string | null;
+  full_translation_en?: string | null;
+  translation_status?: string | null;
+  translation_model_provider?: string | null;
+  translation_model?: string | null;
+  translation_error?: string | null;
+  translation_input_chars?: number | null;
+  translation_updated_at?: string | null;
   text_raw?: string | null;
   language?: string | null;
   url?: string | null;

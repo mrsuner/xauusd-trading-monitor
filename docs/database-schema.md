@@ -159,6 +159,10 @@ create table sources (
   reliability_score smallint not null default 50,
   latency_score smallint not null default 50,
   requires_confirmation boolean not null default true,
+  translation_policy text not null default 'full',
+  translation_priority text not null default 'normal',
+  translation_max_chars integer,
+  always_full_translate boolean not null default false,
   enabled boolean not null default true,
   source_config jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
@@ -178,9 +182,27 @@ create table sources (
   ),
   constraint sources_latency_score_check check (
     latency_score >= 0 and latency_score <= 100
+  ),
+  constraint sources_translation_policy_check check (
+    translation_policy in ('disabled', 'summary_only', 'full')
+  ),
+  constraint sources_translation_priority_check check (
+    translation_priority in ('normal', 'high')
+  ),
+  constraint sources_translation_max_chars_check check (
+    translation_max_chars is null or translation_max_chars >= 0
   )
 );
 ```
+
+Translation policy 用於 deterministic translation scope，不由低成本模型判斷重要性：
+
+| 欄位 | 說明 |
+| --- | --- |
+| `translation_policy` | `disabled` / `summary_only` / `full`，V1 預設 `full` |
+| `translation_priority` | `normal` / `high`，高優先來源可使用較大的文字長度限制 |
+| `translation_max_chars` | source-level override；P0/P1 seed 預設可設為 `100000` |
+| `always_full_translate` | 指定來源永遠使用 full translation policy |
 
 ### 6.3 source_group V1 建議值
 
@@ -274,6 +296,15 @@ create table raw_items (
   text_raw text,
   text_clean text,
   summary_zh text,
+  summary_en text,
+  full_translation_zh text,
+  full_translation_en text,
+  translation_status text not null default 'pending',
+  translation_model_provider text,
+  translation_model text,
+  translation_error text,
+  translation_input_chars integer,
+  translation_updated_at timestamptz,
   language text,
   url text,
   media_type text not null default 'none',
@@ -285,11 +316,27 @@ create table raw_items (
 
   constraint raw_items_media_type_check check (
     media_type in ('none', 'photo', 'video', 'document', 'webpage', 'mixed', 'unknown')
+  ),
+  constraint raw_items_translation_status_check check (
+    translation_status in ('pending', 'completed', 'completed_truncated', 'skipped', 'failed')
+  ),
+  constraint raw_items_translation_input_chars_check check (
+    translation_input_chars is null or translation_input_chars >= 0
   )
 );
 ```
 
-`summary_zh` 由 `normalizer-classifier` 在模型回應後回寫，用於 Dashboard 在 raw item 層直接顯示繁體中文摘要。沒有通過 prefilter、尚未處理或模型呼叫被開發環境 budget 暫停的 item 會保持 `null`。
+`summary_zh`、`summary_en`、`full_translation_zh` 與 `full_translation_en` 由 `normalizer-classifier` 的 translation-summary layer 回寫，用於 Dashboard 在 raw item 層顯示雙語摘要與全文翻譯。Layer 2 classification-reasoning 不讀這些欄位，避免低成本翻譯模型影響事件判斷。
+
+`translation_status`：
+
+| 狀態 | 說明 |
+| --- | --- |
+| `pending` | 尚未處理 |
+| `completed` | 已完成，未截斷 |
+| `completed_truncated` | 已完成，但只翻譯 policy 允許的截斷輸入 |
+| `skipped` | deterministic prefilter 或 source policy 跳過 |
+| `failed` | free 與 fallback route 都失敗，或 budget 用盡 |
 
 ### 7.3 Dedupe Key
 

@@ -94,6 +94,9 @@ start_service() {
       mkdir -p "$(dirname "$TELEGRAM_SESSION_PATH")"
     fi
     export MAX_MODEL_CALLS_PER_RUN="${MAX_MODEL_CALLS_PER_RUN:-20}"
+    export MAX_CLASSIFICATION_CALLS_PER_RUN="${MAX_CLASSIFICATION_CALLS_PER_RUN:-$MAX_MODEL_CALLS_PER_RUN}"
+    export MAX_TRANSLATION_CALLS_PER_RUN="${MAX_TRANSLATION_CALLS_PER_RUN:-20}"
+    export MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN="${MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN:-20}"
     exec uv run --project "$project_dir" "$@"
   ) >"$log_file" 2>&1 &
 

@@ -31,7 +31,26 @@ export function EventDetail() {
           {event.raw_items.map((item) => (
             <div key={item.id} className="border-t border-base-200 pt-3 first:border-t-0 first:pt-0">
               <div className="mb-1 flex flex-wrap gap-2 text-sm"><span className="font-medium">{item.source_name}</span><span>{formatTime(item.published_at || item.ingested_at)}</span></div>
-              <p className="whitespace-pre-wrap text-sm text-base-content/80">{item.summary_zh || item.text_clean || item.text_raw || item.title}</p>
+              <div className="space-y-2 text-sm text-base-content/80">
+                <p className="whitespace-pre-wrap">{item.summary_zh || item.summary_en || item.text_clean || item.text_raw || item.title}</p>
+                {item.summary_en ? <p className="whitespace-pre-wrap text-base-content/60">{item.summary_en}</p> : null}
+                {item.full_translation_zh ? (
+                  <details className="rounded border border-base-200 bg-base-200/30 p-3">
+                    <summary className="cursor-pointer text-xs font-medium text-base-content/70">中文全文翻譯</summary>
+                    <p className="mt-2 whitespace-pre-wrap">{item.full_translation_zh}</p>
+                  </details>
+                ) : null}
+                {item.full_translation_en ? (
+                  <details className="rounded border border-base-200 bg-base-200/30 p-3">
+                    <summary className="cursor-pointer text-xs font-medium text-base-content/70">English Full Text</summary>
+                    <p className="mt-2 whitespace-pre-wrap">{item.full_translation_en}</p>
+                  </details>
+                ) : null}
+                <div className="text-xs text-base-content/50">
+                  translation: {item.translation_status || "pending"}
+                  {item.translation_model ? ` / ${item.translation_model}` : ""}
+                </div>
+              </div>
             </div>
           ))}
         </div>

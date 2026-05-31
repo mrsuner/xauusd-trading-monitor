@@ -92,7 +92,14 @@ class OpenAIStyleModelClient:
         return ModelResponse(provider=self.provider, model=self.model, result=result, raw_output=body)
 
     async def summarize_and_translate(
-        self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem
+        self,
+        raw_item: RawItem,
+        source: SourceMetadata,
+        normalized: NormalizedItem,
+        *,
+        full_translation_required: bool = True,
+        input_text: str | None = None,
+        truncated: bool = False,
     ) -> AuxiliaryModelResponse:
         payload = {
             "model": self.model,
@@ -111,9 +118,14 @@ class OpenAIStyleModelClient:
                                 "priority": source.priority,
                                 "stance": source.stance,
                             },
+                            "translation_scope": {
+                                "summary_required": True,
+                                "full_translation_required": full_translation_required,
+                                "truncated_input": truncated,
+                            },
                             "raw_item": {
                                 "title": raw_item.title,
-                                "text_clean": normalized.text_clean,
+                                "text_clean": input_text if input_text is not None else normalized.text_clean,
                                 "language": normalized.language,
                                 "url": raw_item.url,
                                 "published_at": raw_item.published_at.isoformat() if raw_item.published_at else None,
@@ -217,6 +229,54 @@ def build_auxiliary_model_client(settings: Settings) -> OpenAIStyleModelClient |
     raise ValueError(f"unsupported AUXILIARY_MODEL_ROUTE: {settings.auxiliary_model_route}")
 
 
+def build_translation_model_clients(settings: Settings) -> list[OpenAIStyleModelClient]:
+    if not settings.translation_model_enabled:
+        return []
+
+    base_url = settings.translation_model_base_url or settings.openrouter_model_base_url
+    api_key = settings.translation_model_api_key or settings.openrouter_model_api_key
+    if not base_url:
+        raise ValueError("TRANSLATION_MODEL_BASE_URL is required when TRANSLATION_MODEL_ENABLED=true")
+    if not api_key:
+        raise ValueError("TRANSLATION_MODEL_API_KEY or OPENROUTER_MODEL_API_KEY is required for translation route")
+
+    extra_headers = {}
+    referer = settings.translation_http_referer or settings.openrouter_http_referer
+    app_title = settings.translation_app_title or settings.openrouter_app_title
+    if referer:
+        extra_headers["HTTP-Referer"] = referer
+    if app_title:
+        extra_headers["X-Title"] = app_title
+
+    clients = [
+        OpenAIStyleModelClient(
+            provider="translation_primary",
+            base_url=base_url,
+            api_key=api_key,
+            model=settings.translation_primary_model_name,
+            timeout_seconds=settings.model_timeout_seconds,
+            response_format=settings.translation_model_response_format,
+            reasoning_effort=settings.translation_model_reasoning_effort,
+            extra_headers=extra_headers,
+        )
+    ]
+
+    if settings.translation_paid_fallback_enabled and settings.translation_fallback_model_name:
+        clients.append(
+            OpenAIStyleModelClient(
+                provider="translation_paid_fallback",
+                base_url=base_url,
+                api_key=api_key,
+                model=settings.translation_fallback_model_name,
+                timeout_seconds=settings.model_timeout_seconds,
+                response_format=settings.translation_model_response_format,
+                reasoning_effort=settings.translation_model_reasoning_effort,
+                extra_headers=extra_headers,
+            )
+        )
+    return clients
+
+
 def extract_message_content(body: dict[str, Any]) -> str:
     message = body["choices"][0]["message"]
     content = message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
@@ -248,16 +308,23 @@ def system_prompt() -> str:
 def auxiliary_text_system_prompt() -> str:
     return (
         "You summarize and translate news items for an XAUUSD event radar. "
-        "Return only valid JSON. Use Traditional Chinese. "
+        "Return only valid JSON. Do not wrap JSON in Markdown. Use Traditional Chinese for Chinese output. "
         "Do not provide trading instructions, entries, stop loss, take profit, position sizing, buy, sell, long, "
         "short, bullish, or bearish recommendations. Do not predict market direction. "
-        "summary_zh must be a concise Traditional Chinese news summary, preferably under 90 Chinese characters. "
-        "If the source text is not Chinese, translation_zh should be a faithful Traditional Chinese translation of "
-        "the key content, preferably under 500 Chinese characters. If the source text is already Chinese, "
-        "translation_zh should be null. Preserve names, places, institutions, numbers, dates, and uncertainty. "
+        "Do not decide whether a message is important, relevant, urgent, official, or market moving. "
+        "Only follow translation_scope. "
+        "summary_zh must be a concise Traditional Chinese news summary. "
+        "summary_en must be a concise English news summary. "
+        "If full_translation_required is true, full_translation_zh and full_translation_en must contain faithful "
+        "full-text translations of the supplied text. If the original text is already English, full_translation_en "
+        "may equal the supplied cleaned text. If the original text is already Chinese, full_translation_zh may equal "
+        "the supplied cleaned text. If full_translation_required is false, return null for both full_translation fields. "
+        "Preserve names, places, institutions, numbers, dates, quoted claims, and uncertainty. "
+        "If truncated_input is true, mention in notes that full translation is based on truncated input. "
         "Do not add facts that are not in the input. "
         "The JSON schema is: "
-        '{"summary_zh": string, "translation_zh": string|null, "detected_language": string|null, "notes": string|null}.'
+        '{"summary_zh": string, "summary_en": string, "full_translation_zh": string|null, '
+        '"full_translation_en": string|null, "detected_language": string|null, "notes": string|null}.'
     )
 
 
@@ -325,11 +392,20 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                 "additionalProperties": False,
                 "properties": {
                     "summary_zh": {"type": "string"},
-                    "translation_zh": {"type": ["string", "null"]},
+                    "summary_en": {"type": "string"},
+                    "full_translation_zh": {"type": ["string", "null"]},
+                    "full_translation_en": {"type": ["string", "null"]},
                     "detected_language": {"type": ["string", "null"]},
                     "notes": {"type": ["string", "null"]},
                 },
-                "required": ["summary_zh", "translation_zh", "detected_language", "notes"],
+                "required": [
+                    "summary_zh",
+                    "summary_en",
+                    "full_translation_zh",
+                    "full_translation_en",
+                    "detected_language",
+                    "notes",
+                ],
             },
         },
     }
