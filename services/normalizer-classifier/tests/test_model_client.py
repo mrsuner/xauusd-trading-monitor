@@ -79,6 +79,8 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
         api_key="test-key",
         model="test-model",
         timeout_seconds=5,
+        response_format="json_object",
+        reasoning_effort="none",
     )
 
     response = await client.classify(raw_item, source, normalized)
@@ -87,3 +89,122 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
     assert response.model == "test-model"
     assert response.result.is_relevant is True
     assert response.result.relevance_score == 82
+
+
+async def test_openai_style_model_client_can_omit_json_response_format(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        assert "response_format" not in json
+        content = {
+            "is_relevant": False,
+            "relevance_score": 10,
+            "event_type": "UNKNOWN",
+            "claim_direction": "unknown",
+            "summary_zh": "低相關消息。",
+            "requires_confirmation": True,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="local_8b",
+        base_url="http://localhost:11434/v1",
+        api_key=None,
+        model="test-model",
+        timeout_seconds=5,
+        response_format="none",
+    )
+
+    response = await client.classify(raw_item, source, normalized)
+
+    assert response.provider == "local_8b"
+    assert response.result.is_relevant is False
+
+
+async def test_openai_style_model_client_supports_json_schema_reasoning_content(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        assert json["response_format"]["type"] == "json_schema"
+        content = {
+            "is_relevant": True,
+            "relevance_score": 75,
+            "event_type": "US_FED",
+            "source_stance": None,
+            "claim_direction": "neutral",
+            "claim_text": None,
+            "summary_zh": "Fed 相關消息。",
+            "summary_en": None,
+            "actors": ["Fed"],
+            "xauusd_impact_channel": ["real_rate"],
+            "requires_confirmation": True,
+            "confidence": 70,
+            "reason": "Relevant to rates.",
+            "region": "US",
+            "primary_actor": "Fed",
+            "secondary_actor": None,
+            "market_relevance": "May affect real rates.",
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "", "reasoning_content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="local_8b",
+        base_url="http://localhost:1234/v1",
+        api_key=None,
+        model="test-model",
+        timeout_seconds=5,
+        response_format="json_schema",
+    )
+
+    response = await client.classify(raw_item, source, normalized)
+
+    assert response.result.is_relevant is True
+    assert response.result.event_type == "US_FED"
+
+
+async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        assert json["reasoning_effort"] == "none"
+        content = {
+            "is_relevant": False,
+            "relevance_score": 20,
+            "event_type": "UNKNOWN",
+            "claim_direction": "unknown",
+            "summary_zh": "測試。",
+            "requires_confirmation": True,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="local_8b",
+        base_url="http://localhost:11434/v1",
+        api_key=None,
+        model="test-model",
+        timeout_seconds=5,
+        response_format="json_object",
+        reasoning_effort="none",
+    )
+
+    response = await client.classify(raw_item, source, normalized)
+
+    assert response.result.relevance_score == 20

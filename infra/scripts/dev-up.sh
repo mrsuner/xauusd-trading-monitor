@@ -86,6 +86,12 @@ start_service() {
     # shellcheck source=/dev/null
     source "$ENV_PATH"
     set +a
+    if [[ "${TELEGRAM_SESSION_PATH:-}" == /app/sessions/* ]]; then
+      export TELEGRAM_SESSION_PATH="$ROOT_DIR/infra/data/telegram-sessions/$(basename "$TELEGRAM_SESSION_PATH")"
+    fi
+    if [[ -n "${TELEGRAM_SESSION_PATH:-}" ]]; then
+      mkdir -p "$(dirname "$TELEGRAM_SESSION_PATH")"
+    fi
     exec uv run --project "$project_dir" "$@"
   ) >"$log_file" 2>&1 &
 

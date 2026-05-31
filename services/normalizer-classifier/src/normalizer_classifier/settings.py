@@ -15,10 +15,14 @@ class Settings(BaseSettings):
     local_model_base_url: str | None = Field(default=None, alias="LOCAL_MODEL_BASE_URL")
     local_model_api_key: str | None = Field(default=None, alias="LOCAL_MODEL_API_KEY")
     local_model_name: str | None = Field(default=None, alias="LOCAL_MODEL_NAME")
+    local_model_response_format: str = Field(default="none", alias="LOCAL_MODEL_RESPONSE_FORMAT")
+    local_model_reasoning_effort: str | None = Field(default=None, alias="LOCAL_MODEL_REASONING_EFFORT")
 
     cloud_model_base_url: str | None = Field(default="https://api.openai.com/v1", alias="CLOUD_MODEL_BASE_URL")
     cloud_model_api_key: str | None = Field(default=None, alias="CLOUD_MODEL_API_KEY")
     cloud_model_name: str | None = Field(default=None, alias="CLOUD_MODEL_NAME")
+    cloud_model_response_format: str = Field(default="json_object", alias="CLOUD_MODEL_RESPONSE_FORMAT")
+    cloud_model_reasoning_effort: str | None = Field(default=None, alias="CLOUD_MODEL_REASONING_EFFORT")
 
     model_timeout_seconds: float = Field(default=30.0, alias="MODEL_TIMEOUT_SECONDS")
     relevance_threshold_event: int = Field(default=70, alias="RELEVANCE_THRESHOLD_EVENT")
@@ -37,4 +41,19 @@ class Settings(BaseSettings):
     def validate_threshold(cls, value: int) -> int:
         if value < 0 or value > 100:
             raise ValueError("RELEVANCE_THRESHOLD_EVENT must be between 0 and 100")
+        return value
+
+    @field_validator("local_model_response_format", "cloud_model_response_format")
+    @classmethod
+    def validate_response_format(cls, value: str) -> str:
+        allowed = {"none", "json_object", "json_schema", "text"}
+        if value not in allowed:
+            raise ValueError(f"response format must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+    @field_validator("local_model_reasoning_effort", "cloud_model_reasoning_effort")
+    @classmethod
+    def normalize_optional_string(cls, value: str | None) -> str | None:
+        if value is None or value == "":
+            return None
         return value

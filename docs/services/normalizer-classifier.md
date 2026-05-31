@@ -342,9 +342,13 @@ MODEL_ROUTE=local_8b
 LOCAL_MODEL_BASE_URL=http://localhost:11434/v1
 LOCAL_MODEL_API_KEY=
 LOCAL_MODEL_NAME=...
+LOCAL_MODEL_RESPONSE_FORMAT=none
+LOCAL_MODEL_REASONING_EFFORT=
 CLOUD_MODEL_BASE_URL=https://api.openai.com/v1
 CLOUD_MODEL_API_KEY=...
 CLOUD_MODEL_NAME=...
+CLOUD_MODEL_RESPONSE_FORMAT=json_object
+CLOUD_MODEL_REASONING_EFFORT=
 CLAUDE_CODE_AGENT_ENABLED=false
 CLAUDE_CODE_AGENT_MODEL=...
 MODEL_TIMEOUT_SECONDS=30
@@ -354,6 +358,15 @@ LOG_LEVEL=INFO
 ```
 
 `LOCAL_MODEL_BASE_URL` 與 `CLOUD_MODEL_BASE_URL` 都應指向 OpenAI-compatible `/v1` base URL；service 會呼叫 `{BASE_URL}/chat/completions`。若 local endpoint 不需要 key，`LOCAL_MODEL_API_KEY` 可留空。
+
+`*_MODEL_RESPONSE_FORMAT` 支援：
+
+- `none`：不送 `response_format`，適合多數 Ollama OpenAI-compatible endpoint。
+- `json_object`：OpenAI JSON mode。
+- `json_schema`：LM Studio structured output。
+- `text`：明確要求 text mode。
+
+`*_MODEL_REASONING_EFFORT` 可留空；若本地 OpenAI-compatible server 支援，可設為 `none`。目前 Ollama + Qwen thinking model 在 `reasoning_effort=none` 下可避免大量 reasoning token，延遲明顯下降。
 
 ## 18. 測試需求
 

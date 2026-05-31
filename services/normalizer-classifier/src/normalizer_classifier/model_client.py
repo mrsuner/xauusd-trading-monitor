@@ -15,12 +15,24 @@ class ModelClientError(RuntimeError):
 
 
 class OpenAIStyleModelClient:
-    def __init__(self, *, provider: str, base_url: str, api_key: str | None, model: str, timeout_seconds: float) -> None:
+    def __init__(
+        self,
+        *,
+        provider: str,
+        base_url: str,
+        api_key: str | None,
+        model: str,
+        timeout_seconds: float,
+        response_format: str,
+        reasoning_effort: str | None = None,
+    ) -> None:
         self.provider = provider
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.response_format = response_format
+        self.reasoning_effort = reasoning_effort
 
     async def classify(self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem) -> ModelResponse:
         headers = {"Content-Type": "application/json"}
@@ -30,7 +42,6 @@ class OpenAIStyleModelClient:
         payload = {
             "model": self.model,
             "temperature": 0,
-            "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": system_prompt()},
                 {
@@ -62,13 +73,22 @@ class OpenAIStyleModelClient:
                 },
             ],
         }
+        if self.response_format == "json_object":
+            payload["response_format"] = {"type": "json_object"}
+        elif self.response_format == "json_schema":
+            payload["response_format"] = classification_json_schema_response_format()
+        elif self.response_format == "text":
+            payload["response_format"] = {"type": "text"}
+        if self.reasoning_effort:
+            payload["reasoning_effort"] = self.reasoning_effort
 
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
             response.raise_for_status()
             body = response.json()
 
-        content = body["choices"][0]["message"]["content"]
+        message = body["choices"][0]["message"]
+        content = message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
         try:
             decoded = json.loads(content)
             result = ClassificationResult.model_validate(decoded)
@@ -88,6 +108,8 @@ def build_model_client(settings: Settings) -> OpenAIStyleModelClient:
             api_key=settings.local_model_api_key,
             model=settings.local_model_name,
             timeout_seconds=settings.model_timeout_seconds,
+            response_format=settings.local_model_response_format,
+            reasoning_effort=settings.local_model_reasoning_effort,
         )
 
     if settings.model_route == "cloud_small":
@@ -101,6 +123,8 @@ def build_model_client(settings: Settings) -> OpenAIStyleModelClient:
             api_key=settings.cloud_model_api_key,
             model=settings.cloud_model_name,
             timeout_seconds=settings.model_timeout_seconds,
+            response_format=settings.cloud_model_response_format,
+            reasoning_effort=settings.cloud_model_reasoning_effort,
         )
 
     raise ValueError(f"unsupported MODEL_ROUTE: {settings.model_route}")
@@ -110,7 +134,10 @@ def system_prompt() -> str:
     return (
         "You classify news items for an XAUUSD event radar. "
         "Return only valid JSON. Do not provide trading instructions, entries, stop loss, take profit, "
-        "position sizing, buy, sell, long, or short recommendations. "
+        "position sizing, buy, sell, long, short, bullish, or bearish recommendations. "
+        "Do not predict market direction. "
+        "Do not describe the event as a gold catalyst or imply whether gold should rise or fall. "
+        "Use Traditional Chinese for summary_zh. "
         "Decide whether the item is relevant to gold through safe_haven, real_rate, inflation, dollar, "
         "liquidity, oil, sanctions, geopolitics, or Fed expectations. "
         "The JSON schema is: "
@@ -121,3 +148,57 @@ def system_prompt() -> str:
         '"reason": string|null, "region": string|null, "primary_actor": string|null, '
         '"secondary_actor": string|null, "market_relevance": string|null}.'
     )
+
+
+def classification_json_schema_response_format() -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "xauusd_event_classification",
+            "schema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "is_relevant": {"type": "boolean"},
+                    "relevance_score": {"type": "integer", "minimum": 0, "maximum": 100},
+                    "event_type": {"type": "string"},
+                    "source_stance": {"type": ["string", "null"]},
+                    "claim_direction": {
+                        "type": "string",
+                        "enum": ["confirm", "deny", "warn", "escalate", "deescalate", "neutral", "unknown"],
+                    },
+                    "claim_text": {"type": ["string", "null"]},
+                    "summary_zh": {"type": "string"},
+                    "summary_en": {"type": ["string", "null"]},
+                    "actors": {"type": "array", "items": {"type": "string"}},
+                    "xauusd_impact_channel": {"type": "array", "items": {"type": "string"}},
+                    "requires_confirmation": {"type": "boolean"},
+                    "confidence": {"type": ["integer", "null"], "minimum": 0, "maximum": 100},
+                    "reason": {"type": ["string", "null"]},
+                    "region": {"type": ["string", "null"]},
+                    "primary_actor": {"type": ["string", "null"]},
+                    "secondary_actor": {"type": ["string", "null"]},
+                    "market_relevance": {"type": ["string", "null"]},
+                },
+                "required": [
+                    "is_relevant",
+                    "relevance_score",
+                    "event_type",
+                    "source_stance",
+                    "claim_direction",
+                    "claim_text",
+                    "summary_zh",
+                    "summary_en",
+                    "actors",
+                    "xauusd_impact_channel",
+                    "requires_confirmation",
+                    "confidence",
+                    "reason",
+                    "region",
+                    "primary_actor",
+                    "secondary_actor",
+                    "market_relevance",
+                ],
+            },
+        },
+    }
