@@ -57,6 +57,7 @@ class RawItemFilters(BaseModel):
     source_id: UUID | None = None
     source_type: str | None = None
     source_group: str | None = None
+    priority: str | None = None
     published_from: datetime | None = None
     published_to: datetime | None = None
     ingested_from: datetime | None = None

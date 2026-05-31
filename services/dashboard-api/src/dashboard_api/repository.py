@@ -233,20 +233,20 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
           r.published_at,
           r.ingested_at,
           r.edited_at,
-              r.title,
-              r.text_raw,
-              r.text_clean,
-              r.summary_zh,
-              r.summary_en,
-              r.full_translation_zh,
-              r.full_translation_en,
-              r.translation_status,
-              r.translation_model_provider,
-              r.translation_model,
-              r.translation_error,
-              r.translation_input_chars,
-              r.translation_updated_at,
-              r.language,
+          r.title,
+          r.text_raw,
+          r.text_clean,
+          r.summary_zh,
+          r.summary_en,
+          r.full_translation_zh,
+          r.full_translation_en,
+          r.translation_status,
+          r.translation_model_provider,
+          r.translation_model,
+          r.translation_error,
+          r.translation_input_chars,
+          r.translation_updated_at,
+          r.language,
           r.url,
           r.media_type,
           r.content_hash,
@@ -265,6 +265,7 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_equal("r.source_id", "source_id", filters.get("source_id"))
     builder.add_equal("s.source_type", "source_type", filters.get("source_type"))
     builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
+    builder.add_equal("s.priority", "priority", filters.get("priority"))
     builder.add_gte("r.published_at", "published_from", filters.get("published_from"))
     builder.add_lte("r.published_at", "published_to", filters.get("published_to"))
     builder.add_gte("r.ingested_at", "ingested_from", filters.get("ingested_from"))

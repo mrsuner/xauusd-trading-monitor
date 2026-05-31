@@ -103,12 +103,12 @@ POST /sources/{source_id}/backfill
 
 主要元素：
 
-- source type tabs：
-  - Telegram
-  - RSS
 - 頂部 filter bar：
-  - source group
   - keyword search
+  - source type select，包含 All / Telegram / RSS / Atom / HTML polling
+  - source select，選項顯示 `source_name`，查詢時使用 `source_id`
+  - priority select，包含 All / P0 / P1 / P2 / P3
+  - source group
 - timeline card list：
   - published time
   - source name / source group
@@ -117,7 +117,8 @@ POST /sources/{source_id}/backfill
   - raw item id
   - source url / original url
   - title，若 raw item 有 `title` 則獨立顯示
-  - message body，優先使用 `summary_zh`，fallback 到 `summary_en`，再 fallback 到 `text_clean` / `text_raw`
+  - summary block，優先使用 `summary_zh`，fallback 到 `summary_en`，再 fallback 到 `text_clean` / `text_raw`
+  - full translation block，優先使用 `full_translation_zh`，fallback 到 `full_translation_en`；若兩者都沒有，顯示 `text_clean` / `text_raw`
   - translation status badge，顯示 `pending` / `completed` / `completed_truncated` / `skipped` / `failed`
 - auto-refresh toggle：
   - default enabled
