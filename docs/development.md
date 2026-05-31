@@ -25,8 +25,11 @@ make dev
    - `telegram-collector`
    - `rss-collector`
    - `normalizer-classifier`
+   - `dashboard-api`
+5. 用 `npm run dev` 背景啟動：
+   - `dashboard-web`
 
-目前 `alert-dispatcher` 與 `dashboard-api` 尚未有 runtime code，後續實作後會加入 `make dev`。
+目前 `alert-dispatcher` 尚未有 runtime code，後續實作後會加入 `make dev`。
 
 ## 3. 查看狀態與 logs
 
