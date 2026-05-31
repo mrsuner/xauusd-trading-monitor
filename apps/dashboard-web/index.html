@@ -1,9 +1,21 @@
 <!doctype html>
-<html lang="zh-Hant" data-theme="corporate">
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>XAUUSD Event Radar</title>
+    <script>
+      // Apply the stored/system theme before paint to avoid a flash.
+      (function () {
+        try {
+          var t = localStorage.getItem("theme");
+          if (t !== "radar-dark" && t !== "radar-light") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "radar-dark" : "radar-light";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
     <script src="/env.js"></script>
   </head>
   <body>
