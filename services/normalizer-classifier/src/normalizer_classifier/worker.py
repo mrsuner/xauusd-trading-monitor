@@ -14,10 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 class NormalizerClassifierWorker:
-    def __init__(self, settings: Settings, db: Database, model_client: OpenAIStyleModelClient) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        db: Database,
+        model_client: OpenAIStyleModelClient,
+        auxiliary_model_client: OpenAIStyleModelClient | None = None,
+    ) -> None:
         self.settings = settings
         self.db = db
         self.model_client = model_client
+        self.auxiliary_model_client = auxiliary_model_client
         self.worker_id = f"{socket.gethostname()}-{uuid4()}"
         self._stop_event = asyncio.Event()
         self._model_call_count = 0
@@ -61,6 +68,31 @@ class NormalizerClassifierWorker:
                     continue
 
                 model_response = await self.model_client.classify(task.raw_item, task.source, normalized)
+                if self.auxiliary_model_client:
+                    if await self._reserve_model_call():
+                        try:
+                            auxiliary_response = await self.auxiliary_model_client.summarize_and_translate(
+                                task.raw_item, task.source, normalized
+                            )
+                            model_response.result.summary_zh = auxiliary_response.result.summary_zh
+                            model_response.raw_output["auxiliary_text"] = auxiliary_response.raw_output
+                            logger.info(
+                                "auxiliary summary raw_item_id=%s provider=%s model=%s",
+                                task.raw_item.id,
+                                auxiliary_response.provider,
+                                auxiliary_response.model,
+                            )
+                        except Exception as exc:
+                            logger.warning(
+                                "auxiliary summary failed raw_item_id=%s error=%s",
+                                task.raw_item.id,
+                                exc,
+                            )
+                    else:
+                        logger.info(
+                            "skipped auxiliary summary raw_item_id=%s reason=model_call_budget_reached",
+                            task.raw_item.id,
+                        )
                 event_id = await self.db.complete_processed(
                     task=task,
                     normalized=normalized,

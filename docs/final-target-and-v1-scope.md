@@ -146,8 +146,9 @@ V1 允許兩種模型路徑：
 | cloud small model | V1 主分類、相關度判斷、claim extraction、impact channel | 使用 `gpt-5.4-mini`，重要來源、高優先級消息 |
 | local 8B model | 摘要、翻譯、低成本輔助處理 | HomeLab 可用、低風險任務 |
 | cloud nano model | 摘要、翻譯、低成本輔助處理 | 例如 `gpt-5.4-nano`，不作最終分類 |
+| OpenRouter free / cheap model | 摘要、翻譯、低風險文字處理 | 可作為 local LLM 之外的穩定外部輔助路徑，不作最終分類 |
 
-V1 預設用 `gpt-5.4-mini` 做最終分類。local LLM 與 nano model 可降低摘要與翻譯成本，但不應單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 severity input。
+V1 預設用 `gpt-5.4-mini` 做最終分類。OpenRouter free / cheap model、local LLM 與 nano model 可降低摘要與翻譯成本，但不應單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 severity input。
 
 ## 6. V1 服務範圍
 

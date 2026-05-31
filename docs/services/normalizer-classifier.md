@@ -46,6 +46,7 @@ V1 不包含：
 | Similarity | rapidfuzz / pg_trgm | 近似重複檢測，V1 先保留依賴與 DB index |
 | Local model | OpenAI-compatible local endpoint | local 8B model route，可由 HomeLab 另一台 server 提供 |
 | Cloud model | OpenAI-compatible API | cloud small model route，例如 GPT 5.5 mini 類模型 |
+| OpenRouter auxiliary model | OpenRouter OpenAI-compatible API | 摘要、翻譯、低風險文字處理，可測試 free / cheap models |
 | Agent SDK | Claude Code Agent SDK，備選 | 高階模型能力，非 V1 必需依賴 |
 | Schema validation | pydantic | 驗證模型 JSON output |
 | Logging | structlog / standard logging | structured logs |
@@ -179,6 +180,7 @@ V1 支援以下模型路徑：
 | `cloud_small` | V1 事件分類預設路徑 | 使用 `gpt-5.4-mini`，負責相關度、claim direction、impact channel、event severity input |
 | `local_8b` | 摘要、翻譯、低風險輔助任務 | 成本低，但不作 V1 最終相關度與分級判斷 |
 | `cloud_nano` | 摘要、翻譯、低風險輔助任務 | 例如 `gpt-5.4-nano`，可用於快速 summary / translation，不作 V1 主分類 |
+| `openrouter_free` | 摘要、翻譯、低風險輔助任務 | OpenRouter free / cheap models；不作 V1 主分類 |
 | `claude_code_agent` | 後續需要高階模型能力或工具型推理 | 備選 route，不阻塞 V1 |
 
 目前骨架已實作 `local_8b` 與 `cloud_small` 兩種 OpenAI-compatible `/chat/completions` route；兩者都使用相同的 JSON schema。`claude_code_agent` 保留在文件與部署設定中，尚未接入 runtime。
@@ -186,9 +188,19 @@ V1 支援以下模型路徑：
 V1 決策：
 
 - `gpt-5.4-mini` 是預設分類模型。
-- local LLM 與 `gpt-5.4-nano` 只用於 summary / translation / 輔助預處理。
-- 不讓 local LLM 或 nano model 單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 `severity`。
+- OpenRouter free / cheap models、local LLM 與 `gpt-5.4-nano` 只用於 summary / translation / 輔助預處理。
+- 不讓 OpenRouter free model、local LLM 或 nano model 單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 `severity`。
 - 若 cloud model 不可用，local route 可以暫時保留事件候選，但應標記為較低信心或等待 cloud retry。
+
+目前 runtime 支援可選 auxiliary route：
+
+```text
+AUXILIARY_MODEL_ENABLED=false
+AUXILIARY_MODEL_ROUTE=disabled
+AUXILIARY_MODEL_ROUTE=openrouter_free
+```
+
+當 `AUXILIARY_MODEL_ENABLED=true` 且 `AUXILIARY_MODEL_ROUTE=openrouter_free` 時，service 會在主分類模型完成後額外呼叫 OpenRouter，產生 `summary_zh` / `translation_zh`。`summary_zh` 會覆蓋主分類模型產生的摘要並回寫 `raw_items.summary_zh`；分類、相關度、claim 與 event 欄位仍由 `MODEL_ROUTE=cloud_small` 的主模型決定。Auxiliary call 是 best-effort，失敗時保留主分類模型原本的摘要，不讓免費模型的不穩定造成整筆處理失敗。
 
 code interface 抽象為：
 
@@ -358,6 +370,15 @@ CLOUD_MODEL_API_KEY=...
 CLOUD_MODEL_NAME=gpt-5.4-mini
 CLOUD_MODEL_RESPONSE_FORMAT=json_object
 CLOUD_MODEL_REASONING_EFFORT=
+AUXILIARY_MODEL_ENABLED=false
+AUXILIARY_MODEL_ROUTE=disabled
+OPENROUTER_MODEL_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL_API_KEY=...
+OPENROUTER_MODEL_NAME=...
+OPENROUTER_MODEL_RESPONSE_FORMAT=json_object
+OPENROUTER_MODEL_REASONING_EFFORT=
+OPENROUTER_HTTP_REFERER=
+OPENROUTER_APP_TITLE=XAUUSD Event Radar
 CLAUDE_CODE_AGENT_ENABLED=false
 CLAUDE_CODE_AGENT_MODEL=...
 MODEL_TIMEOUT_SECONDS=30
@@ -367,7 +388,9 @@ RELEVANCE_THRESHOLD_PUSHOVER=85
 LOG_LEVEL=INFO
 ```
 
-`LOCAL_MODEL_BASE_URL` 與 `CLOUD_MODEL_BASE_URL` 都應指向 OpenAI-compatible `/v1` base URL；service 會呼叫 `{BASE_URL}/chat/completions`。若 local endpoint 不需要 key，`LOCAL_MODEL_API_KEY` 可留空。
+`LOCAL_MODEL_BASE_URL`、`CLOUD_MODEL_BASE_URL` 與 `OPENROUTER_MODEL_BASE_URL` 都應指向 OpenAI-compatible `/v1` base URL；service 會呼叫 `{BASE_URL}/chat/completions`。若 local endpoint 不需要 key，`LOCAL_MODEL_API_KEY` 可留空。
+
+`OPENROUTER_MODEL_BASE_URL` 預設為 `https://openrouter.ai/api/v1`。OpenRouter 建議帶上 `HTTP-Referer` 與 `X-Title`，因此可透過 `OPENROUTER_HTTP_REFERER` 與 `OPENROUTER_APP_TITLE` 設定。若只想測試模型品質，不要打開 `AUXILIARY_MODEL_ENABLED`，可以先在 OpenRouter UI 或 curl 中使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md)。
 
 `*_MODEL_RESPONSE_FORMAT` 支援：
 

@@ -6,8 +6,9 @@ from uuid import uuid4
 
 import httpx
 
-from normalizer_classifier.model_client import OpenAIStyleModelClient
+from normalizer_classifier.model_client import OpenAIStyleModelClient, build_auxiliary_model_client
 from normalizer_classifier.models import NormalizedItem, RawItem, SourceMetadata
+from normalizer_classifier.settings import Settings
 
 
 def make_objects() -> tuple[RawItem, SourceMetadata, NormalizedItem]:
@@ -208,3 +209,63 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
     response = await client.classify(raw_item, source, normalized)
 
     assert response.result.relevance_score == 20
+
+
+async def test_openai_style_model_client_summarizes_with_openrouter_headers(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        assert url == "https://openrouter.ai/api/v1/chat/completions"
+        assert headers["Authorization"] == "Bearer openrouter-key"
+        assert headers["HTTP-Referer"] == "https://example.test"
+        assert headers["X-Title"] == "XAUUSD Event Radar"
+        assert json["response_format"] == {"type": "json_object"}
+        content = {
+            "summary_zh": "Trump 稱伊朗協議接近完成。",
+            "translation_zh": "Trump 表示伊朗協議已接近完成。",
+            "detected_language": "en",
+            "notes": None,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="openrouter_free",
+        base_url="https://openrouter.ai/api/v1",
+        api_key="openrouter-key",
+        model="free-summary-model",
+        timeout_seconds=5,
+        response_format="json_object",
+        extra_headers={"HTTP-Referer": "https://example.test", "X-Title": "XAUUSD Event Radar"},
+    )
+
+    response = await client.summarize_and_translate(raw_item, source, normalized)
+
+    assert response.provider == "openrouter_free"
+    assert response.model == "free-summary-model"
+    assert response.result.summary_zh == "Trump 稱伊朗協議接近完成。"
+
+
+def test_build_auxiliary_model_client_openrouter() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://user:pass@localhost/db",
+        CLOUD_MODEL_API_KEY="test-key",
+        AUXILIARY_MODEL_ENABLED="true",
+        AUXILIARY_MODEL_ROUTE="openrouter_free",
+        OPENROUTER_MODEL_API_KEY="openrouter-key",
+        OPENROUTER_MODEL_NAME="free-summary-model",
+        OPENROUTER_HTTP_REFERER="https://example.test",
+    )
+
+    client = build_auxiliary_model_client(settings)
+
+    assert client is not None
+    assert client.provider == "openrouter_free"
+    assert client.base_url == "https://openrouter.ai/api/v1"
+    assert client.model == "free-summary-model"
+    assert client.extra_headers["HTTP-Referer"] == "https://example.test"

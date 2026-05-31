@@ -85,8 +85,22 @@ class ClassificationResult(BaseModel):
         return value
 
 
+class AuxiliaryTextResult(BaseModel):
+    summary_zh: str
+    translation_zh: str | None = None
+    detected_language: str | None = None
+    notes: str | None = None
+
+
 class ModelResponse(BaseModel):
     provider: str
     model: str
     result: ClassificationResult
+    raw_output: dict[str, Any]
+
+
+class AuxiliaryModelResponse(BaseModel):
+    provider: str
+    model: str
+    result: AuxiliaryTextResult
     raw_output: dict[str, Any]

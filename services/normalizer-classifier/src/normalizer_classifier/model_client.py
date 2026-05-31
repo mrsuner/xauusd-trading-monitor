@@ -6,7 +6,15 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
-from .models import ClassificationResult, ModelResponse, NormalizedItem, RawItem, SourceMetadata
+from .models import (
+    AuxiliaryModelResponse,
+    AuxiliaryTextResult,
+    ClassificationResult,
+    ModelResponse,
+    NormalizedItem,
+    RawItem,
+    SourceMetadata,
+)
 from .settings import Settings
 
 
@@ -25,6 +33,7 @@ class OpenAIStyleModelClient:
         timeout_seconds: float,
         response_format: str,
         reasoning_effort: str | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> None:
         self.provider = provider
         self.base_url = base_url.rstrip("/")
@@ -33,12 +42,9 @@ class OpenAIStyleModelClient:
         self.timeout_seconds = timeout_seconds
         self.response_format = response_format
         self.reasoning_effort = reasoning_effort
+        self.extra_headers = extra_headers or {}
 
     async def classify(self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem) -> ModelResponse:
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
         payload = {
             "model": self.model,
             "temperature": 0,
@@ -73,22 +79,10 @@ class OpenAIStyleModelClient:
                 },
             ],
         }
-        if self.response_format == "json_object":
-            payload["response_format"] = {"type": "json_object"}
-        elif self.response_format == "json_schema":
-            payload["response_format"] = classification_json_schema_response_format()
-        elif self.response_format == "text":
-            payload["response_format"] = {"type": "text"}
-        if self.reasoning_effort:
-            payload["reasoning_effort"] = self.reasoning_effort
+        self._apply_common_payload_options(payload, classification_json_schema_response_format())
+        body = await self._post_chat_completions(payload)
 
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
-            response.raise_for_status()
-            body = response.json()
-
-        message = body["choices"][0]["message"]
-        content = message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
+        content = extract_message_content(body)
         try:
             decoded = json.loads(content)
             result = ClassificationResult.model_validate(decoded)
@@ -96,6 +90,71 @@ class OpenAIStyleModelClient:
             raise ModelClientError(f"invalid model response: {exc}") from exc
 
         return ModelResponse(provider=self.provider, model=self.model, result=result, raw_output=body)
+
+    async def summarize_and_translate(
+        self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem
+    ) -> AuxiliaryModelResponse:
+        payload = {
+            "model": self.model,
+            "temperature": 0,
+            "messages": [
+                {"role": "system", "content": auxiliary_text_system_prompt()},
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "source": {
+                                "name": source.name,
+                                "source_type": source.source_type,
+                                "source_group": source.source_group,
+                                "official_level": source.official_level,
+                                "priority": source.priority,
+                                "stance": source.stance,
+                            },
+                            "raw_item": {
+                                "title": raw_item.title,
+                                "text_clean": normalized.text_clean,
+                                "language": normalized.language,
+                                "url": raw_item.url,
+                                "published_at": raw_item.published_at.isoformat() if raw_item.published_at else None,
+                            },
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+        }
+        self._apply_common_payload_options(payload, auxiliary_text_json_schema_response_format())
+        body = await self._post_chat_completions(payload)
+
+        content = extract_message_content(body)
+        try:
+            decoded = json.loads(content)
+            result = AuxiliaryTextResult.model_validate(decoded)
+        except (KeyError, TypeError, json.JSONDecodeError, ValidationError) as exc:
+            raise ModelClientError(f"invalid auxiliary model response: {exc}") from exc
+
+        return AuxiliaryModelResponse(provider=self.provider, model=self.model, result=result, raw_output=body)
+
+    async def _post_chat_completions(self, payload: dict[str, Any]) -> dict[str, Any]:
+        headers = {"Content-Type": "application/json", **self.extra_headers}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+    def _apply_common_payload_options(self, payload: dict[str, Any], schema_response_format: dict[str, Any]) -> None:
+        if self.response_format == "json_object":
+            payload["response_format"] = {"type": "json_object"}
+        elif self.response_format == "json_schema":
+            payload["response_format"] = schema_response_format
+        elif self.response_format == "text":
+            payload["response_format"] = {"type": "text"}
+        if self.reasoning_effort:
+            payload["reasoning_effort"] = self.reasoning_effort
 
 
 def build_model_client(settings: Settings) -> OpenAIStyleModelClient:
@@ -130,6 +189,42 @@ def build_model_client(settings: Settings) -> OpenAIStyleModelClient:
     raise ValueError(f"unsupported MODEL_ROUTE: {settings.model_route}")
 
 
+def build_auxiliary_model_client(settings: Settings) -> OpenAIStyleModelClient | None:
+    if not settings.auxiliary_model_enabled or settings.auxiliary_model_route == "disabled":
+        return None
+
+    if settings.auxiliary_model_route == "openrouter_free":
+        if not settings.openrouter_model_base_url or not settings.openrouter_model_name:
+            raise ValueError("OPENROUTER_MODEL_BASE_URL and OPENROUTER_MODEL_NAME are required for openrouter_free route")
+        if not settings.openrouter_model_api_key:
+            raise ValueError("OPENROUTER_MODEL_API_KEY is required for openrouter_free route")
+        extra_headers = {}
+        if settings.openrouter_http_referer:
+            extra_headers["HTTP-Referer"] = settings.openrouter_http_referer
+        if settings.openrouter_app_title:
+            extra_headers["X-Title"] = settings.openrouter_app_title
+        return OpenAIStyleModelClient(
+            provider="openrouter_free",
+            base_url=settings.openrouter_model_base_url,
+            api_key=settings.openrouter_model_api_key,
+            model=settings.openrouter_model_name,
+            timeout_seconds=settings.model_timeout_seconds,
+            response_format=settings.openrouter_model_response_format,
+            reasoning_effort=settings.openrouter_model_reasoning_effort,
+            extra_headers=extra_headers,
+        )
+
+    raise ValueError(f"unsupported AUXILIARY_MODEL_ROUTE: {settings.auxiliary_model_route}")
+
+
+def extract_message_content(body: dict[str, Any]) -> str:
+    message = body["choices"][0]["message"]
+    content = message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
+    if isinstance(content, list):
+        return "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+    return str(content)
+
+
 def system_prompt() -> str:
     return (
         "You classify news items for an XAUUSD event radar. "
@@ -147,6 +242,22 @@ def system_prompt() -> str:
         '"xauusd_impact_channel": string[], "requires_confirmation": boolean, "confidence": 0-100|null, '
         '"reason": string|null, "region": string|null, "primary_actor": string|null, '
         '"secondary_actor": string|null, "market_relevance": string|null}.'
+    )
+
+
+def auxiliary_text_system_prompt() -> str:
+    return (
+        "You summarize and translate news items for an XAUUSD event radar. "
+        "Return only valid JSON. Use Traditional Chinese. "
+        "Do not provide trading instructions, entries, stop loss, take profit, position sizing, buy, sell, long, "
+        "short, bullish, or bearish recommendations. Do not predict market direction. "
+        "summary_zh must be a concise Traditional Chinese news summary, preferably under 90 Chinese characters. "
+        "If the source text is not Chinese, translation_zh should be a faithful Traditional Chinese translation of "
+        "the key content, preferably under 500 Chinese characters. If the source text is already Chinese, "
+        "translation_zh should be null. Preserve names, places, institutions, numbers, dates, and uncertainty. "
+        "Do not add facts that are not in the input. "
+        "The JSON schema is: "
+        '{"summary_zh": string, "translation_zh": string|null, "detected_language": string|null, "notes": string|null}.'
     )
 
 
@@ -199,6 +310,26 @@ def classification_json_schema_response_format() -> dict[str, Any]:
                     "secondary_actor",
                     "market_relevance",
                 ],
+            },
+        },
+    }
+
+
+def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "xauusd_auxiliary_text",
+            "schema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "summary_zh": {"type": "string"},
+                    "translation_zh": {"type": ["string", "null"]},
+                    "detected_language": {"type": ["string", "null"]},
+                    "notes": {"type": ["string", "null"]},
+                },
+                "required": ["summary_zh", "translation_zh", "detected_language", "notes"],
             },
         },
     }

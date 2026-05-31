@@ -24,6 +24,19 @@ class Settings(BaseSettings):
     cloud_model_response_format: str = Field(default="json_object", alias="CLOUD_MODEL_RESPONSE_FORMAT")
     cloud_model_reasoning_effort: str | None = Field(default=None, alias="CLOUD_MODEL_REASONING_EFFORT")
 
+    auxiliary_model_enabled: bool = Field(default=False, alias="AUXILIARY_MODEL_ENABLED")
+    auxiliary_model_route: str = Field(default="disabled", alias="AUXILIARY_MODEL_ROUTE")
+
+    openrouter_model_base_url: str | None = Field(
+        default="https://openrouter.ai/api/v1", alias="OPENROUTER_MODEL_BASE_URL"
+    )
+    openrouter_model_api_key: str | None = Field(default=None, alias="OPENROUTER_MODEL_API_KEY")
+    openrouter_model_name: str | None = Field(default=None, alias="OPENROUTER_MODEL_NAME")
+    openrouter_model_response_format: str = Field(default="json_object", alias="OPENROUTER_MODEL_RESPONSE_FORMAT")
+    openrouter_model_reasoning_effort: str | None = Field(default=None, alias="OPENROUTER_MODEL_REASONING_EFFORT")
+    openrouter_http_referer: str | None = Field(default=None, alias="OPENROUTER_HTTP_REFERER")
+    openrouter_app_title: str | None = Field(default="XAUUSD Event Radar", alias="OPENROUTER_APP_TITLE")
+
     model_timeout_seconds: float = Field(default=30.0, alias="MODEL_TIMEOUT_SECONDS")
     max_model_calls_per_run: int = Field(default=0, alias="MAX_MODEL_CALLS_PER_RUN")
     relevance_threshold_event: int = Field(default=70, alias="RELEVANCE_THRESHOLD_EVENT")
@@ -51,7 +64,7 @@ class Settings(BaseSettings):
             raise ValueError("RELEVANCE_THRESHOLD_EVENT must be between 0 and 100")
         return value
 
-    @field_validator("local_model_response_format", "cloud_model_response_format")
+    @field_validator("local_model_response_format", "cloud_model_response_format", "openrouter_model_response_format")
     @classmethod
     def validate_response_format(cls, value: str) -> str:
         allowed = {"none", "json_object", "json_schema", "text"}
@@ -59,7 +72,13 @@ class Settings(BaseSettings):
             raise ValueError(f"response format must be one of: {', '.join(sorted(allowed))}")
         return value
 
-    @field_validator("local_model_reasoning_effort", "cloud_model_reasoning_effort")
+    @field_validator(
+        "local_model_reasoning_effort",
+        "cloud_model_reasoning_effort",
+        "openrouter_model_reasoning_effort",
+        "openrouter_http_referer",
+        "openrouter_app_title",
+    )
     @classmethod
     def normalize_optional_string(cls, value: str | None) -> str | None:
         if value is None or value == "":
