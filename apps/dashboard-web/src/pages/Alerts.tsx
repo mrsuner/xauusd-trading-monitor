@@ -13,7 +13,7 @@ export function Alerts() {
       <PageHeader title="Alerts" description="Telegram and Pushover delivery tracking." />
       {query.error ? <ErrorPanel error={query.error} /> : null}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-100">
-        <table className="table table-sm">
+        <table className="table table-sm min-w-[760px]">
           <thead>
             <tr>
               <th className="w-32">Created</th>

@@ -23,7 +23,7 @@ export function Sources() {
   return (
     <>
       <PageHeader title="Sources" description="Source registry and collector health." />
-      <div className="mb-4 w-64">
+      <div className="mb-4 w-full sm:w-64">
         <select className="select select-bordered select-sm w-full" value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
           <option value="">All source types</option>
           <option value="telegram">telegram</option>
@@ -34,7 +34,7 @@ export function Sources() {
       {sources.error ? <ErrorPanel error={sources.error} /> : null}
       {health.error ? <ErrorPanel error={health.error} /> : null}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-100">
-        <table className="table table-sm">
+        <table className="table table-sm min-w-[920px]">
           <thead>
             <tr>
               <th className="w-64">Source</th>

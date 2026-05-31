@@ -18,16 +18,18 @@ export function Events() {
   return (
     <>
       <PageHeader title="Events" description="High relevance events created by normalizer-classifier." />
-      <div className="tabs tabs-box mb-4 w-fit">
+      <div className="mb-4 max-w-full overflow-x-auto">
+        <div className="tabs tabs-box w-fit">
         {["", "S", "A", "B", "C"].map((item) => (
           <button key={item || "all"} className={`tab ${severity === item ? "tab-active" : ""}`} onClick={() => setSeverity(item)}>
             {item || "All"}
           </button>
         ))}
+        </div>
       </div>
       {query.error ? <ErrorPanel error={query.error} /> : null}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-100">
-        <table className="table table-sm">
+        <table className="table table-sm min-w-[860px]">
           <thead>
             <tr>
               <th className="w-32">Time</th>
