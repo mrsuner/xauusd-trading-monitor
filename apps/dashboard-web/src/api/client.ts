@@ -6,6 +6,7 @@ import type {
   OverviewStats,
   Page,
   ProcessingItem,
+  ProcessingPipelineItem,
   RawItem,
   Source,
   SourceHealth
@@ -55,6 +56,7 @@ export const api = {
   sourceHealth: (params?: Record<string, QueryValue>) => request<Page<SourceHealth>>("/source-health", params),
   rawItems: (params?: Record<string, QueryValue>) => request<Page<RawItem>>("/raw-items", params),
   processing: (params?: Record<string, QueryValue>) => request<Page<ProcessingItem>>("/processing", params),
+  processingPipeline: (params?: Record<string, QueryValue>) => request<Page<ProcessingPipelineItem>>("/processing/pipeline", params),
   events: (params?: Record<string, QueryValue>) => request<Page<EventItem>>("/events", params),
   event: (eventId: string) => request<EventDetail>(`/events/${eventId}`),
   alerts: (params?: Record<string, QueryValue>) => request<Page<AlertItem>>("/alerts", params)

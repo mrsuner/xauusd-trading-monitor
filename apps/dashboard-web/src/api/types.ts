@@ -112,6 +112,42 @@ export type ProcessingItem = {
   updated_at: string;
 };
 
+export type ProcessingPipelineItem = {
+  raw_item_id: string;
+  source_id: string;
+  source_name: string;
+  source_type: string;
+  source_group: string;
+  priority: string;
+  official_level: string;
+  title?: string | null;
+  language?: string | null;
+  url?: string | null;
+  published_at?: string | null;
+  ingested_at: string;
+  summary_zh?: string | null;
+  summary_en?: string | null;
+  translation_status: string;
+  translation_model_provider?: string | null;
+  translation_model?: string | null;
+  translation_error?: string | null;
+  translation_input_chars?: number | null;
+  translation_updated_at?: string | null;
+  classification_processing_id?: string | null;
+  classification_stage?: string | null;
+  classification_status?: string | null;
+  is_relevant?: boolean | null;
+  relevance_score?: number | null;
+  filter_reason?: string | null;
+  classification_model_provider?: string | null;
+  classification_model_name?: string | null;
+  classification_attempt_count?: number | null;
+  classification_locked_at?: string | null;
+  classification_error?: string | null;
+  classification_updated_at?: string | null;
+  pipeline_updated_at: string;
+};
+
 export type EventItem = {
   id: string;
   event_time?: string | null;

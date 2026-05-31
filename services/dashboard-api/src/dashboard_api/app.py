@@ -15,6 +15,7 @@ from .repository import (
     DashboardRepository,
     build_alerts_query,
     build_events_query,
+    build_processing_pipeline_query,
     build_processing_query,
     build_raw_items_query,
     build_source_health_query,
@@ -217,6 +218,41 @@ def create_app() -> FastAPI:
                 "is_relevant": is_relevant,
                 "min_relevance_score": min_relevance_score,
                 "model_provider": model_provider,
+            }
+        )
+        return await list_response(repository, builder, page, page_size, default_page_size)
+
+    @app.get("/processing/pipeline", dependencies=[Depends(require_token)])
+    async def list_processing_pipeline(
+        repository: DashboardRepository = Depends(repo),
+        default_page_size: int = Depends(page_size_default),
+        translation_status: str | None = None,
+        classification_status: str | None = None,
+        classification_stage: str | None = None,
+        is_relevant: bool | None = None,
+        min_relevance_score: Annotated[int | None, Query(ge=0, le=100)] = None,
+        classification_model_provider: str | None = None,
+        source_id: UUID | None = None,
+        source_type: str | None = None,
+        source_group: str | None = None,
+        priority: str | None = None,
+        q: str | None = None,
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int | None, Query(ge=1)] = None,
+    ) -> dict[str, Any]:
+        builder = build_processing_pipeline_query(
+            {
+                "translation_status": translation_status,
+                "classification_status": classification_status,
+                "classification_stage": classification_stage,
+                "is_relevant": is_relevant,
+                "min_relevance_score": min_relevance_score,
+                "classification_model_provider": classification_model_provider,
+                "source_id": source_id,
+                "source_type": source_type,
+                "source_group": source_group,
+                "priority": priority,
+                "q": q,
             }
         )
         return await list_response(repository, builder, page, page_size, default_page_size)

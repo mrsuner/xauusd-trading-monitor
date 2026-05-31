@@ -309,6 +309,83 @@ def build_processing_query(filters: dict[str, Any]) -> QueryBuilder:
     return builder
 
 
+def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
+    builder = QueryBuilder(
+        base_select="""
+        select
+          r.id as raw_item_id,
+          r.source_id,
+          r.title,
+          r.language,
+          r.url,
+          r.published_at,
+          r.ingested_at,
+          r.summary_zh,
+          r.summary_en,
+          r.translation_status,
+          r.translation_model_provider,
+          r.translation_model,
+          r.translation_error,
+          r.translation_input_chars,
+          r.translation_updated_at,
+          s.name as source_name,
+          s.source_type,
+          s.source_group,
+          s.priority,
+          s.official_level,
+          p.id as classification_processing_id,
+          p.stage as classification_stage,
+          p.status as classification_status,
+          p.is_relevant,
+          p.relevance_score,
+          p.filter_reason,
+          p.model_provider as classification_model_provider,
+          p.model_name as classification_model_name,
+          p.attempt_count as classification_attempt_count,
+          p.locked_at as classification_locked_at,
+          p.error_message as classification_error,
+          p.updated_at as classification_updated_at,
+          greatest(
+            coalesce(r.translation_updated_at, '-infinity'::timestamptz),
+            coalesce(p.updated_at, '-infinity'::timestamptz),
+            r.ingested_at
+          ) as pipeline_updated_at
+        from raw_items r
+        join sources s on s.id = r.source_id
+        left join raw_item_processing p on p.raw_item_id = r.id
+        """,
+        base_count="""
+        select count(*) as total
+        from raw_items r
+        join sources s on s.id = r.source_id
+        left join raw_item_processing p on p.raw_item_id = r.id
+        """,
+        order_by="""
+        order by greatest(
+          coalesce(r.translation_updated_at, '-infinity'::timestamptz),
+          coalesce(p.updated_at, '-infinity'::timestamptz),
+          r.ingested_at
+        ) desc
+        """,
+    )
+    builder.add_equal("r.translation_status", "translation_status", filters.get("translation_status"))
+    builder.add_equal("p.status", "classification_status", filters.get("classification_status"))
+    builder.add_equal("p.stage", "classification_stage", filters.get("classification_stage"))
+    builder.add_equal("p.is_relevant", "is_relevant", filters.get("is_relevant"))
+    builder.add_gte("p.relevance_score", "min_relevance_score", filters.get("min_relevance_score"))
+    builder.add_equal("p.model_provider", "classification_model_provider", filters.get("classification_model_provider"))
+    builder.add_equal("r.source_id", "source_id", filters.get("source_id"))
+    builder.add_equal("s.source_type", "source_type", filters.get("source_type"))
+    builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
+    builder.add_equal("s.priority", "priority", filters.get("priority"))
+    builder.add_search(
+        ("r.title", "r.text_clean", "r.summary_zh", "r.summary_en", "r.text_raw", "s.name"),
+        "q",
+        filters.get("q"),
+    )
+    return builder
+
+
 def build_events_query(filters: dict[str, Any]) -> QueryBuilder:
     builder = QueryBuilder(
         base_select="""

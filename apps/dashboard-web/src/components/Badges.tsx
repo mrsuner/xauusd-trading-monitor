@@ -13,7 +13,7 @@ export function SeverityBadge({ value }: { value?: string | null }) {
 
 export function StatusBadge({ value }: { value?: string | null }) {
   const tone =
-    value === "healthy" || value === "completed" || value === "sent"
+    value === "healthy" || value === "completed" || value === "completed_truncated" || value === "sent"
       ? "badge-success"
       : value === "failed"
         ? "badge-error"
