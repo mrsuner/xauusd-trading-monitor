@@ -2,10 +2,11 @@
 
 ## 1. 文件目的
 
-本文整理 HomeLab 首次上線後觀察到的三個優先問題，作為接下來逐項實作的工作記憶：
+本文整理 HomeLab 首次上線後觀察到的優先問題，作為接下來逐項實作的工作記憶：
 
 - 多消息源導致 API call 與通知量快速上升。
 - AI 使用成本需要可觀測，包含 input token、output token、model、provider 與 route。
+- source 增加後，`normalizer-classifier` 可能處理不完待處理消息，需要多 worker queue 與水平擴展能力。
 - 消息源需要在 Dashboard 中新增、刪除、停用與測試。
 
 本文不替代既有服務文檔，而是補充 V1+ 的產品與工程規劃。實作時仍應分別更新：
@@ -22,6 +23,7 @@
 | --- | --- | --- |
 | 通知降噪與 source-aware alert policy | P0 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
 | AI token / model usage 統計 | P0 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
+| Normalizer 多 worker queue | P0 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
 | Source management | P1 | 目前新增 source 仍偏工程操作，後續需要 Dashboard 管理 |
 
 ## 3. 通知降噪規劃
@@ -256,9 +258,103 @@ GET /stats/ai-usage
 - failure count / average latency。
 - Backfill 導致的 call 可後續單獨標記。
 
-## 5. Source Management
+## 5. Normalizer 多 Worker Queue
 
 ### 5.1 問題
+
+HomeLab 運行一段時間後觀察到：當 Telegram / RSS source 數量增加時，`raw_items` 與 `raw_item_processing` pending backlog 會快速上升。即使目前 `normalizer-classifier` 支援單進程內 `WORKER_CONCURRENCY`，整體吞吐仍受限於：
+
+- 單個 service instance 的 CPU / memory。
+- 同一進程內 AI API call latency。
+- translation-summary 與 classification-reasoning 都消耗 worker 時間。
+- paid model budget / rate limit 可能讓任務被 defer。
+- database reset / collector backfill 會短時間灌入大量 pending task。
+
+此問題的本質不是單純調大 concurrency，而是需要可靠隊列與可水平擴展的 worker pool。
+
+### 5.2 V1+ 設計方向
+
+保留 PostgreSQL 作為可靠 queue source of truth，先不要引入 RabbitMQ：
+
+```text
+raw_items insert
+  ↓
+raw_item_processing pending
+  ↓
+multiple normalizer-classifier workers
+  ↓ for update skip locked
+running / completed / skipped / retry / failed
+```
+
+核心原則：
+
+- 多個 `normalizer-classifier` instance 可以同時啟動。
+- 每個 instance 使用不同 `worker_id`。
+- `claim_next_task` 必須使用 `for update skip locked`，避免重複處理。
+- `running` task 需要 stale lock recovery，避免 worker crash 後永遠卡住。
+- classification 與 translation 的 budget / rate limit 需要全局或近似全局化，避免多 instance 放大 API 成本。
+
+### 5.3 建議拆分
+
+短期：
+
+- production compose 支援 `normalizer-classifier` 多 replicas 或多 service instance。
+- 加入 stale running task recovery：
+  - `locked_at < now() - interval 'N minutes'`
+  - 將任務恢復為 `retry`
+- Dashboard Processing 增加 queue backlog 指標：
+  - pending count
+  - running count
+  - retry count
+  - oldest pending age
+  - average processing latency
+
+中期：
+
+- 將 Layer 1 translation-summary 與 Layer 2 classification-reasoning 拆成不同 queue stage：
+
+```text
+raw_item_processing
+  stage = normalize / classify / translate / completed
+```
+
+或拆成兩張 queue：
+
+```text
+classification_tasks
+translation_tasks
+```
+
+拆分後可以：
+
+- 優先處理 classification，先決定是否建立 event / alert。
+- 對低 priority source 延後 translation。
+- 單獨擴展 translation workers。
+- 更精準控制 paid model 使用量。
+
+後期：
+
+- 若 PostgreSQL queue 壓力變大，再評估 RabbitMQ / Redis Streams。
+- RabbitMQ 適合需要 ack、retry、dead-letter queue 與多 consumer group 時引入。
+
+### 5.4 風險與注意事項
+
+- 多 worker 會放大 AI API call 速度，必須先有 AI usage 統計與 budget guard。
+- 若不做 source-aware priority queue，低價值 source 可能擠壓 P0 source。
+- translation full text 對吞吐影響大，可能需要改為低優先級背景任務。
+- 開發環境 database reset / backfill 應避免自動消耗大量 paid model call。
+
+### 5.5 驗收標準
+
+- 可以安全啟動多個 `normalizer-classifier` worker instance。
+- 同一 `raw_item_processing` task 不會被重複處理。
+- worker crash 後 running task 可自動恢復。
+- Dashboard 能看到 backlog 與吞吐狀態。
+- 增加 worker 數量後 pending backlog 下降，且 AI 成本仍可控。
+
+## 6. Source Management
+
+### 6.1 問題
 
 目前 source registry 已在 DB 中，但管理仍偏 seed / migration / SQL 操作。後續需要從 Dashboard 完成：
 
@@ -268,7 +364,7 @@ GET /stats/ai-usage
 - 修改 priority、reliability、translation policy、alert policy。
 - 測試 source 是否可讀。
 
-### 5.2 Dashboard API endpoints
+### 6.2 Dashboard API endpoints
 
 建議把 `dashboard-api` 從 read-only 擴展為受 token 保護的管理 API：
 
@@ -290,7 +386,7 @@ POST /sources/{source_id}/backfill
 - `DELETE /sources/{source_id}` 實際執行 soft delete 或 `enabled=false`。
 - 保留歷史 `raw_items`、`events` 與 `alerts` 的外鍵語意。
 
-### 5.3 Source test 行為
+### 6.3 Source test 行為
 
 Telegram source test：
 
@@ -312,7 +408,7 @@ HTML polling source test：
 - 驗證 selector 是否存在。
 - 回傳匹配數量與第一筆摘要。
 
-### 5.4 Dashboard Web views
+### 6.4 Dashboard Web views
 
 新增 `Sources` 頁面：
 
@@ -322,7 +418,7 @@ HTML polling source test：
 - Edit drawer / modal：修改 source metadata。
 - Create source flow：選擇 Telegram / RSS / HTML polling 後填寫必要欄位。
 
-### 5.5 權限與安全
+### 6.5 權限與安全
 
 V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 source management 是寫入能力，需加強：
 
@@ -332,7 +428,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - test endpoint 需要 timeout。
 - backfill endpoint 需要限制時間窗口與數量。
 
-## 6. 建議實作順序
+## 7. 建議實作順序
 
 ### Phase 1: 通知降噪
 
@@ -366,7 +462,21 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - 可按日期、model、source、AI layer 查看 token 使用量。
 - provider 沒有 usage 時也能看到 request count、latency 與估算標記。
 
-### Phase 3: Source management API
+### Phase 3: Normalizer 多 worker queue
+
+- 確認 `raw_item_processing` claim query 支援多 instance 競爭。
+- 加入 stale lock recovery。
+- production compose 支援擴展 `normalizer-classifier` replicas。
+- 增加 queue backlog / oldest pending age / throughput 統計。
+- 重新檢查 AI budget guard 是否能跨 worker 控制成本。
+
+驗收：
+
+- 多個 worker instance 並行時不重複處理任務。
+- pending backlog 可被多 worker 加速消化。
+- crash / restart 後任務可恢復。
+
+### Phase 4: Source management API
 
 - 新增 `dashboard-api` write endpoints。
 - 加入 source validation / test。
@@ -378,7 +488,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - 不改 SQL 即可停用 noisy source。
 - 可新增 Telegram / RSS source 並測試。
 
-### Phase 4: Source management UI
+### Phase 5: Source management UI
 
 - 新增 `Sources` 頁面。
 - 支援 create/edit/disable/test/backfill。
@@ -389,7 +499,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - Dashboard 可完成日常 source registry 維護。
 - 修改 source policy 後 collector / dispatcher 可在短時間內生效。
 
-## 7. 開放問題
+## 8. 開放問題
 
 - `alert_score` 已保存到 `alerts` 表，方便後續 audit。
 - Pushover allowlist 放在 source 欄位還是全局 policy config？V1 建議 source 欄位，便於 Dashboard 管理。
