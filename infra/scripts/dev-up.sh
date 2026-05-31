@@ -93,6 +93,7 @@ start_service() {
     if [[ -n "${TELEGRAM_SESSION_PATH:-}" ]]; then
       mkdir -p "$(dirname "$TELEGRAM_SESSION_PATH")"
     fi
+    export MAX_MODEL_CALLS_PER_RUN="${MAX_MODEL_CALLS_PER_RUN:-20}"
     exec uv run --project "$project_dir" "$@"
   ) >"$log_file" 2>&1 &
 

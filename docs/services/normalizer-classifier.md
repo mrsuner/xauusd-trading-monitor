@@ -65,6 +65,7 @@ Go 可作為後續備選，但 V1 建議 Python，因為文字處理與模型 SD
 輸出：
 
 - `raw_items.text_clean`，如果 collector 未清洗或需要補齊。
+- `raw_items.summary_zh`，模型回應後回寫繁體中文摘要，讓 Dashboard 可在 raw item 層直接顯示已處理消息摘要。
 - `raw_item_processing` / `processed_items`。
 - `events`。
 - `event_claims`，V1 可簡化。
@@ -360,6 +361,7 @@ CLOUD_MODEL_REASONING_EFFORT=
 CLAUDE_CODE_AGENT_ENABLED=false
 CLAUDE_CODE_AGENT_MODEL=...
 MODEL_TIMEOUT_SECONDS=30
+MAX_MODEL_CALLS_PER_RUN=0
 RELEVANCE_THRESHOLD_EVENT=70
 RELEVANCE_THRESHOLD_PUSHOVER=85
 LOG_LEVEL=INFO
@@ -375,6 +377,8 @@ LOG_LEVEL=INFO
 - `text`：明確要求 text mode。
 
 `*_MODEL_REASONING_EFFORT` 可留空；若本地 OpenAI-compatible server 支援，可設為 `none`。目前 Ollama + Qwen thinking model 在 `reasoning_effort=none` 下可避免大量 reasoning token，延遲明顯下降。
+
+`MAX_MODEL_CALLS_PER_RUN` 是開發環境成本保護閥。`0` 表示不限制；設定為 `20` 這類小數字時，worker 本次啟動最多只會對模型發出 20 次分類請求。達到上限後不再 claim 新任務，已進入處理中的任務若遇到上限會回到 `retry` 並延後一小時。這適合 DB reset 後 collector 自動 backfill 大量消息但仍想避免 paid cloud model 無限制消耗。
 
 ## 18. 測試需求
 

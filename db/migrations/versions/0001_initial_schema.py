@@ -76,6 +76,7 @@ def upgrade() -> None:
           title text,
           text_raw text,
           text_clean text,
+          summary_zh text,
           language text,
           url text,
           media_type text not null default 'none',

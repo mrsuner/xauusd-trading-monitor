@@ -218,6 +218,7 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
           r.edited_at,
           r.title,
           r.text_clean,
+          r.summary_zh,
           r.language,
           r.url,
           r.media_type,
@@ -240,7 +241,7 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_lte("r.published_at", "published_to", filters.get("published_to"))
     builder.add_gte("r.ingested_at", "ingested_from", filters.get("ingested_from"))
     builder.add_lte("r.ingested_at", "ingested_to", filters.get("ingested_to"))
-    builder.add_search(("r.title", "r.text_clean", "r.text_raw"), "q", filters.get("q"))
+    builder.add_search(("r.title", "r.text_clean", "r.summary_zh", "r.text_raw"), "q", filters.get("q"))
     return builder
 
 

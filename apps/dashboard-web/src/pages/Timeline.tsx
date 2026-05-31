@@ -45,7 +45,7 @@ export function Timeline() {
                   <div className="mt-1"><OfficialBadge value={item.official_level} /></div>
                 </td>
                 <td>
-                  <Truncate className="font-medium" text={item.title || item.text_clean || item.text_raw} />
+                  <Truncate className="font-medium" text={item.summary_zh || item.title || item.text_clean || item.text_raw} />
                   <Truncate className="text-xs text-base-content/55" text={item.url} />
                 </td>
                 <td><Truncate text={item.source_group} /></td>

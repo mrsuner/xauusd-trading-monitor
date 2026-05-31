@@ -126,6 +126,23 @@ class Database:
             )
         await self.conn.commit()
 
+    async def defer_for_model_budget(self, *, processing_id: Any) -> None:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_item_processing
+                set status = 'retry',
+                    next_retry_at = now() + interval '1 hour',
+                    locked_by = null,
+                    locked_at = null,
+                    error_message = 'model_call_budget_reached',
+                    updated_at = now()
+                where id = %(processing_id)s
+                """,
+                {"processing_id": processing_id},
+            )
+        await self.conn.commit()
+
     async def complete_skipped(self, *, processing_id: Any, normalized: NormalizedItem) -> None:
         async with self.conn.cursor() as cur:
             await cur.execute(
@@ -163,6 +180,19 @@ class Database:
         result = model_response.result
 
         async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_items
+                set summary_zh = %(summary_zh)s,
+                    updated_at = now()
+                where id = %(raw_item_id)s
+                """,
+                {
+                    "raw_item_id": task.raw_item.id,
+                    "summary_zh": result.summary_zh,
+                },
+            )
+
             if result.is_relevant and result.relevance_score >= relevance_threshold_event:
                 event_id = await self._insert_event(cur, task, normalized, model_response)
                 if result.claim_text:

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     cloud_model_reasoning_effort: str | None = Field(default=None, alias="CLOUD_MODEL_REASONING_EFFORT")
 
     model_timeout_seconds: float = Field(default=30.0, alias="MODEL_TIMEOUT_SECONDS")
+    max_model_calls_per_run: int = Field(default=0, alias="MAX_MODEL_CALLS_PER_RUN")
     relevance_threshold_event: int = Field(default=70, alias="RELEVANCE_THRESHOLD_EVENT")
     max_attempts: int = Field(default=3, alias="MAX_ATTEMPTS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
@@ -34,6 +35,13 @@ class Settings(BaseSettings):
     def validate_worker_concurrency(cls, value: int) -> int:
         if value < 1:
             raise ValueError("WORKER_CONCURRENCY must be >= 1")
+        return value
+
+    @field_validator("max_model_calls_per_run")
+    @classmethod
+    def validate_max_model_calls_per_run(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("MAX_MODEL_CALLS_PER_RUN must be >= 0")
         return value
 
     @field_validator("relevance_threshold_event")

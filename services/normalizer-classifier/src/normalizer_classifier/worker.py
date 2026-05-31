@@ -20,6 +20,8 @@ class NormalizerClassifierWorker:
         self.model_client = model_client
         self.worker_id = f"{socket.gethostname()}-{uuid4()}"
         self._stop_event = asyncio.Event()
+        self._model_call_count = 0
+        self._model_call_lock = asyncio.Lock()
 
     async def run(self) -> None:
         await self.db.connect()
@@ -35,6 +37,10 @@ class NormalizerClassifierWorker:
 
     async def _loop(self, worker_index: int) -> None:
         while not self._stop_event.is_set():
+            if await self._model_budget_exhausted():
+                await asyncio.sleep(self.settings.poll_interval_seconds)
+                continue
+
             task = await self.db.claim_next_task(worker_id=f"{self.worker_id}-{worker_index}")
             if not task:
                 await asyncio.sleep(self.settings.poll_interval_seconds)
@@ -47,6 +53,11 @@ class NormalizerClassifierWorker:
                 if not normalized.prefilter_passed:
                     await self.db.complete_skipped(processing_id=task.id, normalized=normalized)
                     logger.info("skipped raw_item_id=%s reason=%s", task.raw_item.id, normalized.filter_reason)
+                    continue
+
+                if not await self._reserve_model_call():
+                    await self.db.defer_for_model_budget(processing_id=task.id)
+                    logger.info("deferred raw_item_id=%s reason=model_call_budget_reached", task.raw_item.id)
                     continue
 
                 model_response = await self.model_client.classify(task.raw_item, task.source, normalized)
@@ -71,3 +82,20 @@ class NormalizerClassifierWorker:
                     max_attempts=self.settings.max_attempts,
                     error_message=str(exc),
                 )
+
+    async def _model_budget_exhausted(self) -> bool:
+        limit = self.settings.max_model_calls_per_run
+        if limit == 0:
+            return False
+        async with self._model_call_lock:
+            return self._model_call_count >= limit
+
+    async def _reserve_model_call(self) -> bool:
+        limit = self.settings.max_model_calls_per_run
+        if limit == 0:
+            return True
+        async with self._model_call_lock:
+            if self._model_call_count >= limit:
+                return False
+            self._model_call_count += 1
+            return True

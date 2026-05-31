@@ -32,6 +32,7 @@ class RawItem(BaseModel):
     title: str | None = None
     text_raw: str | None = None
     text_clean: str | None = None
+    summary_zh: str | None = None
     language: str | None = None
     url: str | None = None
     media_type: str

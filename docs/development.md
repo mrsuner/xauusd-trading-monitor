@@ -64,3 +64,16 @@ make dev-stop
 make dev-db
 make dev-migrate
 ```
+
+## 6. Cloud Model 成本保護
+
+DB reset 後，Telegram collector 會依 `BACKFILL_HOURS` 與 `BACKFILL_LIMIT_PER_SOURCE` 回補歷史消息。這些消息會建立 `raw_item_processing` task，如果 `normalizer-classifier` 使用 `cloud_small`，可能產生大量 paid API call。
+
+開發環境建議：
+
+- 將 `infra/.env.dev` 的 `MAX_MODEL_CALLS_PER_RUN` 設為小數字，例如 `10` 或 `20`。
+- 若只測 collector 入庫，暫時執行 `make dev-stop` 後單獨啟動 collector，或把 `MODEL_ROUTE` 切到 local endpoint。
+- 測試新 channel 時把 `BACKFILL_LIMIT_PER_SOURCE` 降到 `20` 到 `50`。
+- 若要完整測 workflow，先用少量 source / 少量 backfill 跑通，再調高上限。
+
+`make dev` 會在 `infra/.env.dev` 未設定 `MAX_MODEL_CALLS_PER_RUN` 時預設套用 `20`，避免忘記設定後直接大量呼叫 cloud model。`MAX_MODEL_CALLS_PER_RUN=0` 代表不限制，較適合 production 或已確認成本可控的測試。

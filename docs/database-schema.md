@@ -273,6 +273,7 @@ create table raw_items (
   title text,
   text_raw text,
   text_clean text,
+  summary_zh text,
   language text,
   url text,
   media_type text not null default 'none',
@@ -287,6 +288,8 @@ create table raw_items (
   )
 );
 ```
+
+`summary_zh` 由 `normalizer-classifier` 在模型回應後回寫，用於 Dashboard 在 raw item 層直接顯示繁體中文摘要。沒有通過 prefilter、尚未處理或模型呼叫被開發環境 budget 暫停的 item 會保持 `null`。
 
 ### 7.3 Dedupe Key
 

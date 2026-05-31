@@ -31,7 +31,7 @@ export function EventDetail() {
           {event.raw_items.map((item) => (
             <div key={item.id} className="border-t border-base-200 pt-3 first:border-t-0 first:pt-0">
               <div className="mb-1 flex flex-wrap gap-2 text-sm"><span className="font-medium">{item.source_name}</span><span>{formatTime(item.published_at || item.ingested_at)}</span></div>
-              <p className="whitespace-pre-wrap text-sm text-base-content/80">{item.text_clean || item.text_raw || item.title}</p>
+              <p className="whitespace-pre-wrap text-sm text-base-content/80">{item.summary_zh || item.text_clean || item.text_raw || item.title}</p>
             </div>
           ))}
         </div>

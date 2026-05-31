@@ -70,6 +70,7 @@ export type RawItem = {
   priority: string;
   title?: string | null;
   text_clean?: string | null;
+  summary_zh?: string | null;
   text_raw?: string | null;
   language?: string | null;
   url?: string | null;
