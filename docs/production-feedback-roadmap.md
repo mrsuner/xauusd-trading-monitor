@@ -7,6 +7,7 @@
 - 多消息源導致 API call 與通知量快速上升。
 - AI 使用成本需要可觀測，包含 input token、output token、model、provider 與 route。
 - source 增加後，`normalizer-classifier` 可能處理不完待處理消息，需要多 worker queue 與水平擴展能力。
+- Telegram channel 可能出現一組圖片加一則文字，V1 Timeline 需要避免顯示多則空白圖片消息。
 - 消息源需要在 Dashboard 中新增、刪除、停用與測試。
 
 本文不替代既有服務文檔，而是補充 V1+ 的產品與工程規劃。實作時仍應分別更新：
@@ -24,6 +25,7 @@
 | 通知降噪與 source-aware alert policy | P0 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
 | AI token / model usage 統計 | P0 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
 | Normalizer 多 worker queue | P0 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
+| Timeline 非文本消息降噪 | P1 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 目前新增 source 仍偏工程操作，後續需要 Dashboard 管理 |
 
 ## 3. 通知降噪規劃
@@ -352,9 +354,98 @@ translation_tasks
 - Dashboard 能看到 backlog 與吞吐狀態。
 - 增加 worker 數量後 pending backlog 下降，且 AI 成本仍可控。
 
-## 6. Source Management
+## 6. Telegram Media / Non-text Raw Items
 
 ### 6.1 問題
+
+Telegram channel 常見消息格式是：
+
+```text
+photo
+photo
+photo
+caption / text message
+```
+
+目前 collector 會把這些 Telegram updates 分別寫入 `raw_items`。若圖片消息沒有文字，normalizer 會跳過或只保存空內容，但 Dashboard Timeline 仍可能顯示多則空白消息，然後再顯示一則真正有內容的文字消息。
+
+V1 不需要立即處理圖片內容，也不需要做 image OCR / vision model。但 Timeline 應避免把 media-only raw item 當作可讀消息展示。
+
+### 6.2 V1 簡化策略
+
+短期：
+
+- Timeline / raw item list 預設不顯示非文本內容：
+  - `text_clean`、`summary_zh`、`summary_en`、`text_raw` 都為空時不顯示。
+  - 或 `media_type` 是 photo / video / document 且沒有 caption/text 時不顯示。
+- 保留 raw item 入庫，不刪除資料。
+- Processing 頁可以保留 skipped 記錄，用於排障。
+
+這樣可以降低 UI 噪音，同時不阻斷後續補 media 支援。
+
+### 6.3 後續設計方向
+
+完整處理 Telegram media 需要重新設計資料結構：
+
+- `raw_items.media_type` 只能表示粗略類型，無法完整描述多附件。
+- 需要 media attachment table：
+
+```text
+raw_item_media
+  id
+  raw_item_id
+  telegram_file_id / media_id
+  media_type
+  mime_type
+  file_name
+  width
+  height
+  file_size
+  storage_provider
+  storage_key
+  thumbnail_storage_key
+  created_at
+```
+
+- 需要支持 Telegram grouped media / album：
+
+```text
+media_group_id
+caption_raw_item_id
+related_raw_item_ids
+```
+
+- 需要決定圖片存儲位置：
+  - 本地 volume
+  - S3-compatible storage / MinIO
+  - 只保存 Telegram file reference，按需下載
+
+### 6.4 後續展示
+
+Dashboard 後續可加入：
+
+- Event detail / raw item detail 中展示縮圖。
+- Timeline 只顯示 caption/message，並用 attachment count 表示有圖片。
+- Media-only item 不獨立出現在 Timeline，但可在 detail 裡作為附件查看。
+- 若後續加入 OCR / vision model，結果應保存為 `media_text_extracted` 或獨立 `raw_item_media_analysis`，避免污染原文。
+
+### 6.5 驗收標準
+
+V1 簡化版：
+
+- Timeline 不再顯示空白圖片 raw item。
+- 有 caption / text 的 Telegram 消息仍正常顯示。
+- 非文本 raw item 仍保留在 DB，可供後續 media 支援使用。
+
+後續完整版：
+
+- Telegram album 可被合併展示。
+- 圖片有可追蹤的 storage metadata。
+- Dashboard 可以在 detail view 查看附件。
+
+## 7. Source Management
+
+### 7.1 問題
 
 目前 source registry 已在 DB 中，但管理仍偏 seed / migration / SQL 操作。後續需要從 Dashboard 完成：
 
@@ -364,7 +455,7 @@ translation_tasks
 - 修改 priority、reliability、translation policy、alert policy。
 - 測試 source 是否可讀。
 
-### 6.2 Dashboard API endpoints
+### 7.2 Dashboard API endpoints
 
 建議把 `dashboard-api` 從 read-only 擴展為受 token 保護的管理 API：
 
@@ -386,7 +477,7 @@ POST /sources/{source_id}/backfill
 - `DELETE /sources/{source_id}` 實際執行 soft delete 或 `enabled=false`。
 - 保留歷史 `raw_items`、`events` 與 `alerts` 的外鍵語意。
 
-### 6.3 Source test 行為
+### 7.3 Source test 行為
 
 Telegram source test：
 
@@ -408,7 +499,7 @@ HTML polling source test：
 - 驗證 selector 是否存在。
 - 回傳匹配數量與第一筆摘要。
 
-### 6.4 Dashboard Web views
+### 7.4 Dashboard Web views
 
 新增 `Sources` 頁面：
 
@@ -418,7 +509,7 @@ HTML polling source test：
 - Edit drawer / modal：修改 source metadata。
 - Create source flow：選擇 Telegram / RSS / HTML polling 後填寫必要欄位。
 
-### 6.5 權限與安全
+### 7.5 權限與安全
 
 V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 source management 是寫入能力，需加強：
 
@@ -428,7 +519,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - test endpoint 需要 timeout。
 - backfill endpoint 需要限制時間窗口與數量。
 
-## 7. 建議實作順序
+## 8. 建議實作順序
 
 ### Phase 1: 通知降噪
 
@@ -476,7 +567,19 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - pending backlog 可被多 worker 加速消化。
 - crash / restart 後任務可恢復。
 
-### Phase 4: Source management API
+### Phase 4: Timeline 非文本消息降噪
+
+- Dashboard API / web 預設過濾 media-only raw item。
+- Timeline card fallback 僅在有 `summary_zh` / `summary_en` / `text_clean` / `text_raw` 時顯示。
+- Processing 可保留 media-only skipped item，方便排障。
+
+驗收：
+
+- Telegram 圖片組不再在 Timeline 顯示多則空白消息。
+- 帶 caption 的消息仍正常顯示。
+- 原始 media-only raw item 不從 DB 刪除。
+
+### Phase 5: Source management API
 
 - 新增 `dashboard-api` write endpoints。
 - 加入 source validation / test。
@@ -488,7 +591,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - 不改 SQL 即可停用 noisy source。
 - 可新增 Telegram / RSS source 並測試。
 
-### Phase 5: Source management UI
+### Phase 6: Source management UI
 
 - 新增 `Sources` 頁面。
 - 支援 create/edit/disable/test/backfill。
@@ -499,10 +602,11 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - Dashboard 可完成日常 source registry 維護。
 - 修改 source policy 後 collector / dispatcher 可在短時間內生效。
 
-## 8. 開放問題
+## 9. 開放問題
 
 - `alert_score` 已保存到 `alerts` 表，方便後續 audit。
 - Pushover allowlist 放在 source 欄位還是全局 policy config？V1 建議 source 欄位，便於 Dashboard 管理。
 - AI token usage 是否需要保存 prompt hash？建議保存 hash，不保存完整 prompt，避免資料量與隱私問題。
 - Source management 的 `DELETE` 是否命名為 `archive` 更清楚？API 可用 `DELETE`，UI 顯示為 Disable / Archive。
 - Backfill 是否需要單獨標記到 `raw_item_processing`？建議新增 `ingest_mode` 或在 `raw_json` / processing metadata 保存 `backfill=true`。
+- Telegram media-only raw item 是否應在 API 層預設過濾，或由 Dashboard Web filter 控制？V1 建議 API 預設過濾，保留 query param 用於 debug。
