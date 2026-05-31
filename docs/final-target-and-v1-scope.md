@@ -158,7 +158,7 @@ V1 預設用 `gpt-5.4-mini` 做最終分類。local LLM 與 nano model 可降低
 | `normalizer-classifier` | 實作 | 預處理、過濾、摘要、相關度判斷、回寫 DB |
 | `alert-dispatcher` | 實作 | 根據事件與相關度發送 Telegram / Pushover |
 | `dashboard-api` | 可選 / 最小實作 | V1 可先只提供 health 與事件查詢 API |
-| `dashboard-web` | 暫緩或極簡 | V1 可先不做完整 UI |
+| `dashboard-web` | 可選 / 極簡 | V1 可先做 read-only UI，用於查看 timeline、events、sources、processing 與 alerts |
 | `mt5-collector` | 暫緩 | V1 不接行情資料 |
 
 ## 7. V1 資料表範圍

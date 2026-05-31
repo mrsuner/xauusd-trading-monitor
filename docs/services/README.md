@@ -15,7 +15,7 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `normalizer-classifier` | [normalizer-classifier.md](./normalizer-classifier.md) | 已建立 |
 | `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 |
 | `dashboard-api` | [dashboard-api.md](./dashboard-api.md) | V1 可選 / 已建立 |
-| `dashboard-web` | `dashboard-web.md` | V1 暫緩或極簡 |
+| `dashboard-web` | [dashboard-web.md](./dashboard-web.md) | V1 可選 / 已建立 |
 | `mt5-collector` | `mt5-collector.md` | V1 暫緩 |
 
 ## 技術棧基準

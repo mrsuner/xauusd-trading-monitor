@@ -74,7 +74,11 @@ services/
 
 V1 可選的 read-only debug API，供後續 Dashboard Web 與人工排障使用。
 
-### 3.6 db-migrate
+### 3.6 dashboard-web
+
+V1 可選的前端操作台，供人工查看 timeline、events、sources、processing 與 alerts。
+
+### 3.7 db-migrate
 
 負責打包 Alembic migration，Docker Compose boot 時執行：
 
@@ -129,7 +133,7 @@ apps/
   dashboard-web/
 ```
 
-`dashboard-web` 是後續前端應用位置。V1 暫緩或只做極簡 UI。
+`dashboard-web` 是前端操作台應用位置。V1 可先做極簡 read-only UI，用於查看 timeline、events、sources、processing 與 alerts。
 
 前端技術棧固定為：
 
@@ -169,6 +173,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `normalizer-classifier` | `ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>` |
 | `alert-dispatcher` | `ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>` |
 | `dashboard-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>` |
+| `dashboard-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>` |
 
 ## 9. 暫不建立的內容
 
@@ -182,4 +187,3 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 - CI workflow
 
 這些會在實作階段逐步加入。
-
