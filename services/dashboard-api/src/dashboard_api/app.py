@@ -231,6 +231,9 @@ def create_app() -> FastAPI:
         source_type: str | None = None,
         source_group: str | None = None,
         priority: str | None = None,
+        content_category: str | None = None,
+        topic_tag: str | None = None,
+        actor: str | None = None,
         published_from: datetime | None = None,
         published_to: datetime | None = None,
         ingested_from: datetime | None = None,
@@ -246,6 +249,9 @@ def create_app() -> FastAPI:
                 "source_type": source_type,
                 "source_group": source_group,
                 "priority": priority,
+                "content_category": content_category,
+                "topic_tag": topic_tag,
+                "actor": actor,
                 "published_from": published_from,
                 "published_to": published_to,
                 "ingested_from": ingested_from,
@@ -255,6 +261,10 @@ def create_app() -> FastAPI:
             }
         )
         return await list_response(repository, builder, page, page_size, default_page_size)
+
+    @app.get("/raw-items/filters", dependencies=[Depends(require_token)])
+    async def get_raw_item_filter_options(repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        return await repository.get_raw_item_filter_options()
 
     @app.get("/raw-items/{raw_item_id}", dependencies=[Depends(require_token)])
     async def get_raw_item(raw_item_id: UUID, repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:

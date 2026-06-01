@@ -9,6 +9,7 @@ import type {
   ProcessingItem,
   ProcessingPipelineItem,
   RawItem,
+  RawItemFilterOptions,
   Source,
   SourcePayload,
   SourceHealth
@@ -82,6 +83,7 @@ export const api = {
   archiveSource: (sourceId: string) => request<Source>(`/sources/${sourceId}/archive`, undefined, { method: "POST" }),
   sourceHealth: (params?: Record<string, QueryValue>) => request<Page<SourceHealth>>("/source-health", params),
   rawItems: (params?: Record<string, QueryValue>) => request<Page<RawItem>>("/raw-items", params),
+  rawItemFilters: () => request<RawItemFilterOptions>("/raw-items/filters"),
   processing: (params?: Record<string, QueryValue>) => request<Page<ProcessingItem>>("/processing", params),
   processingPipeline: (params?: Record<string, QueryValue>) => request<Page<ProcessingPipelineItem>>("/processing/pipeline", params),
   events: (params?: Record<string, QueryValue>) => request<Page<EventItem>>("/events", params),

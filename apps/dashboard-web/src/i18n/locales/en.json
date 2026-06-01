@@ -118,7 +118,14 @@
       "group": "Group",
       "groupTip": "Source group",
       "translation": "Translation",
-      "translationTip": "Translation pipeline status"
+      "translationTip": "Translation pipeline status",
+      "category": "Category",
+      "categoryTip": "Layer 1 content taxonomy for Timeline filtering only"
+    },
+    "filter": {
+      "allCategories": "All categories",
+      "allTopics": "All topics",
+      "allActors": "All actors"
     }
   },
   "eventDetail": {

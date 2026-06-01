@@ -205,7 +205,10 @@ V1 runtime 支援兩個 AI layer：
 Layer 1: translation-summary
   primary: openai/gpt-oss-20b:free
   fallback: openai/gpt-oss-20b
-  output: raw_items.summary_zh / summary_en / full_translation_zh / full_translation_en
+  output:
+    raw_items.summary_zh / summary_en
+    raw_items.full_translation_zh / full_translation_en
+    raw_items.content_category / topic_tags / mentioned_actors
 
 Layer 2: classification-reasoning
   basic: gpt-5.4-mini
@@ -222,10 +225,15 @@ Layer 1 單次 API call 直接產生四項：
   "summary_en": "English summary",
   "full_translation_zh": "繁體中文全文翻譯",
   "full_translation_en": "English full translation",
+  "content_category": "diplomacy",
+  "topic_tags": ["iran", "nuclear", "sanctions"],
+  "mentioned_actors": ["Iran", "United States", "State Department"],
   "detected_language": "fa",
   "notes": null
 }
 ```
+
+`content_category`、`topic_tags` 與 `mentioned_actors` 只用於 Timeline 檢索與資訊分類，不代表交易相關性、通知優先級或事件嚴重度。Layer 1 不輸出 `severity`、`relevance_score` 或 `should_alert`。
 
 Layer 2 只讀 `source` metadata、`text_clean` / `text_raw` 原文、rule prefilter 結果。它不讀 `summary_zh`、`summary_en` 或 full translation。
 

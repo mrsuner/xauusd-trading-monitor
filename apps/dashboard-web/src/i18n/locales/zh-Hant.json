@@ -118,7 +118,14 @@
       "group": "群組",
       "groupTip": "來源群組",
       "translation": "翻譯",
-      "translationTip": "翻譯流程狀態"
+      "translationTip": "翻譯流程狀態",
+      "category": "分類",
+      "categoryTip": "Layer 1 內容分類，只用於 Timeline 過濾"
+    },
+    "filter": {
+      "allCategories": "全部分類",
+      "allTopics": "全部主題",
+      "allActors": "全部角色"
     }
   },
   "eventDetail": {

@@ -194,8 +194,31 @@ hours=24
 - 預設按 `published_at desc`。
 - 需要 pagination。
 - list response 需包含 `summary_zh`、`summary_en`、`full_translation_zh`、`full_translation_en`、`translation_status`，方便 timeline 顯示摘要與全文翻譯。
+- list response 需包含 `content_category`、`topic_tags`、`mentioned_actors`，方便 Timeline 按 Layer 1 taxonomy 過濾與展示。
 - raw item detail / event detail 需包含 `full_translation_zh`、`full_translation_en`、`translation_model` 與 `translation_error`，方便閱讀與 debug。
 - 大欄位如 `raw_json` 可在 list response 中省略，detail endpoint 再回傳。
+
+支援 filter：
+
+```text
+source_id
+source_type
+source_group
+priority
+content_category
+topic_tag
+actor
+q
+include_empty_text
+```
+
+新增 filter option endpoint：
+
+```text
+GET /raw-items/filters
+```
+
+回傳目前資料庫中可用的 `content_categories`、`topic_tags` 與 `mentioned_actors`，供 Dashboard 使用 dropdown，避免使用者手動輸入 taxonomy 值。
 
 ### 7.4 Processing
 

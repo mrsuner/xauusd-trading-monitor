@@ -227,6 +227,9 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
             "summary_en": "Trump says an Iran deal is close.",
             "full_translation_zh": "Trump 表示伊朗協議已接近完成。",
             "full_translation_en": "Trump says Iran deal is close.",
+            "content_category": "diplomacy",
+            "topic_tags": ["trump", "iran", "nuclear"],
+            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }
@@ -257,6 +260,9 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     assert response.result.summary_zh == "Trump 稱伊朗協議接近完成。"
     assert response.result.summary_en == "Trump says an Iran deal is close."
     assert response.result.full_translation_zh == "Trump 表示伊朗協議已接近完成。"
+    assert response.result.content_category == "diplomacy"
+    assert response.result.topic_tags == ["trump", "iran", "nuclear"]
+    assert response.result.mentioned_actors == ["Trump", "Iran"]
 
 
 def test_build_auxiliary_model_client_openrouter() -> None:

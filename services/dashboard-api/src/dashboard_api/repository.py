@@ -219,6 +219,48 @@ class DashboardRepository:
             {"raw_item_id": raw_item_id},
         )
 
+    async def get_raw_item_filter_options(self) -> dict[str, Any]:
+        row = await self._db.fetch_one(
+            """
+            select
+              coalesce(
+                jsonb_agg(distinct r.content_category)
+                  filter (where r.content_category is not null and btrim(r.content_category) <> ''),
+                '[]'::jsonb
+              ) as content_categories,
+              coalesce(
+                (
+                  select jsonb_agg(tag order by tag)
+                  from (
+                    select distinct btrim(value #>> '{}') as tag
+                    from raw_items ri
+                    cross join lateral jsonb_array_elements(ri.topic_tags) as tags(value)
+                    where jsonb_typeof(ri.topic_tags) = 'array'
+                      and btrim(value #>> '{}') <> ''
+                    limit 500
+                  ) distinct_tags
+                ),
+                '[]'::jsonb
+              ) as topic_tags,
+              coalesce(
+                (
+                  select jsonb_agg(actor order by actor)
+                  from (
+                    select distinct btrim(value #>> '{}') as actor
+                    from raw_items ri
+                    cross join lateral jsonb_array_elements(ri.mentioned_actors) as actors(value)
+                    where jsonb_typeof(ri.mentioned_actors) = 'array'
+                      and btrim(value #>> '{}') <> ''
+                    limit 500
+                  ) distinct_actors
+                ),
+                '[]'::jsonb
+              ) as mentioned_actors
+            from raw_items r
+            """,
+        )
+        return row or {"content_categories": [], "topic_tags": [], "mentioned_actors": []}
+
     async def get_event(self, event_id: UUID) -> dict[str, Any] | None:
         event = await self._db.fetch_one(
             """
@@ -517,6 +559,9 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
           r.summary_en,
           r.full_translation_zh,
           r.full_translation_en,
+          r.content_category,
+          r.topic_tags,
+          r.mentioned_actors,
           r.translation_status,
           r.translation_model_provider,
           r.translation_model,
@@ -543,15 +588,32 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_equal("s.source_type", "source_type", filters.get("source_type"))
     builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
     builder.add_equal("s.priority", "priority", filters.get("priority"))
+    builder.add_equal("r.content_category", "content_category", filters.get("content_category"))
     builder.add_gte("r.published_at", "published_from", filters.get("published_from"))
     builder.add_lte("r.published_at", "published_to", filters.get("published_to"))
     builder.add_gte("r.ingested_at", "ingested_from", filters.get("ingested_from"))
     builder.add_lte("r.ingested_at", "ingested_to", filters.get("ingested_to"))
     builder.add_search(
-        ("r.title", "r.text_clean", "r.summary_zh", "r.summary_en", "r.full_translation_zh", "r.full_translation_en", "r.text_raw"),
+        (
+            "r.title",
+            "r.text_clean",
+            "r.summary_zh",
+            "r.summary_en",
+            "r.full_translation_zh",
+            "r.full_translation_en",
+            "r.text_raw",
+            "r.topic_tags::text",
+            "r.mentioned_actors::text",
+        ),
         "q",
         filters.get("q"),
     )
+    if filters.get("topic_tag"):
+        builder.where.append("r.topic_tags ? %(topic_tag)s")
+        builder.params["topic_tag"] = filters["topic_tag"]
+    if filters.get("actor"):
+        builder.where.append("r.mentioned_actors ? %(actor)s")
+        builder.params["actor"] = filters["actor"]
     if not filters.get("include_empty_text"):
         builder.where.append(
             """

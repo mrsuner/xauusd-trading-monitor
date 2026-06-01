@@ -41,3 +41,22 @@ def test_raw_items_query_can_include_empty_text() -> None:
     builder = build_raw_items_query({"include_empty_text": True})
 
     assert "r.title !~* '^\\[no title\\]'" not in builder.list_sql()
+
+
+def test_raw_items_query_filters_taxonomy_fields() -> None:
+    builder = build_raw_items_query(
+        {
+            "content_category": "diplomacy",
+            "topic_tag": "iran",
+            "actor": "Trump",
+        }
+    )
+
+    sql = builder.list_sql()
+
+    assert "r.content_category = %(content_category)s" in sql
+    assert "r.topic_tags ? %(topic_tag)s" in sql
+    assert "r.mentioned_actors ? %(actor)s" in sql
+    assert builder.params["content_category"] == "diplomacy"
+    assert builder.params["topic_tag"] == "iran"
+    assert builder.params["actor"] == "Trump"

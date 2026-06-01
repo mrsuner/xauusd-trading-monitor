@@ -144,6 +144,9 @@ export type RawItem = {
   summary_en?: string | null;
   full_translation_zh?: string | null;
   full_translation_en?: string | null;
+  content_category?: string | null;
+  topic_tags?: string[];
+  mentioned_actors?: string[];
   translation_status?: string | null;
   translation_model_provider?: string | null;
   translation_model?: string | null;
@@ -157,6 +160,12 @@ export type RawItem = {
   ingested_at: string;
   media_type: string;
   dedupe_key: string;
+};
+
+export type RawItemFilterOptions = {
+  content_categories: string[];
+  topic_tags: string[];
+  mentioned_actors: string[];
 };
 
 export type ProcessingItem = {

@@ -53,6 +53,8 @@ function RawItemCard({ item }: { item: RawItem }) {
   const contentLabel = fullTranslation ? t("timeline.fullTranslation") : t("timeline.originalContent");
   const contentText = fullTranslation || originalContent;
   const collapsible = isCollapsible(contentText);
+  const tags = item.topic_tags ?? [];
+  const actors = item.mentioned_actors ?? [];
 
   return (
     <article className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
@@ -71,9 +73,28 @@ function RawItemCard({ item }: { item: RawItem }) {
         <MetaField label={t("timeline.meta.translation")} tip={t("timeline.meta.translationTip")}>
           <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
         </MetaField>
+        {item.content_category ? (
+          <MetaField label={t("timeline.meta.category")} tip={t("timeline.meta.categoryTip")}>
+            <span className="rounded bg-info/10 px-2 py-0.5 text-info-content">{item.content_category}</span>
+          </MetaField>
+        ) : null}
       </div>
       {item.title ? <h2 className="mb-2 text-sm font-semibold text-base-content">{title}</h2> : null}
       <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-base-content/80">{summary}</p>
+      {tags.length || actors.length ? (
+        <div className="mb-3 flex flex-wrap gap-1.5 text-xs">
+          {tags.slice(0, 8).map((tag) => (
+            <span key={`tag-${tag}`} className="rounded bg-base-200 px-2 py-0.5 text-base-content/65">
+              #{tag}
+            </span>
+          ))}
+          {actors.slice(0, 6).map((actor) => (
+            <span key={`actor-${actor}`} className="rounded border border-base-300 px-2 py-0.5 text-base-content/65">
+              {actor}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="mb-3 rounded border border-base-200 bg-base-200/30 p-3">
         <div className="mb-1 flex items-center justify-between gap-2">
           <span className="text-xs font-medium text-base-content/60">{contentLabel}</span>
@@ -126,6 +147,20 @@ const SOURCE_TYPES = [
 ] as const;
 
 const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
+const CONTENT_CATEGORIES = [
+  "diplomacy",
+  "military",
+  "sanctions",
+  "fed",
+  "energy",
+  "market",
+  "domestic_politics",
+  "routine",
+  "social",
+  "economy",
+  "technology",
+  "other"
+] as const;
 
 export function Timeline() {
   const { t } = useTranslation();
@@ -134,12 +169,20 @@ export function Timeline() {
   const [sourceType, setSourceType] = useState("");
   const [sourceId, setSourceId] = useState("");
   const [priority, setPriority] = useState("");
+  const [contentCategory, setContentCategory] = useState("");
+  const [topicTag, setTopicTag] = useState("");
+  const [actor, setActor] = useState("");
   const sources = useQuery({
     queryKey: ["timeline-sources", sourceType, priority],
     queryFn: () => api.sources({ page_size: 200, source_type: sourceType, priority })
   });
+  const filterOptions = useQuery({
+    queryKey: ["raw-item-filters"],
+    queryFn: () => api.rawItemFilters(),
+    staleTime: 60000
+  });
   const query = useQuery({
-    queryKey: ["raw-items", q, sourceGroup, sourceType, sourceId, priority],
+    queryKey: ["raw-items", q, sourceGroup, sourceType, sourceId, priority, contentCategory, topicTag, actor],
     queryFn: () =>
       api.rawItems({
         page_size: 75,
@@ -147,15 +190,21 @@ export function Timeline() {
         source_group: sourceGroup,
         source_type: sourceType,
         source_id: sourceId,
-        priority
+        priority,
+        content_category: contentCategory,
+        topic_tag: topicTag,
+        actor
       }),
     refetchInterval: 15000
   });
+  const categoryOptions = Array.from(
+    new Set([...CONTENT_CATEGORIES, ...(filterOptions.data?.content_categories ?? [])])
+  ).filter(Boolean);
 
   return (
     <>
       <PageHeader title={t("timeline.title")} description={t("timeline.description")} />
-      <div className="mb-4 grid gap-2 md:grid-cols-[1fr_180px_220px_120px_220px]">
+      <div className="mb-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_150px_220px_110px_170px_170px_170px_180px]">
         <input className="input input-bordered input-sm" placeholder={t("common.keywordSearch")} value={q} onChange={(event) => setQ(event.target.value)} />
         <select
           className="select select-bordered select-sm"
@@ -195,6 +244,34 @@ export function Timeline() {
           {PRIORITIES.map((priorityOption) => (
             <option key={priorityOption} value={priorityOption}>
               {priorityOption}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select select-bordered select-sm"
+          value={contentCategory}
+          onChange={(event) => setContentCategory(event.target.value)}
+        >
+          <option value="">{t("timeline.filter.allCategories")}</option>
+          {categoryOptions.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+        <select className="select select-bordered select-sm" value={topicTag} onChange={(event) => setTopicTag(event.target.value)}>
+          <option value="">{t("timeline.filter.allTopics")}</option>
+          {filterOptions.data?.topic_tags.slice(0, 200).map((tag) => (
+            <option key={tag} value={tag}>
+              #{tag}
+            </option>
+          ))}
+        </select>
+        <select className="select select-bordered select-sm" value={actor} onChange={(event) => setActor(event.target.value)}>
+          <option value="">{t("timeline.filter.allActors")}</option>
+          {filterOptions.data?.mentioned_actors.slice(0, 200).map((actorOption) => (
+            <option key={actorOption} value={actorOption}>
+              {actorOption}
             </option>
           ))}
         </select>

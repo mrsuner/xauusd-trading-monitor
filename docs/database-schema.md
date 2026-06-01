@@ -334,6 +334,9 @@ create table raw_items (
   summary_en text,
   full_translation_zh text,
   full_translation_en text,
+  content_category text,
+  topic_tags jsonb not null default '[]'::jsonb,
+  mentioned_actors jsonb not null default '[]'::jsonb,
   translation_status text not null default 'pending',
   translation_model_provider text,
   translation_model text,
@@ -357,11 +360,19 @@ create table raw_items (
   ),
   constraint raw_items_translation_input_chars_check check (
     translation_input_chars is null or translation_input_chars >= 0
+  ),
+  constraint raw_items_topic_tags_array_check check (
+    jsonb_typeof(topic_tags) = 'array'
+  ),
+  constraint raw_items_mentioned_actors_array_check check (
+    jsonb_typeof(mentioned_actors) = 'array'
   )
 );
 ```
 
 `summary_zh`、`summary_en`、`full_translation_zh` 與 `full_translation_en` 由 `normalizer-classifier` 的 translation-summary layer 回寫，用於 Dashboard 在 raw item 層顯示雙語摘要與全文翻譯。Layer 2 classification-reasoning 不讀這些欄位，避免低成本翻譯模型影響事件判斷。
+
+`content_category`、`topic_tags` 與 `mentioned_actors` 由 Layer 1 在翻譯摘要時同步回寫，只用於 Timeline taxonomy、filter 與搜尋。這些欄位不代表交易相關性、通知等級或事件嚴重度。
 
 `translation_status`：
 
@@ -420,9 +431,18 @@ create index raw_items_title_trgm_idx
 create index raw_items_text_clean_trgm_idx
   on raw_items using gin (text_clean gin_trgm_ops)
   where text_clean is not null;
+
+create index raw_items_content_category_idx
+  on raw_items (content_category);
+
+create index raw_items_topic_tags_gin_idx
+  on raw_items using gin (topic_tags);
+
+create index raw_items_mentioned_actors_gin_idx
+  on raw_items using gin (mentioned_actors);
 ```
 
-V1 先使用兩個簡單 trigram index。若後續需要更好的全文搜尋，可新增 `search_text` generated column 或 `tsvector` 欄位。
+V1 先使用兩個簡單 trigram index 與 taxonomy GIN index。若後續需要更好的全文搜尋，可新增 `search_text` generated column 或 `tsvector` 欄位。
 
 ### 7.5 Upsert 行為
 

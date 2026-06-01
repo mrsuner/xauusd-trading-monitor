@@ -453,6 +453,7 @@ def auxiliary_text_system_prompt() -> str:
         "Do not provide trading instructions, entries, stop loss, take profit, position sizing, buy, sell, long, "
         "short, bullish, or bearish recommendations. Do not predict market direction. "
         "Do not decide whether a message is important, relevant, urgent, official, or market moving. "
+        "You may classify the item's content taxonomy for timeline filtering only. "
         "Only follow translation_scope. "
         "summary_zh must be a concise Traditional Chinese news summary. "
         "summary_en must be a concise English news summary. "
@@ -461,11 +462,19 @@ def auxiliary_text_system_prompt() -> str:
         "may equal the supplied cleaned text. If the original text is already Chinese, full_translation_zh may equal "
         "the supplied cleaned text. If full_translation_required is false, return null for both full_translation fields. "
         "Preserve names, places, institutions, numbers, dates, quoted claims, and uncertainty. "
+        "content_category must be one of: diplomacy, military, sanctions, fed, energy, market, domestic_politics, "
+        "routine, social, economy, technology, other. Use routine for ordinary schedules, ceremonies, interviews, "
+        "lifestyle, or non-policy background pieces. "
+        "topic_tags must contain 0-12 short lowercase topic slugs useful for filtering, such as iran, trump, nuclear, "
+        "sanctions, hormuz, fed, oil, israel, irgc. "
+        "mentioned_actors must contain 0-12 named people, countries, agencies, military units, institutions, or "
+        "organizations explicitly mentioned in the item. "
         "If truncated_input is true, mention in notes that full translation is based on truncated input. "
         "Do not add facts that are not in the input. "
         "The JSON schema is: "
         '{"summary_zh": string, "summary_en": string, "full_translation_zh": string|null, '
-        '"full_translation_en": string|null, "detected_language": string|null, "notes": string|null}.'
+        '"full_translation_en": string|null, "content_category": string|null, "topic_tags": string[], '
+        '"mentioned_actors": string[], "detected_language": string|null, "notes": string|null}.'
     )
 
 
@@ -536,6 +545,26 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                     "summary_en": {"type": "string"},
                     "full_translation_zh": {"type": ["string", "null"]},
                     "full_translation_en": {"type": ["string", "null"]},
+                    "content_category": {
+                        "type": ["string", "null"],
+                        "enum": [
+                            "diplomacy",
+                            "military",
+                            "sanctions",
+                            "fed",
+                            "energy",
+                            "market",
+                            "domestic_politics",
+                            "routine",
+                            "social",
+                            "economy",
+                            "technology",
+                            "other",
+                            None,
+                        ],
+                    },
+                    "topic_tags": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
+                    "mentioned_actors": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
                     "detected_language": {"type": ["string", "null"]},
                     "notes": {"type": ["string", "null"]},
                 },
@@ -544,6 +573,9 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                     "summary_en",
                     "full_translation_zh",
                     "full_translation_en",
+                    "content_category",
+                    "topic_tags",
+                    "mentioned_actors",
                     "detected_language",
                     "notes",
                 ],

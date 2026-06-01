@@ -26,7 +26,8 @@
 | 通知降噪與 source-aware alert policy | P0 | 已完成第一版 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
 | AI token / model usage 統計 | P0 | 已完成第一版 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
 | Normalizer 多 worker queue | P0 | 待實作 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
-| Per-item value scoring / Timeline relevance UI | P0 | 待實作 | 高優先 source 也會有低價值消息，需要把 AI relevance 與 source metadata 融合 |
+| Timeline taxonomy filters | P0 | 已完成第一版 | Layer 1 已回寫 category/tags/actors，Timeline 可按分類、主題與角色檢索 |
+| Per-item value scoring / Timeline relevance UI | P0 | 待實作 | 後續再融合 AI relevance、source metadata 與事件狀態 |
 | Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
 
@@ -527,7 +528,7 @@ V1 仍為單使用者 HomeLab 工具，先使用 `DASHBOARD_API_TOKEN`。但 sou
 - test endpoint 需要 timeout。
 - backfill endpoint 需要限制時間窗口與數量。
 
-## 8. Per-item Value Scoring 與 Timeline Relevance UI
+## 8. Timeline Taxonomy 與後續 Per-item Value Scoring
 
 ### 8.1 問題
 
@@ -544,11 +545,12 @@ Source:
   priority: P0
 ```
 
-這類消息不應因為 source 是 P0 就在 Timeline 視覺上被視為高價值，也不應提升通知權重。
+這類消息不應因為 source 是 P0 就在 Timeline 視覺上被視為高價值，也不應提升通知權重。Phase 4 先完成較低風險的 Timeline taxonomy：Layer 1 在翻譯摘要時同步輸出內容分類、主題標籤與提及角色，讓使用者可以在 Timeline 做檢索與過濾。真正的 value scoring / alert scoring 仍保留給 Layer 2 與規則系統。
 
 ### 8.2 設計原則
 
 - Source priority 是來源權重，不是消息價值。
+- Layer 1 taxonomy 只描述內容，不做交易判斷、嚴重度、相關度或通知決策。
 - 單條消息的展示與通知應以 `raw_item_processing.relevance_score`、`events.relevance_score`、`event_type`、`claim_direction`、`market_relevance` 等 item-level / event-level 結果為主。
 - Source metadata 只作為加權因子，不應覆蓋 AI relevance 與 deterministic keyword / actor scoring。
 - P0 source 的低相關消息應能保留在 DB 與 Processing 頁，但 Timeline 預設可以降權、淡化或隱藏。
@@ -557,7 +559,42 @@ Source:
   - relevance score：此消息對本系統目標的相關性。
   - alert score：此事件是否值得通知。
 
-### 8.3 Scoring fusion 方向
+### 8.3 已完成：Layer 1 Taxonomy
+
+已新增 `raw_items` 描述型欄位：
+
+```text
+content_category
+topic_tags
+mentioned_actors
+```
+
+Layer 1 translation-summary 單次 API call 會回寫：
+
+```json
+{
+  "summary_zh": "繁體中文摘要",
+  "summary_en": "English summary",
+  "full_translation_zh": "繁體中文全文翻譯",
+  "full_translation_en": "English full translation",
+  "content_category": "diplomacy",
+  "topic_tags": ["iran", "nuclear", "sanctions"],
+  "mentioned_actors": ["Iran", "United States", "State Department"]
+}
+```
+
+Dashboard API 已支援：
+
+```text
+content_category
+topic_tag
+actor
+GET /raw-items/filters
+```
+
+Timeline 已支援 category / topic / actor filters，並在 card 顯示 category badge、topic tags 與 mentioned actors。
+
+### 8.4 後續：Scoring fusion 方向
 
 後續 `normalizer-classifier` 與 `alert-dispatcher` 應採用可解釋的融合分數，而不是只看 source priority：
 
@@ -593,7 +630,7 @@ item_value_score =
 - `reliability_score` 應主要影響可信度，不應直接等同交易相關性。
 - `latency_score` 只應影響突發消息時效評估，不應讓日常消息提升通知等級。
 
-### 8.4 Timeline UI 方向
+### 8.5 後續：Timeline Relevance UI 方向
 
 Timeline 應加入 item-level relevance 展示與過濾：
 
@@ -615,7 +652,7 @@ Timeline 應加入 item-level relevance 展示與過濾：
   - 是否已產生 event。
 - Timeline 預設視圖建議由「所有 raw items」改為「relevant-first timeline」，保留 Debug / All 模式查看完整採集流。
 
-### 8.5 API / DB 方向
+### 8.6 後續：API / DB 方向
 
 V1 現有 `raw_item_processing.relevance_score` 可先作為 Timeline relevance 的主要來源，不必立即新增欄位。後續若需要更清楚分離概念，可新增：
 
@@ -637,7 +674,7 @@ classification_status
 event_id / has_event
 ```
 
-### 8.6 驗收
+### 8.7 驗收
 
 - P0 source 的日常消息不會在 Timeline 被誤認為高價值。
 - Timeline 可以用 `min_relevance_score` 或 `is_relevant` 過濾低價值消息。
@@ -693,19 +730,26 @@ event_id / has_event
 - pending backlog 可被多 worker 加速消化。
 - crash / restart 後任務可恢復。
 
-### Phase 4: Per-item value scoring / Timeline relevance UI
+### Phase 4: Timeline taxonomy filters
+
+- 狀態：已完成 V1 taxonomy 版本。
+- Layer 1 translation-summary 回寫 `content_category`、`topic_tags`、`mentioned_actors`。
+- Dashboard API `/raw-items` 支援 `content_category`、`topic_tag`、`actor` filters。
+- Dashboard API `/raw-items/filters` 回傳 dropdown options。
+- Timeline card 顯示 category、topic tags 與 mentioned actors。
+
+後續獨立處理：
 
 - Timeline / raw items endpoint join 最新 `raw_item_processing` 結果。
 - 回傳 `is_relevant`、`relevance_score`、`filter_reason` 與 `has_event`。
 - Timeline 新增 `min_relevance_score`、`is_relevant`、`has_event` filters。
-- Timeline card 同時顯示 source priority 與 item relevance。
 - 低 relevance 消息預設淡化或只在 Debug / All 模式顯示。
 - 調整 `alert-dispatcher` 權重，避免 source P0 放大低相關消息。
 
 驗收：
 
-- P0 source 的日常消息不再被視覺或通知策略誤判為高價值。
-- Timeline 可快速聚焦 relevant-first 事件流。
+- Timeline 可按 category、topic、actor 快速檢索消息。
+- P0 source 的日常消息可以透過 `routine` / `social` 等 category 過濾。
 - Processing 仍能查到低 relevance 消息與模型判斷原因。
 
 ### Phase 5: Timeline 非文本消息降噪
