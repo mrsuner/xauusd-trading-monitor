@@ -1,8 +1,8 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { RawItem } from "../api/types";
+import type { ContentCategory, RawItem, TagOption } from "../api/types";
 import { OfficialBadge, PriorityBadge } from "../components/Badges";
 import { ErrorPanel } from "../components/DataState";
 import { formatTime } from "../components/Format";
@@ -42,8 +42,17 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function RawItemCard({ item }: { item: RawItem }) {
-  const { t } = useTranslation();
+type RawItemCardProps = {
+  item: RawItem;
+  categoryByKey: Map<string, ContentCategory>;
+  tagByKey: Map<string, TagOption>;
+  onCategoryClick: (category: string) => void;
+  onTagClick: (tag: string) => void;
+  onActorClick: (actor: string) => void;
+};
+
+function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClick, onActorClick }: RawItemCardProps) {
+  const { i18n, t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const summary = item.summary_zh || item.summary_en || item.text_clean || item.text_raw || "-";
@@ -55,6 +64,12 @@ function RawItemCard({ item }: { item: RawItem }) {
   const collapsible = isCollapsible(contentText);
   const tags = item.topic_tags ?? [];
   const actors = item.mentioned_actors ?? [];
+  const category = item.content_category ? categoryByKey.get(item.content_category) : undefined;
+  const categoryLabel = category
+    ? i18n.language.startsWith("zh")
+      ? category.label_zh
+      : category.label_en
+    : item.content_category;
 
   return (
     <article className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
@@ -75,7 +90,14 @@ function RawItemCard({ item }: { item: RawItem }) {
         </MetaField>
         {item.content_category ? (
           <MetaField label={t("timeline.meta.category")} tip={t("timeline.meta.categoryTip")}>
-            <span className="rounded bg-info/10 px-2 py-0.5 text-info-content">{item.content_category}</span>
+            <button
+              type="button"
+              className="rounded bg-info/10 px-2 py-0.5 text-info-content transition hover:bg-info/20"
+              title={category?.description ?? item.content_category}
+              onClick={() => onCategoryClick(item.content_category ?? "")}
+            >
+              {categoryLabel}
+            </button>
           </MetaField>
         ) : null}
       </div>
@@ -83,15 +105,29 @@ function RawItemCard({ item }: { item: RawItem }) {
       <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-base-content/80">{summary}</p>
       {tags.length || actors.length ? (
         <div className="mb-3 flex flex-wrap gap-1.5 text-xs">
-          {tags.slice(0, 8).map((tag) => (
-            <span key={`tag-${tag}`} className="rounded bg-base-200 px-2 py-0.5 text-base-content/65">
-              #{tag}
-            </span>
-          ))}
+          {tags.slice(0, 8).map((tag) => {
+            const tagOption = tagByKey.get(tag);
+            return (
+              <button
+                key={`tag-${tag}`}
+                type="button"
+                className="rounded bg-base-200 px-2 py-0.5 text-base-content/65 transition hover:bg-base-300 hover:text-base-content"
+                title={tagOption?.label ?? tag}
+                onClick={() => onTagClick(tag)}
+              >
+                #{tag}
+              </button>
+            );
+          })}
           {actors.slice(0, 6).map((actor) => (
-            <span key={`actor-${actor}`} className="rounded border border-base-300 px-2 py-0.5 text-base-content/65">
+            <button
+              key={`actor-${actor}`}
+              type="button"
+              className="rounded border border-base-300 px-2 py-0.5 text-base-content/65 transition hover:border-base-content/30 hover:text-base-content"
+              onClick={() => onActorClick(actor)}
+            >
               {actor}
-            </span>
+            </button>
           ))}
         </div>
       ) : null}
@@ -192,6 +228,11 @@ export function Timeline() {
       }),
     refetchInterval: 15000
   });
+  const categoryByKey = useMemo(
+    () => new Map((categories.data?.items ?? []).map((category) => [category.key, category])),
+    [categories.data?.items]
+  );
+  const tagByKey = useMemo(() => new Map((tags.data?.items ?? []).map((tag) => [tag.key, tag])), [tags.data?.items]);
 
   return (
     <>
@@ -285,7 +326,17 @@ export function Timeline() {
             {t("timeline.empty")}
           </div>
         ) : null}
-        {query.data?.items.map((item) => <RawItemCard key={item.id} item={item} />)}
+        {query.data?.items.map((item) => (
+          <RawItemCard
+            key={item.id}
+            item={item}
+            categoryByKey={categoryByKey}
+            tagByKey={tagByKey}
+            onCategoryClick={setContentCategory}
+            onTagClick={setTopicTag}
+            onActorClick={setActor}
+          />
+        ))}
       </div>
     </>
   );
