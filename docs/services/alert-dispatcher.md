@@ -130,7 +130,7 @@ write delivery result
 
 Notification policy 由 `event-router` 負責。`alert-dispatcher` 只尊重 `alerts.channel`、`alerts.priority`、`alerts.message`、`alerts.delivery_status` 與 retry metadata。
 
-目前 runtime 仍包含 source-aware `alert_score` 與 alert decision 建立邏輯；這是過渡狀態。引入 `event-router` 後，以下策略會遷移到 `event-router`：
+`alert_score`、source-aware route policy、Pushover allowlist、cooldown / rate limit 與 public route 判斷已移至 `event-router`：
 
 ```text
 alert_score =
@@ -197,9 +197,7 @@ alerts
   └── delivery metadata
 ```
 
-`alerts.message` 應由 `event-router` 在建立 alert decision 時產生。`alert-dispatcher` 不需要再組裝 event context。
-
-目前 runtime 仍會在建立 alert decision 時載入 event、source、raw item 與 claims。這是遷移到 `event-router` 前的過渡狀態。
+`alerts.message` 由 `event-router` 在建立 alert decision 時產生。`alert-dispatcher` 不需要再組裝 event context。
 
 ## 9. Alerts Table Contract
 
@@ -505,12 +503,12 @@ postgres healthy
   ↓
 db-migrate completed
   ↓
-normalizer-classifier / alert-dispatcher
+normalizer-classifier / event-router / alert-dispatcher
 ```
 
 本機開發：
 
-- 後續建立 `services/alert-dispatcher` 後加入 `make dev`。
+- `services/alert-dispatcher` 已加入 `make dev`，由 `event-router` 建立 `alerts` row 後負責 delivery。
 - 本機可以先只啟用 Telegram alert，Pushover 用 mock 或 disabled。
 
 ## 16. Observability

@@ -30,7 +30,7 @@
 | Normalizer 多 worker queue | P0 | 部分完成 | 已支援 production compose scale 2 個 normalizer instance、PostgreSQL `FOR UPDATE SKIP LOCKED` claim、stale running task recovery；backlog 指標與跨 worker budget guard 待補 |
 | Timeline taxonomy filters | P0 | 已完成第一版 | Layer 1 已回寫 category/tags/actors，Timeline 可按分類、主題與角色檢索 |
 | Per-item value scoring / Timeline relevance UI | P0 | 部分完成 | Timeline 已顯示 Layer 2 relevance / event state；後續再補 `item_value_score` 與 source metadata 融合 |
-| Event routing layer | P0 | 規劃中 | 需要把私人通知與公共發布的出口決策集中化，讓 dispatcher / publisher 只負責 delivery |
+| Event routing layer | P0 | 已完成第一版 | `event-router` 已集中建立 `alerts`、`public_outbox` 與 `event_route_decisions`，dispatcher / publisher 收斂為 delivery |
 | Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
 | Public publishing plane | P2 | 規劃中 | HomeLab 控制公共發布，VPS 只承擔 public API / public website / public DB |
@@ -42,7 +42,6 @@
 P0：
 
 - Per-item value scoring：在現有 Layer 2 relevance 基礎上，後續加入可解釋的 `item_value_score` / routing decision，融合 AI relevance、event type、actor、keyword、source priority / reliability、routine / commentary / duplicate penalty。
-- Event routing layer：新增 `event-router`，集中從 `events` 建立 `alerts`、`public_outbox` 與 `event_route_decisions`，並把 `alert-dispatcher` 收斂為純 delivery worker。
 - Normalizer 多 worker queue：支援多個 `normalizer-classifier` instance 並行、stale lock recovery、production compose replicas、backlog / oldest pending age / throughput 指標，以及跨 worker AI budget guard。
 
 P1：
@@ -950,7 +949,7 @@ VPS 新增元件：
 建議實作順序：
 
 1. 定義 public payload schema 與 `public_outbox` migration。已完成第一版。
-2. 實作 `event-router`，從 `events` 生成 private alert decisions 與 public-safe content。
+2. 實作 `event-router`，從 `events` 生成 private alert decisions 與 public-safe content。已完成第一版。
 3. 實作 VPS `public-api` ingest，先不做 public website UI。
 4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。
 5. 實作 `public-web` 第一版列表與事件詳情。

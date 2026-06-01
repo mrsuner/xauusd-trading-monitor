@@ -3,14 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
-from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import httpx
 
 from .db import Database
-from .models import AlertDelivery, AlertPolicyRuntime
-from .policy import notification_decisions
+from .models import AlertDelivery
 from .providers import AlertProvider, build_providers
 from .settings import Settings
 
@@ -22,7 +20,6 @@ class AlertDispatcher:
         self.settings = settings
         self.worker_id = f"{settings.service_name}:{socket.gethostname()}:{uuid4()}"
         self.db = Database(settings.database_url)
-        self._startup_cutoff = datetime.now(timezone.utc)
         self._handled_count = 0
 
     async def run(self) -> None:
@@ -52,9 +49,6 @@ class AlertDispatcher:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 return await self.run_once(providers=build_providers(self.settings, client))
 
-        if self.settings.enable_polling_fallback:
-            await self._create_alerts_for_recent_events()
-
         delivered = 0
         for _ in range(self.settings.alert_batch_size):
             if self._budget_reached():
@@ -66,22 +60,6 @@ class AlertDispatcher:
             delivered += 1
             self._handled_count += 1
         return delivered
-
-    async def _create_alerts_for_recent_events(self) -> None:
-        since = self._event_scan_cutoff()
-        event_ids = await self.db.event_ids_without_alerts(since=since, limit=self.settings.event_batch_size)
-        for event_id in event_ids:
-            event = await self.db.get_event_context(event_id=event_id)
-            if not event:
-                continue
-            runtime = AlertPolicyRuntime(
-                backfill_mode=self.settings.alert_backfill_mode,
-                is_backfill=bool(event.created_at and event.created_at < self._startup_cutoff),
-            )
-            if event.source.id:
-                runtime.telegram_stats = await self.db.alert_channel_stats(source_id=event.source.id, channel="telegram")
-                runtime.pushover_stats = await self.db.alert_channel_stats(source_id=event.source.id, channel="pushover")
-            await self.db.create_alert_decisions(notification_decisions(event, runtime=runtime))
 
     async def _deliver_alert(self, alert: AlertDelivery, providers: dict[str, AlertProvider]) -> None:
         if self.settings.alert_dry_run:
@@ -121,11 +99,6 @@ class AlertDispatcher:
             result.is_transient,
             result.error_message,
         )
-
-    def _event_scan_cutoff(self) -> datetime:
-        if self.settings.dispatch_existing_events_on_start:
-            return datetime.now(timezone.utc) - timedelta(minutes=self.settings.event_lookback_minutes)
-        return self._startup_cutoff
 
     def _backoff_seconds(self, alert: AlertDelivery, retry_after_seconds: int | None) -> int:
         if retry_after_seconds is not None:

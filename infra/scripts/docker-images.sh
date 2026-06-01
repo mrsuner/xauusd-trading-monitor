@@ -13,6 +13,7 @@ SERVICES=(
   "telegram-collector:services/telegram-collector/Dockerfile"
   "rss-collector:services/rss-collector/Dockerfile"
   "normalizer-classifier:services/normalizer-classifier/Dockerfile"
+  "event-router:services/event-router/Dockerfile"
   "alert-dispatcher:services/alert-dispatcher/Dockerfile"
   "telegram-channel-publisher:services/telegram-channel-publisher/Dockerfile"
   "dashboard-api:services/dashboard-api/Dockerfile"

@@ -23,10 +23,17 @@ telegram-collector / rss-collector
   → raw_items (+ raw_item_processing pending row)
   → normalizer-classifier  (polls the queue)
   → events / event_claims  (+ translation/summary fields on raw_items)
-  → alert-dispatcher  (records/sends Telegram and Pushover alerts)
+  → event-router  (writes alerts / public_outbox / route audit)
+  → alert-dispatcher / telegram-channel-publisher  (delivery only)
   → dashboard-api → dashboard-web
 ```
-`alert-dispatcher` runtime code exists and is included in `make dev`. Development defaults are safe: `ALERT_DRY_RUN=true` and `DISPATCH_EXISTING_EVENTS_ON_START=false`.
+`event-router` and `alert-dispatcher` runtime code exists and is included in `make dev`. Development defaults are safe: `ALERT_DRY_RUN=true` and `EVENT_ROUTER_DISPATCH_EXISTING_EVENTS_ON_START=false`.
+
+### Routing & publishing flow
+
+The flow is `events → event-router → alerts / public_outbox → alert-dispatcher / telegram-channel-publisher`. Spec: `docs/services/event-router.md`.
+
+`event-router` is the sole service that decides exit routes. It writes `alerts` for private Telegram / Pushover delivery, writes `public_outbox` for public publishers, and records `event_route_decisions` audit rows. `alert-dispatcher` only claims pending / retry `alerts` rows and sends them; `telegram-channel-publisher` only claims public Telegram rows from `public_outbox`.
 
 Key architectural facts:
 - **Work queue, not pub/sub.** `normalizer-classifier` claims tasks from `raw_item_processing` using `SELECT ... FOR UPDATE SKIP LOCKED`, so multiple workers/concurrency are safe. Each task carries `status / attempt_count / next_retry_at / locked_by / locked_at / error_message` for crash recovery. See `services/normalizer-classifier/src/normalizer_classifier/worker.py` and `db.py`.
@@ -54,7 +61,7 @@ make dev-logs     # tail var/dev/logs/*.log   (PIDs in var/dev/pids/)
 make dev-stop     # stop app processes + dev Postgres container (volume preserved)
 make dev-db       # just start dev Postgres
 make dev-migrate  # alembic upgrade head against dev env
-make test         # run pytest for all four services
+make test         # run pytest for all Python services
 make web-build    # tsc -b && vite build
 make compose-config  # validate prod compose file
 ```

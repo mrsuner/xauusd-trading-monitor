@@ -39,6 +39,10 @@ def event_summary(event: EventContext) -> str:
     )
 
 
+def event_title(event: EventContext) -> str:
+    return event.title or event.raw_item.title or event.event_type
+
+
 def build_telegram_message(event: EventContext) -> str:
     confidence = "-" if event.confidence is None else str(event.confidence)
     impact = ", ".join(event.xauusd_impact_channel) if event.xauusd_impact_channel else "-"
@@ -76,3 +80,7 @@ def build_pushover_message(event: EventContext) -> str:
     if event.raw_item.url:
         lines.append(event.raw_item.url)
     return compact_text("\n".join(lines), limit=950, preserve_lines=True)
+
+
+def build_public_outbox_summary(event: EventContext) -> str | None:
+    return event.summary_zh or event.raw_item.summary_zh or event.summary_en or event.raw_item.summary_en
