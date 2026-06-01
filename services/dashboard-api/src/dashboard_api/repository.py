@@ -612,11 +612,33 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
           s.source_type,
           s.source_group,
           s.official_level,
-          s.priority
+          s.priority,
+          p.stage as classification_stage,
+          p.status as classification_status,
+          p.is_relevant,
+          p.relevance_score,
+          p.filter_reason,
+          p.model_provider as classification_model_provider,
+          p.model_name as classification_model_name,
+          p.updated_at as classification_updated_at,
+          e.id as event_id,
+          e.severity as event_severity,
+          e.confidence as event_confidence,
+          e.relevance_score as event_relevance_score,
+          e.title as event_title,
+          (e.id is not null) as has_event
         from raw_items r
         join sources s on s.id = r.source_id
+        left join raw_item_processing p on p.raw_item_id = r.id
+        left join events e on e.id = p.event_id
         """,
-        base_count="select count(*) as total from raw_items r join sources s on s.id = r.source_id",
+        base_count="""
+        select count(*) as total
+        from raw_items r
+        join sources s on s.id = r.source_id
+        left join raw_item_processing p on p.raw_item_id = r.id
+        left join events e on e.id = p.event_id
+        """,
         order_by="order by coalesce(r.published_at, r.ingested_at) desc",
     )
     builder.add_equal("r.source_id", "source_id", filters.get("source_id"))
@@ -624,6 +646,9 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
     builder.add_equal("s.priority", "priority", filters.get("priority"))
     builder.add_equal("r.content_category", "content_category", filters.get("content_category"))
+    builder.add_equal("p.status", "classification_status", filters.get("classification_status"))
+    builder.add_equal("p.is_relevant", "is_relevant", filters.get("is_relevant"))
+    builder.add_gte("p.relevance_score", "min_relevance_score", filters.get("min_relevance_score"))
     builder.add_gte("r.published_at", "published_from", filters.get("published_from"))
     builder.add_lte("r.published_at", "published_to", filters.get("published_to"))
     builder.add_gte("r.ingested_at", "ingested_from", filters.get("ingested_from"))
@@ -649,6 +674,10 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
     if filters.get("actor"):
         builder.where.append("r.mentioned_actors ? %(actor)s")
         builder.params["actor"] = filters["actor"]
+    if filters.get("has_event") is True:
+        builder.where.append("e.id is not null")
+    elif filters.get("has_event") is False:
+        builder.where.append("e.id is null")
     if not filters.get("include_empty_text"):
         builder.where.append(
             """

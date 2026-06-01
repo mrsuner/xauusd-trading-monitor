@@ -109,6 +109,8 @@
     "description": "來自 Telegram、RSS 與官方頁面的近期原始項目。",
     "fullTranslation": "全文翻譯",
     "originalContent": "原始內容",
+    "filterReason": "降權原因",
+    "viewEvent": "事件",
     "empty": "所選範圍內沒有原始項目。",
     "meta": {
       "official": "官方",
@@ -119,13 +121,34 @@
       "groupTip": "來源群組",
       "translation": "翻譯",
       "translationTip": "翻譯流程狀態",
+      "classification": "判斷",
+      "classificationTip": "Layer 2 分類流程狀態",
+      "relevance": "相關度",
+      "relevanceTip": "單則消息由 Layer 2 產生的內容相關度，不等同於來源優先級",
+      "event": "事件",
+      "eventTip": "這則消息已形成標準事件",
       "category": "分類",
       "categoryTip": "Layer 1 內容分類，只用於 Timeline 過濾"
+    },
+    "relevance": {
+      "hasEvent": "已成事件",
+      "filtered": "已過濾",
+      "pending": "待判斷",
+      "high": "高相關",
+      "medium": "中相關",
+      "low": "低相關"
     },
     "filter": {
       "allCategories": "全部分類",
       "allTopics": "全部主題",
-      "allActors": "全部角色"
+      "allActors": "全部角色",
+      "allRelevance": "全部相關度",
+      "relevantOnly": "只看相關",
+      "filteredOnly": "只看已過濾",
+      "hasEvent": "只看事件",
+      "pendingClassification": "待判斷",
+      "anyScore": "不限分數",
+      "minScore": "至少 {{score}}"
     }
   },
   "eventDetail": {

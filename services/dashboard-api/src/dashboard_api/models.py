@@ -124,6 +124,10 @@ class RawItemFilters(BaseModel):
     content_category: str | None = None
     topic_tag: str | None = None
     actor: str | None = None
+    classification_status: str | None = None
+    is_relevant: bool | None = None
+    min_relevance_score: int | None = Field(default=None, ge=0, le=100)
+    has_event: bool | None = None
     published_from: datetime | None = None
     published_to: datetime | None = None
     ingested_from: datetime | None = None

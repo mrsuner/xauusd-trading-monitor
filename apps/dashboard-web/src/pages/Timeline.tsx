@@ -1,11 +1,12 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { ContentCategory, RawItem, TagOption } from "../api/types";
-import { OfficialBadge, PriorityBadge } from "../components/Badges";
+import { OfficialBadge, PriorityBadge, StatusBadge } from "../components/Badges";
 import { ErrorPanel } from "../components/DataState";
-import { formatTime } from "../components/Format";
+import { formatTime, Score } from "../components/Format";
 import { PageHeader } from "../components/Layout";
 
 /** Heuristic: only offer collapse when content is long enough to be clamped. */
@@ -42,6 +43,25 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
+function relevanceTone(item: RawItem): { labelKey: string; className: string } {
+  if (item.has_event) return { labelKey: "timeline.relevance.hasEvent", className: "badge-error" };
+  if (item.is_relevant === false) return { labelKey: "timeline.relevance.filtered", className: "badge-ghost" };
+  if (item.relevance_score === undefined || item.relevance_score === null) {
+    return { labelKey: "timeline.relevance.pending", className: "badge-ghost" };
+  }
+  if (item.relevance_score >= 70) return { labelKey: "timeline.relevance.high", className: "badge-warning" };
+  if (item.relevance_score >= 30) return { labelKey: "timeline.relevance.medium", className: "badge-info" };
+  return { labelKey: "timeline.relevance.low", className: "badge-outline" };
+}
+
+function cardTone(item: RawItem): string {
+  if (item.event_severity === "S" || item.event_severity === "A") return "border-l-4 border-l-error";
+  if (item.has_event) return "border-l-4 border-l-warning";
+  if ((item.relevance_score ?? 0) >= 70) return "border-l-4 border-l-info";
+  if (item.is_relevant === false) return "opacity-75";
+  return "";
+}
+
 type RawItemCardProps = {
   item: RawItem;
   categoryByKey: Map<string, ContentCategory>;
@@ -70,9 +90,10 @@ function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClic
       ? category.label_zh
       : category.label_en
     : item.content_category;
+  const relevance = relevanceTone(item);
 
   return (
-    <article className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
+    <article className={`rounded border border-base-300 bg-base-100 p-4 shadow-sm ${cardTone(item)}`}>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-base-content/60">
         <span className="font-mono text-base-content/70">{formatTime(item.published_at || item.ingested_at)}</span>
         <span className="font-medium text-base-content">{item.source_name}</span>
@@ -88,6 +109,21 @@ function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClic
         <MetaField label={t("timeline.meta.translation")} tip={t("timeline.meta.translationTip")}>
           <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
         </MetaField>
+        <MetaField label={t("timeline.meta.classification")} tip={t("timeline.meta.classificationTip")}>
+          <StatusBadge value={item.classification_status || "pending"} />
+        </MetaField>
+        <MetaField label={t("timeline.meta.relevance")} tip={t("timeline.meta.relevanceTip")}>
+          <span className={`badge badge-sm ${relevance.className}`}>
+            {t(relevance.labelKey)} <Score value={item.relevance_score} />
+          </span>
+        </MetaField>
+        {item.has_event ? (
+          <MetaField label={t("timeline.meta.event")} tip={t("timeline.meta.eventTip")}>
+            <Link className="badge badge-sm badge-outline gap-1 hover:badge-primary" to={`/events/${item.event_id}`}>
+              {t("timeline.viewEvent")} {item.event_severity ?? "-"}
+            </Link>
+          </MetaField>
+        ) : null}
         {item.content_category ? (
           <MetaField label={t("timeline.meta.category")} tip={t("timeline.meta.categoryTip")}>
             <button
@@ -101,6 +137,12 @@ function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClic
           </MetaField>
         ) : null}
       </div>
+      {item.filter_reason ? (
+        <div className="mb-3 rounded border border-base-300 bg-base-200/40 px-3 py-2 text-xs text-base-content/65">
+          <span className="mr-2 font-medium text-base-content/75">{t("timeline.filterReason")}</span>
+          {item.filter_reason}
+        </div>
+      ) : null}
       {item.title ? <h2 className="mb-2 text-sm font-semibold text-base-content">{title}</h2> : null}
       <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-base-content/80">{summary}</p>
       {tags.length || actors.length ? (
@@ -183,6 +225,14 @@ const SOURCE_TYPES = [
 ] as const;
 
 const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
+const RELEVANCE_MODES = [
+  { labelKey: "timeline.filter.allRelevance", value: "" },
+  { labelKey: "timeline.filter.relevantOnly", value: "relevant" },
+  { labelKey: "timeline.filter.filteredOnly", value: "filtered" },
+  { labelKey: "timeline.filter.hasEvent", value: "has_event" },
+  { labelKey: "timeline.filter.pendingClassification", value: "pending" }
+] as const;
+const MIN_RELEVANCE_SCORES = ["", "30", "50", "70", "85"] as const;
 export function Timeline() {
   const { i18n, t } = useTranslation();
   const [q, setQ] = useState("");
@@ -193,6 +243,17 @@ export function Timeline() {
   const [contentCategory, setContentCategory] = useState("");
   const [topicTag, setTopicTag] = useState("");
   const [actor, setActor] = useState("");
+  const [relevanceMode, setRelevanceMode] = useState("");
+  const [minRelevanceScore, setMinRelevanceScore] = useState("");
+  const relevanceParams = useMemo(
+    () => ({
+      is_relevant: relevanceMode === "relevant" ? true : relevanceMode === "filtered" ? false : undefined,
+      has_event: relevanceMode === "has_event" ? true : undefined,
+      classification_status: relevanceMode === "pending" ? "pending" : undefined,
+      min_relevance_score: minRelevanceScore
+    }),
+    [minRelevanceScore, relevanceMode]
+  );
   const sources = useQuery({
     queryKey: ["timeline-sources", sourceType, priority],
     queryFn: () => api.sources({ page_size: 200, source_type: sourceType, priority })
@@ -213,7 +274,19 @@ export function Timeline() {
     staleTime: 300000
   });
   const query = useQuery({
-    queryKey: ["raw-items", q, sourceGroup, sourceType, sourceId, priority, contentCategory, topicTag, actor],
+    queryKey: [
+      "raw-items",
+      q,
+      sourceGroup,
+      sourceType,
+      sourceId,
+      priority,
+      contentCategory,
+      topicTag,
+      actor,
+      relevanceMode,
+      minRelevanceScore
+    ],
     queryFn: () =>
       api.rawItems({
         page_size: 75,
@@ -224,7 +297,8 @@ export function Timeline() {
         priority,
         content_category: contentCategory,
         topic_tag: topicTag,
-        actor
+        actor,
+        ...relevanceParams
       }),
     refetchInterval: 15000
   });
@@ -237,7 +311,7 @@ export function Timeline() {
   return (
     <>
       <PageHeader title={t("timeline.title")} description={t("timeline.description")} />
-      <div className="mb-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_150px_220px_110px_170px_170px_170px_180px]">
+      <div className="mb-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_150px_220px_110px_170px_170px_170px_160px_150px_180px]">
         <input className="input input-bordered input-sm" placeholder={t("common.keywordSearch")} value={q} onChange={(event) => setQ(event.target.value)} />
         <select
           className="select select-bordered select-sm"
@@ -305,6 +379,25 @@ export function Timeline() {
           {filterOptions.data?.mentioned_actors.slice(0, 200).map((actorOption) => (
             <option key={actorOption} value={actorOption}>
               {actorOption}
+            </option>
+          ))}
+        </select>
+        <select className="select select-bordered select-sm" value={relevanceMode} onChange={(event) => setRelevanceMode(event.target.value)}>
+          {RELEVANCE_MODES.map((mode) => (
+            <option key={mode.value} value={mode.value}>
+              {t(mode.labelKey)}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select select-bordered select-sm"
+          value={minRelevanceScore}
+          onChange={(event) => setMinRelevanceScore(event.target.value)}
+        >
+          <option value="">{t("timeline.filter.anyScore")}</option>
+          {MIN_RELEVANCE_SCORES.filter(Boolean).map((score) => (
+            <option key={score} value={score}>
+              {t("timeline.filter.minScore", { score })}
             </option>
           ))}
         </select>

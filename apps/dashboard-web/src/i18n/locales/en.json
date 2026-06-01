@@ -109,6 +109,8 @@
     "description": "Recent raw items from Telegram, RSS and official pages.",
     "fullTranslation": "Full translation",
     "originalContent": "Original content",
+    "filterReason": "Filter reason",
+    "viewEvent": "Event",
     "empty": "No raw items in selected range.",
     "meta": {
       "official": "Official",
@@ -119,13 +121,34 @@
       "groupTip": "Source group",
       "translation": "Translation",
       "translationTip": "Translation pipeline status",
+      "classification": "Classification",
+      "classificationTip": "Layer 2 classification status",
+      "relevance": "Relevance",
+      "relevanceTip": "Per-item content relevance from Layer 2; separate from source priority",
+      "event": "Event",
+      "eventTip": "This item has created a normalized event",
       "category": "Category",
       "categoryTip": "Layer 1 content taxonomy for Timeline filtering only"
+    },
+    "relevance": {
+      "hasEvent": "Has event",
+      "filtered": "Filtered",
+      "pending": "Pending",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
     },
     "filter": {
       "allCategories": "All categories",
       "allTopics": "All topics",
-      "allActors": "All actors"
+      "allActors": "All actors",
+      "allRelevance": "All relevance",
+      "relevantOnly": "Relevant only",
+      "filteredOnly": "Filtered only",
+      "hasEvent": "Has event",
+      "pendingClassification": "Pending classification",
+      "anyScore": "Any score",
+      "minScore": "At least {{score}}"
     }
   },
   "eventDetail": {

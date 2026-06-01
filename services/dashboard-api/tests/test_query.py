@@ -60,3 +60,35 @@ def test_raw_items_query_filters_taxonomy_fields() -> None:
     assert builder.params["content_category"] == "diplomacy"
     assert builder.params["topic_tag"] == "iran"
     assert builder.params["actor"] == "Trump"
+
+
+def test_raw_items_query_includes_relevance_and_event_fields() -> None:
+    builder = build_raw_items_query({})
+
+    sql = builder.list_sql()
+
+    assert "left join raw_item_processing p on p.raw_item_id = r.id" in sql
+    assert "left join events e on e.id = p.event_id" in sql
+    assert "p.relevance_score" in sql
+    assert "(e.id is not null) as has_event" in sql
+
+
+def test_raw_items_query_filters_relevance_and_event_fields() -> None:
+    builder = build_raw_items_query(
+        {
+            "classification_status": "completed",
+            "is_relevant": True,
+            "min_relevance_score": 70,
+            "has_event": True,
+        }
+    )
+
+    sql = builder.list_sql()
+
+    assert "p.status = %(classification_status)s" in sql
+    assert "p.is_relevant = %(is_relevant)s" in sql
+    assert "p.relevance_score >= %(min_relevance_score)s" in sql
+    assert "e.id is not null" in sql
+    assert builder.params["classification_status"] == "completed"
+    assert builder.params["is_relevant"] is True
+    assert builder.params["min_relevance_score"] == 70
