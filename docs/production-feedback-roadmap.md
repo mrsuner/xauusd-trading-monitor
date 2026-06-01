@@ -916,7 +916,7 @@ event_id / has_event
 
 ### Phase 8: Public publishing plane
 
-實作狀態：規劃中。此階段目標是把系統從個人工作台延伸成公共資訊平台，但不走 SaaS 多租戶路線。
+實作狀態：規劃中。此階段目標是把系統從個人工作台延伸成公共資訊平台，但不走 SaaS 多租戶路線。整體架構已整理至 [Public Website 架構規劃](./public-website-architecture.md)，並已建立 `public-syncer`、`public-api`、`public-web` 功能需求文檔。
 
 部署邊界：
 
@@ -929,14 +929,14 @@ HomeLab 新增元件：
 
 - `event-router`：集中根據 `events`、source metadata 與 route policy 建立 `alerts`、`public_outbox` 與 route audit。
 - `public_outbox`：保存已去敏、可公開、可重試的事件草稿。`0010_public_outbox` 已完成第一版 schema。
-- `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。
+- `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。功能需求文檔已建立。
 - `telegram-channel-publisher`：把 public-safe event 發布到公共 Telegram Channel。runtime skeleton 已完成，預設 dry-run 且需透過 `public-publishing` profile 啟動。
 - `x-publisher`：把 public-safe event 發布到 X。runtime skeleton 已完成，預設 disabled / dry-run，待真實 X API 權限驗證。
 
 VPS 新增元件：
 
-- `public-api`：提供 ingest endpoint 與 public read API。
-- `public-web`：公共網站，只讀取 public database。
+- `public-api`：提供 ingest endpoint 與 public read API。功能需求文檔已建立。
+- `public-web`：公共網站，只讀取 public database。功能需求文檔已建立。
 - `public-postgres`：只保存 public-safe event，不保存 raw item、prompt、私人通知設定或 Telegram session。
 
 安全與資料邊界：
@@ -950,9 +950,9 @@ VPS 新增元件：
 
 1. 定義 public payload schema 與 `public_outbox` migration。已完成第一版。
 2. 實作 `event-router`，從 `events` 生成 private alert decisions 與 public-safe content。已完成第一版。
-3. 實作 VPS `public-api` ingest，先不做 public website UI。
-4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。
-5. 實作 `public-web` 第一版列表與事件詳情。
+3. 實作 VPS `public-api` ingest，先不做 public website UI。文檔已完成。
+4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。文檔已完成。
+5. 實作 `public-web` 第一版列表與事件詳情。文檔已完成。
 6. 實作 Telegram Channel publisher。已完成第一版 runtime skeleton，尚未做真實 Channel 發布驗證。
 7. 實作 X publisher。
 

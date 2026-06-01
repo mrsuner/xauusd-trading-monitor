@@ -59,6 +59,14 @@ services/
     src/x_publisher/
     tests/
 
+  public-syncer/
+    src/public_syncer/
+    tests/
+
+  public-api/
+    src/public_api/
+    tests/
+
   dashboard-api/
     src/dashboard_api/
     tests/
@@ -94,15 +102,27 @@ services/
 
 公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到 X。
 
-### 3.8 dashboard-api
+### 3.8 public-syncer
+
+HomeLab 公共網站同步服務，負責讀取 `public_outbox` 並透過 outbound HTTPS 把 public-safe payload 推送到 VPS `public-api`。
+
+### 3.9 public-api
+
+VPS 公共 API，負責接收 `public-syncer` ingest、寫入 public database，並提供 public website read API。
+
+### 3.10 dashboard-api
 
 V1 可選的 read-only debug API，供後續 Dashboard Web 與人工排障使用。
 
-### 3.9 dashboard-web
+### 3.11 dashboard-web
 
 V1 可選的前端操作台，供人工查看 timeline、events、sources、processing 與 alerts。
 
-### 3.10 db-migrate
+### 3.12 public-web
+
+VPS 公共網站前端，負責展示 public-safe event stream，不包含內部 debug 與管理功能。
+
+### 3.13 db-migrate
 
 負責打包 Alembic migration，Docker Compose boot 時執行：
 
@@ -155,9 +175,12 @@ Database 設計詳見：
 ```text
 apps/
   dashboard-web/
+  public-web/
 ```
 
-`dashboard-web` 是前端操作台應用位置。V1 可先做極簡 read-only UI，用於查看 timeline、events、sources、processing 與 alerts。
+`dashboard-web` 是 HomeLab 私人前端操作台應用位置，用於查看 timeline、events、sources、processing 與 alerts。
+
+`public-web` 是 VPS 公共網站前端應用位置，只展示 public-safe event stream。
 
 前端技術棧固定為：
 
@@ -199,8 +222,11 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `alert-dispatcher` | `ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>` |
 | `telegram-channel-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>` |
 | `x-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:<tag>` |
+| `public-syncer` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:<tag>` |
+| `public-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-api:<tag>` |
 | `dashboard-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>` |
 | `dashboard-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>` |
+| `public-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-web:<tag>` |
 
 ## 9. 暫不建立的內容
 

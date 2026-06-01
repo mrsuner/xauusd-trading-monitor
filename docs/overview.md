@@ -14,7 +14,7 @@ XAUUSD Event Radar MVP 是一個面向黃金交易情境的事件雷達系統。
 
 V1 應聚焦於「消息採集、來源分層、預處理、相關度判斷與通知」，而不是擴張成全球新聞終端。行情反查屬於後續版本。
 
-目前系統首先服務個人工作台與個人通知。後續公共出口的方向不是 SaaS 多租戶化，而是把已處理、已去敏、可公開的高價值事件同步到 VPS 承載的公共網站，並由 HomeLab 端的 publisher 發布到 Telegram Channel 與 X。詳細部署邊界請見 [部署與使用方式](./deployment.md) 的「公共出口部署方向」。
+目前系統首先服務個人工作台與個人通知。後續公共出口的方向不是 SaaS 多租戶化，而是把已處理、已去敏、可公開的高價值事件同步到 VPS 承載的公共網站，並由 HomeLab 端的 publisher 發布到 Telegram Channel 與 X。詳細部署邊界請見 [Public Website 架構規劃](./public-website-architecture.md) 與 [部署與使用方式](./deployment.md) 的「公共出口部署方向」。
 
 ## 2. 核心價值
 
