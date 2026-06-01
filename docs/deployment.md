@@ -70,6 +70,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>
+ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>
 ```
@@ -105,6 +106,7 @@ telegram-collector
 rss-collector
 normalizer-classifier
 alert-dispatcher
+telegram-channel-publisher
 dashboard-api
 dashboard-web
 ```
@@ -304,6 +306,7 @@ NORMALIZER_STALE_TASK_TIMEOUT_SECONDS=900
 - `telegram-collector`：Telethon user session 必須單實例。
 - `rss-collector`：V1 暫時單實例，避免重複 polling。
 - `alert-dispatcher`：V1 暫時單實例，避免重複通知。
+- `telegram-channel-publisher`：V1+ 暫時單實例，避免公共 Channel 重複發布。
 
 ### 9.1 Local LLM
 

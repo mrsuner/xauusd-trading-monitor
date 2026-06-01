@@ -6,6 +6,8 @@ V1 部署目標是 HomeLab Docker Compose。所有服務 image 由開發機或 C
 
 Compose 啟動時會先等待 PostgreSQL healthy，再執行 `db-migrate` one-shot migration job。migration 成功後，其他 application services 才會啟動。
 
+公共發布服務預設不隨主 stack 啟動。`telegram-channel-publisher` 使用 Compose profile `public-publishing`，且 env 預設 `TELEGRAM_CHANNEL_PUBLISHER_ENABLED=false`、`TELEGRAM_CHANNEL_DRY_RUN=true`，避免未確認設定時直接向公共 Channel 發文。
+
 ## 文件
 
 | File | 用途 |
@@ -42,6 +44,12 @@ HomeLab server 拉取並啟動：
 ```bash
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml pull
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d
+```
+
+若要啟動公共 Telegram Channel publisher：
+
+```bash
+docker compose --profile public-publishing --env-file infra/.env -f infra/docker-compose.prod.yml up -d telegram-channel-publisher
 ```
 
 Dashboard UI 預設位於：

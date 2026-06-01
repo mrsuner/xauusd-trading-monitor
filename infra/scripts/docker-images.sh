@@ -14,6 +14,7 @@ SERVICES=(
   "rss-collector:services/rss-collector/Dockerfile"
   "normalizer-classifier:services/normalizer-classifier/Dockerfile"
   "alert-dispatcher:services/alert-dispatcher/Dockerfile"
+  "telegram-channel-publisher:services/telegram-channel-publisher/Dockerfile"
   "dashboard-api:services/dashboard-api/Dockerfile"
   "dashboard-web:apps/dashboard-web/Dockerfile"
 )

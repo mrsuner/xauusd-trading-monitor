@@ -38,6 +38,25 @@ Telegram Channel
 - 記錄 Telegram provider response、message id、sent time、status 與 error。
 - 與 `alert-dispatcher` 的私人通知策略完全分離。
 
+## 2.1 實作狀態
+
+目前已完成第一版 runtime skeleton：
+
+- `0010_public_outbox` 增量 migration。
+- `services/telegram-channel-publisher` Python service。
+- Telegram Bot API `sendMessage` provider。
+- HTML message formatter 與 plain text fallback。
+- `public_outbox` claim / sent / skipped / retry / failed 狀態更新。
+- `TELEGRAM_CHANNEL_DRY_RUN` 安全模式。
+- Dockerfile、GHCR image build mapping、production Compose `public-publishing` profile。
+- 單元測試。
+
+尚未完成：
+
+- public draft generator，尚未自動從 `events` 建立 `public_outbox`。
+- Dashboard public outbox review / approve UI。
+- 真實 Telegram Channel production 發布驗證。
+
 ## 3. 非目標
 
 V1 不包含：

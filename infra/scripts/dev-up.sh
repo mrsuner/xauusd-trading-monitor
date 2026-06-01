@@ -109,6 +109,9 @@ start_service "telegram-collector" "services/telegram-collector" telegram-collec
 start_service "rss-collector" "services/rss-collector" rss-collector run
 start_service "normalizer-classifier" "services/normalizer-classifier" normalizer-classifier run
 start_service "alert-dispatcher" "services/alert-dispatcher" alert-dispatcher run
+if grep -Eq '^TELEGRAM_CHANNEL_PUBLISHER_ENABLED=true$' "$ENV_PATH"; then
+  start_service "telegram-channel-publisher" "services/telegram-channel-publisher" telegram-channel-publisher run
+fi
 start_service "dashboard-api" "services/dashboard-api" dashboard-api run
 
 start_web() {

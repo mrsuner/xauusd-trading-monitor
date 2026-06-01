@@ -875,6 +875,81 @@ create index alerts_channel_created_idx
   on alerts (channel, created_at desc);
 ```
 
+## 11.1 public_outbox，V1+
+
+### 11.1.1 用途
+
+`public_outbox` 保存已去敏、可公開、可重試的公共發布草稿。公共網站 sync、Telegram Channel publisher 與 X publisher 都應讀取這張表，而不是各自直接從 `events` 臨時組文案。
+
+### 11.1.2 欄位
+
+```sql
+create table public_outbox (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references events(id) on delete cascade,
+  public_title_zh text,
+  public_summary_zh text,
+  public_title_en text,
+  public_summary_en text,
+  public_source_links jsonb not null default '[]'::jsonb,
+  severity text not null default 'B',
+  relevance_score smallint,
+  confirmation_state text,
+  topic_tags text[] not null default '{}'::text[],
+  approved_for_public boolean not null default false,
+  publish_status_web text not null default 'pending',
+  publish_status_telegram text not null default 'pending',
+  publish_status_x text not null default 'pending',
+  retry_count_web integer not null default 0,
+  retry_count_telegram integer not null default 0,
+  retry_count_x integer not null default 0,
+  last_error_web text,
+  last_error_telegram text,
+  last_error_x text,
+  provider_response_telegram jsonb,
+  provider_response_x jsonb,
+  provider_response_web jsonb,
+  external_telegram_message_id text,
+  external_x_post_id text,
+  external_web_id text,
+  next_retry_telegram_at timestamptz,
+  next_retry_x_at timestamptz,
+  next_retry_web_at timestamptz,
+  locked_by_telegram text,
+  locked_at_telegram timestamptz,
+  locked_by_x text,
+  locked_at_x timestamptz,
+  locked_by_web text,
+  locked_at_web timestamptz,
+  generated_at timestamptz not null default now(),
+  published_web_at timestamptz,
+  published_telegram_at timestamptz,
+  published_x_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+### 11.1.3 Indexes
+
+```sql
+create unique index public_outbox_event_uidx
+  on public_outbox (event_id);
+
+create index public_outbox_telegram_claim_idx
+  on public_outbox (publish_status_telegram, next_retry_telegram_at, generated_at)
+  where approved_for_public = true;
+
+create index public_outbox_generated_idx
+  on public_outbox (generated_at desc);
+```
+
+### 11.1.4 發布邊界
+
+- `public_outbox` 只保存 public-safe payload，不保存完整 `text_raw`。
+- `approved_for_public = true` 是所有公共出口的必要條件。
+- 不同平台各自使用獨立 status、retry count、error 與 provider response，避免 Telegram Channel、X 與 public web sync 互相影響。
+
 ## 12. ai_model_calls
 
 ### 12.1 用途
