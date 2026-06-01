@@ -219,7 +219,8 @@ docker login ghcr.io
 
 ```bash
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml pull
-docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d
+docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d \
+  --scale normalizer-classifier=${NORMALIZER_REPLICAS:-2}
 ```
 
 Dashboard 預設暴露在 HomeLab server：
@@ -238,7 +239,15 @@ http://<homelab-host>:8080
 
 ```bash
 docker compose --env-file infra/.env -f infra/docker-compose.prod.yml pull
-docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d
+docker compose --env-file infra/.env -f infra/docker-compose.prod.yml up -d \
+  --remove-orphans \
+  --scale normalizer-classifier=${NORMALIZER_REPLICAS:-2}
+```
+
+也可以使用專案提供的 wrapper：
+
+```bash
+infra/scripts/prod-up.sh infra/.env infra/docker-compose.prod.yml
 ```
 
 ### 8.3 查看狀態
@@ -268,6 +277,31 @@ MODEL_ROUTE=cloud_small
 MODEL_ROUTE=claude_code_agent
 TRANSLATION_MODEL_ENABLED=true
 ```
+
+### 9.0 Worker Scale
+
+V1 生產環境先使用 PostgreSQL `raw_item_processing` 作為 reliable queue，`normalizer-classifier` 可以水平擴展多個 container instance。任務 claim 使用 `FOR UPDATE SKIP LOCKED`，避免不同 worker 重複處理同一筆 task。
+
+預設設定：
+
+```text
+NORMALIZER_REPLICAS=2
+NORMALIZER_WORKER_CONCURRENCY=2
+NORMALIZER_STALE_TASK_TIMEOUT_SECONDS=900
+```
+
+含義：
+
+- 啟動 2 個 `normalizer-classifier` container。
+- 每個 container 內部啟動 2 條 worker loop。
+- 總併發約為 4，避免 paid model call 從單實例直接放大到不可控。
+- running task 若 `locked_at` 超過 900 秒，下一次 claim 時會恢復為 `retry`，避免 worker crash 後永遠卡住。
+
+不建議 scale：
+
+- `telegram-collector`：Telethon user session 必須單實例。
+- `rss-collector`：V1 暫時單實例，避免重複 polling。
+- `alert-dispatcher`：V1 暫時單實例，避免重複通知。
 
 ### 9.1 Local LLM
 

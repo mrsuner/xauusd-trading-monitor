@@ -25,7 +25,7 @@
 | --- | --- | --- | --- |
 | 通知降噪與 source-aware alert policy | P0 | 已完成第一版 | 直接影響使用體驗，避免 Telegram / Pushover 被噪音淹沒 |
 | AI token / model usage 統計 | P0 | 已完成第一版 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
-| Normalizer 多 worker queue | P0 | 待實作 | 消息源增加後，單一 normalizer instance 可能跟不上 raw item backlog |
+| Normalizer 多 worker queue | P0 | 部分完成 | 已支援 production compose scale 2 個 normalizer instance、PostgreSQL `FOR UPDATE SKIP LOCKED` claim、stale running task recovery；backlog 指標與跨 worker budget guard 待補 |
 | Timeline taxonomy filters | P0 | 已完成第一版 | Layer 1 已回寫 category/tags/actors，Timeline 可按分類、主題與角色檢索 |
 | Per-item value scoring / Timeline relevance UI | P0 | 待實作 | 後續再融合 AI relevance、source metadata 與事件狀態 |
 | Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
@@ -391,8 +391,8 @@ running / completed / skipped / retry / failed
 
 短期：
 
-- production compose 支援 `normalizer-classifier` 多 replicas 或多 service instance。
-- 加入 stale running task recovery：
+- production compose 支援 `normalizer-classifier` 多 replicas 或多 service instance。已完成第一版，使用 `NORMALIZER_REPLICAS=2` 與 `infra/scripts/prod-up.sh`。
+- 加入 stale running task recovery。已完成第一版：
   - `locked_at < now() - interval 'N minutes'`
   - 將任務恢復為 `retry`
 - Dashboard Processing 增加 queue backlog 指標：

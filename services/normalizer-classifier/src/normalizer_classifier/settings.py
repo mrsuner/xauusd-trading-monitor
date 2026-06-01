@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
     worker_concurrency: int = Field(default=4, alias="WORKER_CONCURRENCY")
     poll_interval_seconds: float = Field(default=2.0, alias="POLL_INTERVAL_SECONDS")
+    stale_task_timeout_seconds: int = Field(default=900, alias="STALE_TASK_TIMEOUT_SECONDS")
     model_route: str = Field(default="cloud_small", alias="MODEL_ROUTE")
 
     local_model_base_url: str | None = Field(default=None, alias="LOCAL_MODEL_BASE_URL")
@@ -73,6 +74,13 @@ class Settings(BaseSettings):
     def validate_worker_concurrency(cls, value: int) -> int:
         if value < 1:
             raise ValueError("WORKER_CONCURRENCY must be >= 1")
+        return value
+
+    @field_validator("stale_task_timeout_seconds")
+    @classmethod
+    def validate_stale_task_timeout_seconds(cls, value: int) -> int:
+        if value < 60:
+            raise ValueError("STALE_TASK_TIMEOUT_SECONDS must be >= 60")
         return value
 
     @field_validator("max_model_calls_per_run")

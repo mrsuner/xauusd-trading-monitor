@@ -40,8 +40,23 @@ class Database:
             raise RuntimeError("database is not connected")
         return self._conn
 
-    async def claim_next_task(self, *, worker_id: str) -> ProcessingTask | None:
+    async def claim_next_task(self, *, worker_id: str, stale_task_timeout_seconds: int) -> ProcessingTask | None:
         async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                update raw_item_processing
+                set status = 'retry',
+                    next_retry_at = now(),
+                    locked_by = null,
+                    locked_at = null,
+                    error_message = coalesce(error_message, 'stale_running_task_recovered'),
+                    updated_at = now()
+                where status = 'running'
+                  and locked_at is not null
+                  and locked_at < now() - (%(stale_task_timeout_seconds)s * interval '1 second')
+                """,
+                {"stale_task_timeout_seconds": stale_task_timeout_seconds},
+            )
             await cur.execute(
                 """
                 with claimed as (

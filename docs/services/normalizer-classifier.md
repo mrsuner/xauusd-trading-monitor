@@ -422,6 +422,7 @@ SERVICE_NAME=normalizer-classifier
 DATABASE_URL=postgresql://...
 WORKER_CONCURRENCY=4
 POLL_INTERVAL_SECONDS=2
+STALE_TASK_TIMEOUT_SECONDS=900
 MODEL_ROUTE=cloud_small
 LOCAL_MODEL_BASE_URL=http://localhost:11434/v1
 LOCAL_MODEL_API_KEY=
@@ -481,6 +482,10 @@ LOG_LEVEL=INFO
 `*_MODEL_REASONING_EFFORT` 可留空；若本地 OpenAI-compatible server 支援，可設為 `none`。目前 Ollama + Qwen thinking model 在 `reasoning_effort=none` 下可避免大量 reasoning token，延遲明顯下降。
 
 `MAX_MODEL_CALLS_PER_RUN` 是開發環境成本保護閥。`0` 表示不限制；設定為 `20` 這類小數字時，worker 本次啟動最多只會對模型發出 20 次分類請求。達到上限後不再 claim 新任務，已進入處理中的任務若遇到上限會回到 `retry` 並延後一小時。這適合 DB reset 後 collector 自動 backfill 大量消息但仍想避免 paid cloud model 無限制消耗。
+
+生產環境可用 Docker Compose `--scale normalizer-classifier=N` 啟動多個 instance。V1 預設 `NORMALIZER_REPLICAS=2`、`WORKER_CONCURRENCY=2`，總併發約 4。`claim_next_task` 使用 `FOR UPDATE SKIP LOCKED`，同一筆 `raw_item_processing` task 不會被多個 worker 同時 claim。
+
+`STALE_TASK_TIMEOUT_SECONDS` 用於 worker crash recovery。若 task 長時間停在 `running` 且 `locked_at` 超過門檻，下一次 claim 前會恢復為 `retry`，避免 backlog 永久卡住。
 
 ## 18. 測試需求
 

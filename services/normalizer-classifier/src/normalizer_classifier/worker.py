@@ -50,7 +50,10 @@ class NormalizerClassifierWorker:
                 await asyncio.sleep(self.settings.poll_interval_seconds)
                 continue
 
-            task = await self.db.claim_next_task(worker_id=f"{self.worker_id}-{worker_index}")
+            task = await self.db.claim_next_task(
+                worker_id=f"{self.worker_id}-{worker_index}",
+                stale_task_timeout_seconds=self.settings.stale_task_timeout_seconds,
+            )
             if not task:
                 await asyncio.sleep(self.settings.poll_interval_seconds)
                 continue

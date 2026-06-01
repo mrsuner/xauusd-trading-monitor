@@ -53,3 +53,22 @@ def test_settings_accepts_translation_model_defaults() -> None:
     assert settings.translation_fallback_model_name == "openai/gpt-oss-20b"
     assert settings.translation_paid_fallback_enabled is True
     assert settings.translation_high_priority_max_chars == 100000
+
+
+def test_settings_accepts_stale_task_timeout() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://user:pass@localhost/db",
+        CLOUD_MODEL_API_KEY="test-key",
+        STALE_TASK_TIMEOUT_SECONDS="1200",
+    )
+
+    assert settings.stale_task_timeout_seconds == 1200
+
+
+def test_settings_rejects_short_stale_task_timeout() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            DATABASE_URL="postgresql://user:pass@localhost/db",
+            CLOUD_MODEL_API_KEY="test-key",
+            STALE_TASK_TIMEOUT_SECONDS="30",
+        )
