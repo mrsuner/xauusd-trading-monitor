@@ -235,6 +235,18 @@ V1 若要降低實作成本，可以先支援單一 `PUBLIC_INGEST_API_KEY`，�
 
 Public Website 的第一版應是資訊流，而不是 dashboard。
 
+Public Website 將部署於：
+
+```text
+news.thetickbase.com
+```
+
+它需要與 TheTickBase 主站保持一致的品牌語言。主站參考程式碼：
+
+```text
+/Users/lukesun/Projects/ongoing/tickbase/apps/website
+```
+
 建議頁面：
 
 - `/`：最新公共事件流。
@@ -251,6 +263,20 @@ Public Website 的第一版應是資訊流，而不是 dashboard。
 - compact source links。
 - tags filter。
 - 不顯示內部 scores 過多細節，但可顯示 relevance band。
+
+品牌對齊重點：
+
+- 沿用 TickBase 的 near-black + gold visual language。
+- 使用 DaisyUI custom themes `tickbase-dark` / `tickbase-light`。
+- 預設 dark theme。
+- 使用 `Inter` 作為 sans font、`JetBrains Mono` 作為 numeric / tag / source metadata font。
+- navbar 採用 sticky + translucent background + backdrop blur。
+- cards 使用 `rounded-box border border-base-300 bg-base-200/40` 的克制資訊平台樣式。
+- 可使用 subtle `bg-grid` 作為 header / filter band 背景。
+- 不使用主站 marketing homepage 的 large hero / pricing CTA；新聞站首屏直接展示事件流。
+- footer 可沿用 TickBase 主站的 column layout，但文案改為 news / event radar / disclaimer。
+
+Public Website 設計細節詳見 [public-web 功能需求](./services/public-web.md)。
 
 ## 9. 實作順序
 
