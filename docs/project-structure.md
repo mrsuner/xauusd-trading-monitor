@@ -27,7 +27,7 @@ xauusd-trading-monitor/
 - `src/<package_name>/`
 - `tests/`
 
-目前 V1 services：
+目前與後續已規劃 services：
 
 ```text
 services/
@@ -45,6 +45,14 @@ services/
 
   alert-dispatcher/
     src/alert_dispatcher/
+    tests/
+
+  telegram-channel-publisher/
+    src/telegram_channel_publisher/
+    tests/
+
+  x-publisher/
+    src/x_publisher/
     tests/
 
   dashboard-api/
@@ -70,15 +78,23 @@ services/
 
 負責 Telegram Bot / Pushover 通知發送與 `alerts` delivery tracking。
 
-### 3.5 dashboard-api
+### 3.5 telegram-channel-publisher
+
+後續公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到公共 Telegram Channel。
+
+### 3.6 x-publisher
+
+後續公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到 X。
+
+### 3.7 dashboard-api
 
 V1 可選的 read-only debug API，供後續 Dashboard Web 與人工排障使用。
 
-### 3.6 dashboard-web
+### 3.8 dashboard-web
 
 V1 可選的前端操作台，供人工查看 timeline、events、sources、processing 與 alerts。
 
-### 3.7 db-migrate
+### 3.9 db-migrate
 
 負責打包 Alembic migration，Docker Compose boot 時執行：
 
@@ -172,6 +188,8 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `rss-collector` | `ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:<tag>` |
 | `normalizer-classifier` | `ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>` |
 | `alert-dispatcher` | `ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>` |
+| `telegram-channel-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>` |
+| `x-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:<tag>` |
 | `dashboard-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>` |
 | `dashboard-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>` |
 

@@ -14,6 +14,8 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `rss-collector` | [rss-collector.md](./rss-collector.md) | 已建立 |
 | `normalizer-classifier` | [normalizer-classifier.md](./normalizer-classifier.md) | 已建立 |
 | `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作 |
+| `telegram-channel-publisher` | [telegram-channel-publisher.md](./telegram-channel-publisher.md) | 後續公共出口 / 已建立 |
+| `x-publisher` | [x-publisher.md](./x-publisher.md) | 後續公共出口 / 已建立 |
 | `dashboard-api` | [dashboard-api.md](./dashboard-api.md) | V1 可選 / 已建立 |
 | `dashboard-web` | [dashboard-web.md](./dashboard-web.md) | V1 可選 / 已建立 |
 | `mt5-collector` | `mt5-collector.md` | V1 暫緩 |

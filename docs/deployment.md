@@ -536,6 +536,8 @@ HomeLab sync 失敗時只更新 `public_outbox.publish_status_web` 與 `last_err
 
 `alert-dispatcher` 的目標是通知個人使用者；public publisher 的目標是向公開訂閱者發布經過去敏與格式化的事件摘要。兩者不應共用 delivery 狀態，也不應共用通知策略。
 
+Publisher 功能需求詳見 [telegram-channel-publisher](./services/telegram-channel-publisher.md) 與 [x-publisher](./services/x-publisher.md)。
+
 ### 10.6 公共內容邊界
 
 Public Website 與公共社交平台只應發布 public-safe payload：
