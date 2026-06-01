@@ -10,6 +10,7 @@
 - Telegram channel 可能出現一組圖片加一則文字，V1 Timeline 需要避免顯示多則空白圖片消息。
 - `sources.priority`、`reliability_score`、`latency_score` 只能描述來源本身，不等於單條消息一定有交易價值；P0 source 也會發布日常新聞。
 - 消息源需要在 Dashboard 中新增、archive、停用與測試。
+- 系統後續需要從個人通知工作台擴展出 public publishing plane，讓去敏後的重要事件可由公共網站、Telegram Channel 與 X 提供給更多訂閱者。
 
 本文不替代既有服務文檔，而是補充 V1+ 的產品與工程規劃。實作時仍應分別更新：
 
@@ -27,9 +28,10 @@
 | AI token / model usage 統計 | P0 | 已完成第一版 | 已使用 paid cloud model，需要盡快建立成本可觀測性 |
 | Normalizer 多 worker queue | P0 | 部分完成 | 已支援 production compose scale 2 個 normalizer instance、PostgreSQL `FOR UPDATE SKIP LOCKED` claim、stale running task recovery；backlog 指標與跨 worker budget guard 待補 |
 | Timeline taxonomy filters | P0 | 已完成第一版 | Layer 1 已回寫 category/tags/actors，Timeline 可按分類、主題與角色檢索 |
-| Per-item value scoring / Timeline relevance UI | P0 | 待實作 | 後續再融合 AI relevance、source metadata 與事件狀態 |
+| Per-item value scoring / Timeline relevance UI | P0 | 部分完成 | Timeline 已顯示 Layer 2 relevance / event state；後續再補 `item_value_score` 與 source metadata 融合 |
 | Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
+| Public publishing plane | P2 | 規劃中 | HomeLab 控制公共發布，VPS 只承擔 public API / public website / public DB |
 
 ### 2.1 Current Todo List
 
@@ -37,7 +39,6 @@
 
 P0：
 
-- Timeline relevance UI：`/raw-items` 需要 join 最新 `raw_item_processing` 結果，回傳 `is_relevant`、`relevance_score`、`filter_reason`、`classification_status` 與 `has_event`；Timeline 增加 `min_relevance_score`、`is_relevant`、`has_event` filters，並在 card 顯示 item-level relevance。
 - Per-item value scoring：在現有 Layer 2 relevance 基礎上，後續加入可解釋的 `item_value_score` / routing decision，融合 AI relevance、event type、actor、keyword、source priority / reliability、routine / commentary / duplicate penalty。
 - Normalizer 多 worker queue：支援多個 `normalizer-classifier` instance 並行、stale lock recovery、production compose replicas、backlog / oldest pending age / throughput 指標，以及跨 worker AI budget guard。
 
@@ -61,11 +62,12 @@ P2 / 技術債：
 
 - V2 Claim Conflict Engine：完整 claim group、跨來源口徑衝突偵測。
 - V3 Market Context Layer：`mt5-collector`、`market_snapshots`、XAUUSD 異動偵測、行情先動反查消息、market move explainer。
+- Public Publishing Plane：公共網站、public ingest API、`public_outbox`、`public-syncer`、Telegram Channel publisher 與 X publisher。
 - Dashboard review system：Claim Groups 專頁、Market Move Review、行情 overlay、WebSocket / SSE、Replay mode、User preferences、Alert rule editor。
 
 ### 2.2 Timeline Relevance UI Plan
 
-此項是下一個建議優先處理的 P0 工作，原因是它直接改善多消息源上線後的閱讀效率，而且可以先使用既有 `raw_item_processing.relevance_score`，不需要立即新增模型或大幅修改 queue。
+實作狀態：已完成第一版。此項改善多消息源上線後的閱讀效率，並優先使用既有 `raw_item_processing.relevance_score`，沒有新增模型或大幅修改 queue。
 
 第一階段先不新增 DB 欄位：
 
@@ -74,7 +76,7 @@ P2 / 技術債：
 - `raw_item_processing.filter_reason` 作為卡片上的 classification reason。
 - `events.raw_item_ids` 或 event lookup 作為 `has_event` 判斷。
 
-Dashboard API 調整：
+Dashboard API 已完成：
 
 - `/raw-items` join 最新 `raw_item_processing` row。
 - 回傳：
@@ -92,7 +94,7 @@ Dashboard API 調整：
   - `classification_status`
 - 保留 `include_empty_text` debug 參數，不影響 Processing 頁排障。
 
-Dashboard Web 調整：
+Dashboard Web 已完成：
 
 - Timeline filter bar 加入：
   - `min_relevance_score`
@@ -825,9 +827,9 @@ event_id / has_event
 
 ### Phase 3: Normalizer 多 worker queue
 
-- 確認 `raw_item_processing` claim query 支援多 instance 競爭。
-- 加入 stale lock recovery。
-- production compose 支援擴展 `normalizer-classifier` replicas。
+- [x] 確認 `raw_item_processing` claim query 支援多 instance 競爭。
+- [x] 加入 stale lock recovery。
+- [x] production compose 支援擴展 `normalizer-classifier` replicas。
 - 增加 queue backlog / oldest pending age / throughput 統計。
 - 重新檢查 AI budget guard 是否能跨 worker 控制成本。
 
@@ -849,10 +851,10 @@ event_id / has_event
 
 後續獨立處理：
 
-- Timeline / raw items endpoint join 最新 `raw_item_processing` 結果。
-- 回傳 `is_relevant`、`relevance_score`、`filter_reason` 與 `has_event`。
-- Timeline 新增 `min_relevance_score`、`is_relevant`、`has_event` filters。
-- 低 relevance 消息預設淡化或只在 Debug / All 模式顯示。
+- [x] Timeline / raw items endpoint join 最新 `raw_item_processing` 結果。
+- [x] 回傳 `is_relevant`、`relevance_score`、`filter_reason` 與 `has_event`。
+- [x] Timeline 新增 `min_relevance_score`、`is_relevant`、`has_event` filters。
+- [x] 低 relevance 消息預設淡化或只在 Debug / All 模式顯示。
 - 調整 `alert-dispatcher` 權重，避免 source P0 放大低相關消息。
 
 驗收：
@@ -909,6 +911,54 @@ event_id / has_event
 - [x] Dashboard 可完成日常 source registry 維護。
 - [x] 修改 source policy 後 dispatcher 可在下一輪查詢中使用新 policy。
 - [ ] 修改 collector source registry 後可在短時間內自動生效。
+
+### Phase 8: Public publishing plane
+
+實作狀態：規劃中。此階段目標是把系統從個人工作台延伸成公共資訊平台，但不走 SaaS 多租戶路線。
+
+部署邊界：
+
+- HomeLab 保留核心資料採集、AI 處理、事件判斷、私人通知與公共發布控制。
+- VPS 只部署 `public-api`、`public-web` 與 public database。
+- Cloudflare Tunnel 只部署在 VPS 側，用於保護 public website / API，不作為 HomeLab 與 VPS 的內網通道。
+- HomeLab 與 VPS 不建立內部網路；HomeLab 只透過 outbound HTTPS push public-safe payload。
+
+HomeLab 新增元件：
+
+- `public_outbox`：保存已去敏、可公開、可重試的事件草稿。
+- `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。
+- `telegram-channel-publisher`：把 public-safe event 發布到公共 Telegram Channel。
+- `x-publisher`：把 public-safe event 發布到 X。
+
+VPS 新增元件：
+
+- `public-api`：提供 ingest endpoint 與 public read API。
+- `public-web`：公共網站，只讀取 public database。
+- `public-postgres`：只保存 public-safe event，不保存 raw item、prompt、私人通知設定或 Telegram session。
+
+安全與資料邊界：
+
+- public payload 必須是摘要與來源連結，不發布完整 `text_raw` 或大段原文。
+- public ingest API 需要 HMAC / API key、timestamp / nonce、`idempotency_key`、`schema_version`、rate limit 與 audit log。
+- public publisher 與 `alert-dispatcher` 不共用策略與 delivery 狀態；前者面向公開訂閱者，後者面向個人通知。
+- aggregator / OSINT 單源消息需要標記未確認，或預設不進入公共發布。
+
+建議實作順序：
+
+1. 定義 public payload schema 與 `public_outbox` migration。
+2. 實作 public draft generator，從 `events` 生成 public-safe content。
+3. 實作 VPS `public-api` ingest，先不做 public website UI。
+4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。
+5. 實作 `public-web` 第一版列表與事件詳情。
+6. 實作 Telegram Channel publisher。
+7. 實作 X publisher。
+
+驗收：
+
+- HomeLab 不開放 inbound port 也能同步公共事件到 VPS。
+- VPS public website 只展示去敏後資料。
+- 公共網站、Telegram Channel 與 X 可基於同一份 `public_outbox` 內容發布，避免三個出口文案不一致。
+- public 發布失敗不影響核心採集、AI 處理與私人通知。
 
 ## 10. 開放問題
 

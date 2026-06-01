@@ -31,6 +31,8 @@ V1 不部署：
 
 - `mt5-collector`
 - market data collector
+- public website / public ingest API
+- public social publishers
 - RabbitMQ / Kafka
 
 ## 2. 目錄約定
@@ -386,7 +388,177 @@ V1 對它的定位：
 - 仍必須輸出相同的 JSON schema。
 - 仍不得輸出交易指令。
 
-## 10. 網路與 Port
+## 10. 公共出口部署方向，後續版本
+
+V1 的 HomeLab Dashboard、Telegram Bot 與 Pushover 都是個人工作台與個人通知出口。後續若要讓系統服務更多公開訂閱者，不應直接把 HomeLab Dashboard 或 HomeLab API 暴露到公網，而應新增一個獨立的 public publishing plane。
+
+建議採用：
+
+```text
+HomeLab-Controlled Publishing
+VPS-Hosted Public Site
+```
+
+也就是：
+
+- HomeLab 繼續負責資料採集、AI 處理、事件判斷、私人通知與公共發布控制。
+- VPS 只負責公共網站所需的 ingest、儲存與展示。
+- HomeLab 與 VPS 不假設存在內部網路。
+- HomeLab 只透過 outbound HTTPS 將可公開內容送到 VPS。
+- Cloudflare Tunnel 部署在 VPS 側，目的不是與 HomeLab 組網，而是降低 VPS 公網暴露面並提供安全入口。
+
+### 10.1 目標部署邊界
+
+HomeLab：
+
+```text
+postgres
+db-migrate
+telegram-collector
+rss-collector
+normalizer-classifier
+alert-dispatcher              # personal Telegram Bot / Pushover
+public-syncer                 # push public-safe events to VPS
+telegram-channel-publisher    # public Telegram Channel
+x-publisher                   # public X account
+dashboard-api
+dashboard-web
+```
+
+VPS：
+
+```text
+public-api                    # public ingest + read API
+public-web                    # public website
+public-postgres               # only stores public-safe data
+cloudflare-tunnel             # exposes public website/API safely
+```
+
+### 10.2 資料流
+
+```mermaid
+flowchart LR
+  subgraph HomeLab["HomeLab Core + Publishers"]
+    DB["Core PostgreSQL"]
+    N["normalizer-classifier"]
+    A["alert-dispatcher<br/>Personal Telegram / Pushover"]
+    O["public_outbox"]
+    S["public-syncer"]
+    TG["telegram-channel-publisher"]
+    X["x-publisher"]
+  end
+
+  subgraph VPS["VPS Public Website Plane"]
+    API["public-api"]
+    PDB["public-postgres"]
+    WEB["public-web"]
+    CF["Cloudflare Tunnel"]
+  end
+
+  N --> DB
+  DB --> A
+  DB --> O
+  O --> S
+  O --> TG
+  O --> X
+  S -->|"outbound HTTPS ingest"| API
+  API --> PDB
+  PDB --> WEB
+  CF --> API
+  CF --> WEB
+```
+
+這個設計讓 public website 只接觸加工後的 public event，不讀取 HomeLab 中央資料庫，也不接觸 `raw_items`、Telegram session、AI prompt、私人通知設定或內部 Dashboard。
+
+### 10.3 public_outbox
+
+公共網站、Telegram Channel 與 X 不應各自直接從 `events` 臨時組文案。建議先新增 `public_outbox` 作為共同發布來源，保存已去敏、可公開、可重試的內容。
+
+建議欄位：
+
+```text
+id
+event_id
+public_title_zh
+public_summary_zh
+public_title_en
+public_summary_en
+public_source_links
+severity
+relevance_score
+topic_tags
+approved_for_public
+publish_status_web
+publish_status_telegram
+publish_status_x
+retry_count_web
+retry_count_telegram
+retry_count_x
+last_error_web
+last_error_telegram
+last_error_x
+generated_at
+published_web_at
+published_telegram_at
+published_x_at
+created_at
+updated_at
+```
+
+V1+ 可以先由規則自動產生 public draft；後續若要提高發布品質，可在 `approved_for_public` 前加入人工審核。
+
+### 10.4 public-syncer
+
+`public-syncer` 部署在 HomeLab，讀取 `public_outbox`，將 `approved_for_public = true` 且尚未同步到 web 的資料送到 VPS `public-api`。
+
+VPS ingest API 應至少支援：
+
+- HTTPS。
+- API key 或 HMAC signature。
+- timestamp / nonce replay protection。
+- `idempotency_key`。
+- `schema_version`。
+- `upstream_event_id` 去重。
+- payload size limit。
+- rate limit。
+- request audit log。
+
+HomeLab sync 失敗時只更新 `public_outbox.publish_status_web` 與 `last_error_web`，不得影響私人通知與核心處理流程。
+
+### 10.5 公共社交平台 Publisher
+
+`telegram-channel-publisher` 與 `x-publisher` 建議部署在 HomeLab，而不是 VPS。原因是：
+
+- 它們可以直接讀 HomeLab 中央資料庫與 `public_outbox`，取得完整事件上下文。
+- 不需要讓 VPS 回調 HomeLab，也不需要在 VPS 複製內部 API。
+- 發布格式、字數限制、節流、重試與平台錯誤處理可以彼此獨立。
+- 私人通知 `alert-dispatcher` 與公共發布 publisher 的責任邊界清楚。
+
+`alert-dispatcher` 的目標是通知個人使用者；public publisher 的目標是向公開訂閱者發布經過去敏與格式化的事件摘要。兩者不應共用 delivery 狀態，也不應共用通知策略。
+
+### 10.6 公共內容邊界
+
+Public Website 與公共社交平台只應發布 public-safe payload：
+
+- 可以發布系統生成的標題、摘要、分類、重要性、來源名稱與原始來源連結。
+- 不發布完整 `text_raw` 或大段原文全文。
+- 不發布 Telegram internal id、Telethon session、私人 chat id、prompt、模型原始回應、AI usage 明細或個人通知策略。
+- 不發布尚未通過 `approved_for_public` 的資料。
+- 對 aggregator / OSINT 單源消息應明確標記為未確認或避免公共發布。
+
+此限制同時降低版權風險、平台政策風險與私人系統外洩風險。
+
+### 10.7 Cloudflare Tunnel 用途
+
+Cloudflare Tunnel 在此架構中只部署於 VPS 側，用途是保護 VPS 上的 public website / public API：
+
+- 減少直接暴露 VPS inbound port。
+- 可搭配 Cloudflare WAF、rate limit、access policy 與 bot protection。
+- 提供 HTTPS 與 public hostname。
+
+Cloudflare Tunnel 不用於 HomeLab 與 VPS 組網，也不應讓 VPS 直接訪問 HomeLab private network。
+
+## 11. 網路與 Port
 
 建議只有必要服務對 HomeLab 內網暴露 port。
 
@@ -406,7 +578,7 @@ V1 對它的定位：
 - HTTPS
 - API token
 
-## 11. 備份
+## 12. 備份
 
 V1 最低備份：
 
@@ -419,7 +591,7 @@ V1 最低備份：
 - `infra/.env` 與 Telegram session files 包含敏感資訊。
 - 備份應加密保存。
 
-## 12. 驗收標準
+## 13. 驗收標準
 
 部署方式完成後應能達成：
 
