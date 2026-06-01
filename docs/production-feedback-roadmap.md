@@ -31,6 +31,92 @@
 | Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
 
+### 2.1 Current Todo List
+
+此清單是 2026-06-01 對照文檔與目前程式狀態後整理出的未完成項目。已完成第一版的 notification policy、AI usage 統計、taxonomy filters、source CRUD 與 HomeLab deployment 不再列入主待辦。
+
+P0：
+
+- Timeline relevance UI：`/raw-items` 需要 join 最新 `raw_item_processing` 結果，回傳 `is_relevant`、`relevance_score`、`filter_reason`、`classification_status` 與 `has_event`；Timeline 增加 `min_relevance_score`、`is_relevant`、`has_event` filters，並在 card 顯示 item-level relevance。
+- Per-item value scoring：在現有 Layer 2 relevance 基礎上，後續加入可解釋的 `item_value_score` / routing decision，融合 AI relevance、event type、actor、keyword、source priority / reliability、routine / commentary / duplicate penalty。
+- Normalizer 多 worker queue：支援多個 `normalizer-classifier` instance 並行、stale lock recovery、production compose replicas、backlog / oldest pending age / throughput 指標，以及跨 worker AI budget guard。
+
+P1：
+
+- Source test API / UI：支援 Telegram resolve channel、RSS fetch / parse、HTML polling selector test；Dashboard `Sources` 頁加入 test action。
+- Source 小範圍 backfill API / UI：限制時間窗口與數量，避免大量 AI call；Dashboard `Sources` 頁加入 backfill action。
+- Collector registry auto-reload：新增 / 修改 / disable / archive source 後，Telegram / RSS collector 不需要重啟即可生效。
+- Timeline / Processing 補齊 source metadata filters：目前 Timeline 已有部分 filter，後續需補齊 source metadata；Processing 也應支援更完整 source filter。
+- Telegram media-only 降噪收尾：`/raw-items` 已有預設過濾空文本的部分實作，但仍需補測試、確認 photo / video / document 無 caption 不顯示，並更新文檔狀態。
+
+P2 / 技術債：
+
+- `normalizer-classifier` 改用 `LISTEN raw_item_created` wake-up；目前仍使用 polling。
+- local route parse failed 時自動 fallback cloud route。
+- 近似重複合併到既有 event。
+- Claude Code Agent SDK route。
+- normalizer metrics endpoint。
+
+後續大版本：
+
+- V2 Claim Conflict Engine：完整 claim group、跨來源口徑衝突偵測。
+- V3 Market Context Layer：`mt5-collector`、`market_snapshots`、XAUUSD 異動偵測、行情先動反查消息、market move explainer。
+- Dashboard review system：Claim Groups 專頁、Market Move Review、行情 overlay、WebSocket / SSE、Replay mode、User preferences、Alert rule editor。
+
+### 2.2 Timeline Relevance UI Plan
+
+此項是下一個建議優先處理的 P0 工作，原因是它直接改善多消息源上線後的閱讀效率，而且可以先使用既有 `raw_item_processing.relevance_score`，不需要立即新增模型或大幅修改 queue。
+
+第一階段先不新增 DB 欄位：
+
+- `raw_item_processing.relevance_score` 作為 item-level relevance 的主要分數。
+- `raw_item_processing.is_relevant` 作為相關 / 低相關 filter。
+- `raw_item_processing.filter_reason` 作為卡片上的 classification reason。
+- `events.raw_item_ids` 或 event lookup 作為 `has_event` 判斷。
+
+Dashboard API 調整：
+
+- `/raw-items` join 最新 `raw_item_processing` row。
+- 回傳：
+  - `is_relevant`
+  - `relevance_score`
+  - `filter_reason`
+  - `classification_status`
+  - `classification_stage`
+  - `has_event`
+  - `event_id`，若可唯一對應。
+- 新增 query filters：
+  - `min_relevance_score`
+  - `is_relevant`
+  - `has_event`
+  - `classification_status`
+- 保留 `include_empty_text` debug 參數，不影響 Processing 頁排障。
+
+Dashboard Web 調整：
+
+- Timeline filter bar 加入：
+  - `min_relevance_score`
+  - `is_relevant`
+  - `has_event`
+  - `classification_status`
+- Timeline card 顯示：
+  - source priority badge，維持來源層級概念。
+  - relevance score badge，表示單條消息與系統目標的相關性。
+  - classification reason / filter reason。
+  - has event badge 或 event link。
+- 視覺分層：
+  - 高 relevance：正常顯示，可稍微加強左側 border 或 badge。
+  - 中 relevance：正常顯示。
+  - 低 relevance：預設淡化，或只在 `All raw items` / debug mode 顯示。
+- Timeline 預設可先維持目前「全部但可過濾」模式；待數據觀察後再改成 `relevant-first timeline`。
+
+驗收標準：
+
+- P0 source 的 routine / social / commentary 類消息不再在視覺上被誤認為高價值。
+- 使用者可以透過 `min_relevance_score` 或 `is_relevant` 快速收斂 Timeline。
+- 卡片同時顯示 source priority 與 item relevance，避免把來源重要性誤解為消息價值。
+- 低 relevance raw item 仍可在 debug / all 模式查到，便於調整 prompt 與 scoring。
+
 ## 3. 通知降噪規劃
 
 ### 3.1 問題
