@@ -17,6 +17,8 @@ SERVICES=(
   "alert-dispatcher:services/alert-dispatcher/Dockerfile"
   "telegram-channel-publisher:services/telegram-channel-publisher/Dockerfile"
   "x-publisher:services/x-publisher/Dockerfile"
+  "public-syncer:services/public-syncer/Dockerfile"
+  "public-api:services/public-api/Dockerfile"
   "dashboard-api:services/dashboard-api/Dockerfile"
   "dashboard-web:apps/dashboard-web/Dockerfile"
 )

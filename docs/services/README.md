@@ -17,9 +17,9 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作，後續收斂為 delivery worker |
 | `telegram-channel-publisher` | [telegram-channel-publisher.md](./telegram-channel-publisher.md) | 後續公共出口 / runtime skeleton 已實作 |
 | `x-publisher` | [x-publisher.md](./x-publisher.md) | 後續公共出口 / runtime skeleton 已實作 |
-| `public-syncer` | [public-syncer.md](./public-syncer.md) | 公共網站同步 / 已建立規劃 |
-| `public-api` | [public-api.md](./public-api.md) | VPS public API / 已建立規劃 |
-| `public-web` | [public-web.md](./public-web.md) | VPS public website / 已建立規劃 |
+| `public-syncer` | [public-syncer.md](./public-syncer.md) | 公共網站同步 / runtime skeleton 已實作 |
+| `public-api` | [public-api.md](./public-api.md) | VPS public API / runtime skeleton 已實作 |
+| `public-web` | [public-web.md](./public-web.md) | Cloudflare Pages public website / 已建立規劃 |
 | `dashboard-api` | [dashboard-api.md](./dashboard-api.md) | V1 可選 / 已建立 |
 | `dashboard-web` | [dashboard-web.md](./dashboard-web.md) | V1 可選 / 已建立 |
 | `mt5-collector` | `mt5-collector.md` | V1 暫緩 |

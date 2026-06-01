@@ -537,6 +537,46 @@ VPS ingest API 應至少支援：
 
 HomeLab sync 失敗時只更新 `public_outbox.publish_status_web` 與 `last_error_web`，不得影響私人通知與核心處理流程。
 
+HomeLab Compose 使用 `public-website` profile 啟動 `public-syncer`：
+
+```bash
+COMPOSE_PROFILES=public-website infra/scripts/prod-up.sh infra/.env infra/docker-compose.prod.yml
+```
+
+若同時啟用 Telegram Channel / X publisher，可合併 profiles：
+
+```bash
+COMPOSE_PROFILES=public-publishing,public-website infra/scripts/prod-up.sh infra/.env infra/docker-compose.prod.yml
+```
+
+### 10.4.1 VPS public-api Compose
+
+VPS 只部署公共網站需要的後端元件：
+
+```text
+public-postgres
+public-api-migrate
+public-api
+```
+
+Compose 檔案：
+
+```text
+infra/docker-compose.public-api.yml
+infra/.env.public-api.example
+```
+
+部署方式：
+
+```bash
+docker compose --env-file infra/.env.public-api -f infra/docker-compose.public-api.yml pull
+docker compose --env-file infra/.env.public-api -f infra/docker-compose.public-api.yml up -d
+```
+
+`public-api-migrate` 使用 `public-api` image 內建的 Alembic migrations，啟動時對 VPS public database 執行 `alembic upgrade head`。這套 migration 與 HomeLab 中央 DB 的 `db/migrations` 完全分離。
+
+公共網站前端 `public-web` 不部署在 VPS Docker Compose 中；它會由 Cloudflare Pages 部署到 `news.thetickbase.com`，並透過公開 read API 讀取 `public-api`。
+
 ### 10.5 公共社交平台 Publisher
 
 `telegram-channel-publisher` 與 `x-publisher` 建議部署在 HomeLab，而不是 VPS。原因是：
@@ -581,6 +621,7 @@ Cloudflare Tunnel 不用於 HomeLab 與 VPS 組網，也不應讓 VPS 直接訪�
 | PostgreSQL | 5432 | Docker network only，除非需要管理 |
 | dashboard-api | `${DASHBOARD_API_HOST_PORT:-8080}` | 預設只綁定 `127.0.0.1`，供 debug 使用 |
 | dashboard-web | `${DASHBOARD_WEB_HOST_PORT:-5173}` | HomeLab / Tailscale only |
+| public-api | `${PUBLIC_API_HOST_PORT:-8080}` | VPS localhost only，供 Cloudflare Tunnel / reverse proxy 使用 |
 | collectors | none | 不暴露 |
 | alert-dispatcher | none | 不暴露 |
 | normalizer-classifier | none | 不暴露 |

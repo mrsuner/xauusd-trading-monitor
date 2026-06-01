@@ -1,0 +1,34 @@
+[project]
+name = "public-api"
+version = "0.1.0"
+description = "Public website ingest and read API for XAUUSD Event Radar"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.13.3,<2.0",
+  "fastapi>=0.115.0,<1.0",
+  "psycopg[binary]>=3.2.3,<4.0",
+  "pydantic>=2.10.0,<3.0",
+  "pydantic-settings>=2.6.0,<3.0",
+  "uvicorn[standard]>=0.32.0,<1.0",
+]
+
+[project.scripts]
+public-api = "public_api.__main__:main"
+
+[build-system]
+requires = ["setuptools>=69.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0,<9.0",
+  "pytest-asyncio>=0.24.0,<1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

@@ -120,7 +120,7 @@ V1 可選的前端操作台，供人工查看 timeline、events、sources、proc
 
 ### 3.12 public-web
 
-VPS 公共網站前端，負責展示 public-safe event stream，不包含內部 debug 與管理功能。
+Cloudflare Pages 公共網站前端，負責展示 public-safe event stream，不包含內部 debug 與管理功能。
 
 ### 3.13 db-migrate
 
@@ -180,7 +180,7 @@ apps/
 
 `dashboard-web` 是 HomeLab 私人前端操作台應用位置，用於查看 timeline、events、sources、processing 與 alerts。
 
-`public-web` 是 VPS 公共網站前端應用位置，只展示 public-safe event stream。
+`public-web` 是 Cloudflare Pages 公共網站前端應用位置，只展示 public-safe event stream。VPS Compose 不部署此 frontend。
 
 前端技術棧固定為：
 
@@ -194,7 +194,9 @@ apps/
 ```text
 infra/
   docker-compose.prod.yml
+  docker-compose.public-api.yml
   .env.example
+  .env.public-api.example
   README.md
   caddy/
   postgres/
@@ -202,7 +204,7 @@ infra/
   systemd/
 ```
 
-`infra` 保存生產部署相關文件。HomeLab 使用 Docker Compose 從 GHCR pull image 並啟動服務。
+`infra` 保存生產部署相關文件。HomeLab 使用 `docker-compose.prod.yml` 從 GHCR pull image 並啟動核心服務；VPS 使用 `docker-compose.public-api.yml` 啟動 public API 與 public database；public website frontend 由 Cloudflare Pages 部署。
 
 GHCR namespace：
 
@@ -226,7 +228,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `public-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-api:<tag>` |
 | `dashboard-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>` |
 | `dashboard-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>` |
-| `public-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-web:<tag>` |
+| `public-web` | Cloudflare Pages build artifact，V1 不需要 Docker image |
 
 ## 9. 暫不建立的內容
 

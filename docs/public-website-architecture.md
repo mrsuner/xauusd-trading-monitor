@@ -15,7 +15,7 @@ Public Website 是 XAUUSD Event Radar 的公共資訊出口，用於展示已由
 
 ## 2. 部署邊界
 
-公共網站採用 HomeLab 產生內容、VPS 承載網站的模式。
+公共網站採用 HomeLab 產生內容、VPS 承載 public API、Cloudflare Pages 承載前端網站的模式。
 
 ```text
 HomeLab:
@@ -29,9 +29,11 @@ HomeLab:
 
 VPS:
   public-api
-  public-web
   public-postgres
   Cloudflare Tunnel
+
+Cloudflare Pages:
+  public-web
 ```
 
 關鍵原則：
@@ -41,7 +43,7 @@ VPS:
 - HomeLab 只透過 outbound HTTPS 把 public-safe payload 推送到 VPS。
 - VPS 不讀 HomeLab DB。
 - VPS 不保存 raw item、prompt、AI raw response、私人通知設定、Telegram session 或內部 debug 資料。
-- Cloudflare Tunnel 只部署在 VPS 側，用於保護 public website / API，不作為 HomeLab 與 VPS 的內網通道。
+- Cloudflare Tunnel 只部署在 VPS 側，用於保護 public API，不作為 HomeLab 與 VPS 的內網通道。`public-web` 由 Cloudflare Pages 部署到 `news.thetickbase.com`。
 
 ## 3. 目標資料流
 
@@ -62,7 +64,7 @@ public-api
   ↓
 public-postgres
   ↓
-public-web
+public-web on Cloudflare Pages
 ```
 
 公共 Telegram Channel 與 X publisher 仍部署在 HomeLab：
@@ -284,16 +286,16 @@ Public Website 設計細節詳見 [public-web 功能需求](./services/public-we
 
 1. `public-api` ingest + public database migration。
 2. `public-syncer` dry-run + ingest integration。
-3. `public-web` event list + detail。
-4. VPS Compose + Cloudflare Tunnel deployment docs。
+3. `public-web` event list + detail，部署到 Cloudflare Pages。
+4. VPS Compose + Cloudflare Tunnel deployment docs for `public-api`。
 5. 加入 public claim group。
 6. 加入 dashboard 中的 public sync status review。
 
 ## 10. 驗收標準
 
 - HomeLab 不開 inbound port 也能同步 public event。
-- VPS public website 只展示 public-safe payload。
+- Cloudflare Pages public website 只展示 public-safe payload。
 - 同一 `idempotency_key` 重複送達不會產生重複事件。
 - public-api 錯誤不影響 HomeLab 採集、AI 處理與私人通知。
-- Cloudflare Tunnel 可對外提供 public-web / public-api。
+- Cloudflare Tunnel 可對外提供 public-api；public-web 由 Cloudflare Pages 對外提供。
 - public-web 不包含 raw item、prompt、token usage、私人通知或內部 URL。

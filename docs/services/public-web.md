@@ -2,7 +2,7 @@
 
 ## 1. 服務定位
 
-`public-web` 是部署在 VPS 的公共網站前端，用於展示 `public-api` 提供的 public-safe event stream。
+`public-web` 是部署在 Cloudflare Pages 的公共網站前端，用於展示 `public-api` 提供的 public-safe event stream。
 
 它不同於 HomeLab `dashboard-web`：
 
@@ -17,7 +17,7 @@
 - 顯示 source attribution 與 source links。
 - mobile-first。
 - 不暴露內部資料。
-- 可由 Cloudflare Tunnel 對外提供。
+- 可由 Cloudflare Pages 對外提供，目標網域為 `news.thetickbase.com`。
 
 ## 3. 非目標
 
@@ -42,7 +42,7 @@ V1 不包含：
 | Component layer | DaisyUI V5 | badge、card、dropdown、pagination |
 | Language | TypeScript | API response typing |
 | Build tool | Vite | app build |
-| Container | Docker | VPS Compose 部署 |
+| Deployment | Cloudflare Pages | V1 不使用 Docker / VPS Compose 部署 frontend |
 
 參考站點 `/Users/lukesun/Projects/ongoing/tickbase/apps/website` 目前使用 Astro 6 + TailwindCSS V4 + DaisyUI V5。`public-web` 可維持本專案既定的 React Router V7 技術棧，但應移植 TickBase website 的 design tokens、layout rhythm 與品牌語氣。若後續更重視 SEO / static rendering，也可重新評估是否改用 Astro；V1 先不因 UI 對齊而改變技術棧。
 
@@ -360,15 +360,18 @@ PUBLIC_API_BASE_URL=https://api.example.com
 PUBLIC_WEB_DEFAULT_LOCALE=zh
 PUBLIC_WEB_REFRESH_SECONDS=60
 PUBLIC_WEB_SITE_NAME=XAUUSD Event Radar
-PUBLIC_WEB_CANONICAL_URL=https://example.com
+PUBLIC_WEB_CANONICAL_URL=https://news.thetickbase.com
 ```
 
-若 public-web 與 public-api 在同一 VPS Compose network，可由 nginx / Caddy 反向代理：
+V1 部署方式：
 
 ```text
-/api → public-api
-/    → public-web
+Cloudflare Pages public-web
+  ↓ HTTPS
+VPS public-api
 ```
+
+`public-web` 不與 `public-api` 位於同一 Docker network，因此不要依賴 Compose service name。前端應透過公開 API base URL 呼叫 VPS `public-api`。
 
 ## 10. SEO 與分享
 

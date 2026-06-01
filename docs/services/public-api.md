@@ -6,6 +6,8 @@
 
 它不是 HomeLab dashboard API，不讀 HomeLab DB，也不保存內部敏感資料。
 
+VPS 端使用獨立 Docker Compose 啟動 `public-api`、`public-postgres` 與一次性 migration service。公共網站前端 `public-web` 不部署在 VPS Compose 中，後續由 Cloudflare Pages 部署，並透過 public read API 讀取資料。
+
 目標資料流：
 
 ```text
@@ -52,7 +54,7 @@ V1 不包含：
 | Config | pydantic-settings | env 管理 |
 | Logging | standard logging / structlog | structured logs |
 | Packaging | uv | dependency 管理 |
-| Container | Docker | VPS Compose 部署 |
+| Container | Docker | VPS Compose 部署 `public-api` 與 migration |
 
 Go 可作後續備選。若 public website 流量變大，`public-api` 可獨立水平擴展。
 
@@ -131,6 +133,8 @@ Response：
 
 重複 `idempotency_key` 應回傳 200 或 409，但 response 必須包含既有 `public_event_id`，方便 HomeLab mark sent。
 
+V1 實作採用 idempotent upsert：同一 `idempotency_key` 不新增第二筆資料，但可以更新 public-safe 文案與 metadata。`upstream_event_id` 建 index，不做 unique constraint，避免未來同一事件因 schema version 或公開文案版本升級而被卡死。
+
 ### 5.3 Public Read API
 
 ```text
@@ -199,7 +203,7 @@ create table public_events (
 create unique index public_events_idempotency_key_uidx
   on public_events (idempotency_key);
 
-create unique index public_events_upstream_event_id_uidx
+create index public_events_upstream_event_id_idx
   on public_events (upstream_event_id);
 
 create index public_events_event_time_idx
@@ -264,6 +268,25 @@ DEFAULT_PAGE_SIZE=20
 MAX_PAGE_SIZE=100
 LOG_LEVEL=INFO
 ```
+
+VPS Docker Compose 使用：
+
+```text
+infra/docker-compose.public-api.yml
+infra/.env.public-api.example
+```
+
+啟動順序：
+
+```text
+public-postgres
+  ↓ healthy
+public-api-migrate
+  ↓ alembic upgrade head
+public-api
+```
+
+公共網站 `public-web` 由 Cloudflare Pages 部署，不加入這份 Compose。
 
 ## 10. 測試策略
 

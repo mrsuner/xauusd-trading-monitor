@@ -6,6 +6,8 @@
 
 它不是 publisher，也不直接發布到社交平台。它的輸出目標只有公共網站 ingest API。
 
+VPS 上的 `public-api` 有自己的 PostgreSQL 與 migrations；`public-syncer` 不需要知道 VPS schema，只需要遵守 `public_event.v1` ingest contract。
+
 目標資料流：
 
 ```text
@@ -30,6 +32,7 @@ public-postgres
 - 支援 retry / backoff / rate limit。
 - 寫回 `publish_status_web`、`published_web_at`、`provider_response_web`、`external_web_id`、`last_error_web`。
 - sync 失敗不得影響私人 alert、Telegram Channel 或 X publisher。
+- public website 前端由 Cloudflare Pages 部署，`public-syncer` 不直接與 Cloudflare Pages 溝通，只呼叫 VPS `public-api`。
 
 ## 3. 非目標
 
@@ -228,6 +231,8 @@ Production 初期應預設：
 PUBLIC_SYNCER_ENABLED=false
 PUBLIC_SYNCER_DRY_RUN=true
 ```
+
+HomeLab production Compose 中此服務使用 `public-website` profile；啟用公共網站同步時才啟動。
 
 ## 11. 測試策略
 

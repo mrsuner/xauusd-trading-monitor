@@ -25,6 +25,7 @@ dev-migrate:
 
 compose-config:
 	@docker compose --env-file infra/.env.example -f infra/docker-compose.prod.yml config >/dev/null
+	@docker compose --env-file infra/.env.public-api.example -f infra/docker-compose.public-api.yml config >/dev/null
 	@echo "production compose config ok"
 
 test:
@@ -35,6 +36,8 @@ test:
 	@cd services/alert-dispatcher && uv run --group dev pytest
 	@cd services/telegram-channel-publisher && uv run --group dev pytest
 	@cd services/x-publisher && uv run --group dev pytest
+	@cd services/public-syncer && uv run --group dev pytest
+	@cd services/public-api && uv run --group dev pytest
 	@cd services/dashboard-api && uv run --group dev pytest
 
 web-build:

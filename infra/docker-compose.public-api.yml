@@ -1,0 +1,73 @@
+name: xauusd-public-api
+
+services:
+  public-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PUBLIC_POSTGRES_DB}
+      POSTGRES_USER: ${PUBLIC_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${PUBLIC_POSTGRES_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - public-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PUBLIC_POSTGRES_USER} -d ${PUBLIC_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - xauusd-public
+
+  public-api-migrate:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/public-api:${IMAGE_TAG}
+    restart: "no"
+    depends_on:
+      public-postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV}
+      SERVICE_NAME: public-api-migrate
+      PUBLIC_DATABASE_URL: ${PUBLIC_DATABASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL}
+      TZ: ${TZ}
+    command: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
+    networks:
+      - xauusd-public
+
+  public-api:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/public-api:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      public-postgres:
+        condition: service_healthy
+      public-api-migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: ${APP_ENV}
+      SERVICE_NAME: public-api
+      PUBLIC_DATABASE_URL: ${PUBLIC_DATABASE_URL}
+      PUBLIC_INGEST_AUTH_MODE: ${PUBLIC_INGEST_AUTH_MODE:-hmac}
+      PUBLIC_INGEST_KEY_ID: ${PUBLIC_INGEST_KEY_ID:-}
+      PUBLIC_INGEST_SECRET: ${PUBLIC_INGEST_SECRET:-}
+      PUBLIC_API_TOKEN: ${PUBLIC_API_TOKEN:-}
+      PUBLIC_INGEST_MAX_BODY_BYTES: ${PUBLIC_INGEST_MAX_BODY_BYTES:-262144}
+      PUBLIC_INGEST_TIMESTAMP_SKEW_SECONDS: ${PUBLIC_INGEST_TIMESTAMP_SKEW_SECONDS:-300}
+      PUBLIC_INGEST_MAX_SUMMARY_CHARS: ${PUBLIC_INGEST_MAX_SUMMARY_CHARS:-4000}
+      PUBLIC_INGEST_MAX_TITLE_CHARS: ${PUBLIC_INGEST_MAX_TITLE_CHARS:-300}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://news.thetickbase.com}
+      DEFAULT_PAGE_SIZE: ${DEFAULT_PAGE_SIZE:-20}
+      MAX_PAGE_SIZE: ${MAX_PAGE_SIZE:-100}
+      LOG_LEVEL: ${LOG_LEVEL}
+      TZ: ${TZ}
+    ports:
+      - "${PUBLIC_API_HOST:-127.0.0.1}:${PUBLIC_API_HOST_PORT:-8080}:8080"
+    networks:
+      - xauusd-public
+
+volumes:
+  public-postgres-data:
+
+networks:
+  xauusd-public:
+    driver: bridge
