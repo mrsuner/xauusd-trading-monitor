@@ -108,8 +108,8 @@ POST /sources/{source_id}/backfill
   - source type select，包含 All / Telegram / RSS / Atom / HTML polling
   - source select，選項顯示 `source_name`，查詢時使用 `source_id`
   - priority select，包含 All / P0 / P1 / P2 / P3
-  - content category select，使用 `raw_items.content_category`
-  - topic tag select，使用 `raw_items.topic_tags`
+  - content category select，使用 `/taxonomy/categories` 的 controlled category dictionary
+  - topic tag select，使用 `/taxonomy/tags` 的 semi-controlled tag dictionary
   - mentioned actor select，使用 `raw_items.mentioned_actors`
   - source group
 - timeline card list：

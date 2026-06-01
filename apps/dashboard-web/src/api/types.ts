@@ -168,6 +168,30 @@ export type RawItemFilterOptions = {
   mentioned_actors: string[];
 };
 
+export type ContentCategory = {
+  key: string;
+  label_zh: string;
+  label_en: string;
+  description?: string | null;
+  sort_order: number;
+  enabled: boolean;
+  is_system: boolean;
+};
+
+export type TagOption = {
+  key: string;
+  label: string;
+  tag_type: string;
+  aliases: string[];
+  usage_count: number;
+  enabled: boolean;
+  is_system: boolean;
+};
+
+export type ListEnvelope<T> = {
+  items: T[];
+};
+
 export type ProcessingItem = {
   id: string;
   raw_item_id: string;

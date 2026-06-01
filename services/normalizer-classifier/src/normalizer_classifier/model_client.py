@@ -26,6 +26,7 @@ from .usage import (
     request_hash,
     usage_from_response,
 )
+from .taxonomy import TaxonomyContext
 
 
 class ModelClientError(RuntimeError):
@@ -151,7 +152,9 @@ class OpenAIStyleModelClient:
         full_translation_required: bool = True,
         input_text: str | None = None,
         truncated: bool = False,
+        taxonomy_context: TaxonomyContext | None = None,
     ) -> AuxiliaryModelResponse:
+        taxonomy_context = taxonomy_context or TaxonomyContext()
         payload = {
             "model": self.model,
             "temperature": 0,
@@ -173,6 +176,20 @@ class OpenAIStyleModelClient:
                                 "summary_required": True,
                                 "full_translation_required": full_translation_required,
                                 "truncated_input": truncated,
+                            },
+                            "taxonomy_context": {
+                                "content_categories": [
+                                    {
+                                        "key": category.key,
+                                        "label_en": category.label_en,
+                                        "description": category.description,
+                                    }
+                                    for category in taxonomy_context.categories
+                                ],
+                                "known_topic_tags": [
+                                    {"key": tag.key, "label": tag.label, "tag_type": tag.tag_type}
+                                    for tag in taxonomy_context.tags[:80]
+                                ],
                             },
                             "raw_item": {
                                 "title": raw_item.title,
@@ -462,11 +479,11 @@ def auxiliary_text_system_prompt() -> str:
         "may equal the supplied cleaned text. If the original text is already Chinese, full_translation_zh may equal "
         "the supplied cleaned text. If full_translation_required is false, return null for both full_translation fields. "
         "Preserve names, places, institutions, numbers, dates, quoted claims, and uncertainty. "
-        "content_category must be one of: diplomacy, military, sanctions, fed, energy, market, domestic_politics, "
-        "routine, social, economy, technology, other. Use routine for ordinary schedules, ceremonies, interviews, "
-        "lifestyle, or non-policy background pieces. "
-        "topic_tags must contain 0-12 short lowercase topic slugs useful for filtering, such as iran, trump, nuclear, "
-        "sanctions, hormuz, fed, oil, israel, irgc. "
+        "content_category must be one of the enabled taxonomy_context.content_categories keys. "
+        "If no controlled category fits, use other. Use routine for ordinary schedules, ceremonies, interviews, "
+        "lifestyle, or non-policy background pieces when that category is available. "
+        "topic_tags must contain 0-12 short lowercase topic slugs useful for filtering. Prefer known_topic_tags keys "
+        "when they fit, but you may add new short topic tags when needed. "
         "mentioned_actors must contain 0-12 named people, countries, agencies, military units, institutions, or "
         "organizations explicitly mentioned in the item. "
         "If truncated_input is true, mention in notes that full translation is based on truncated input. "
@@ -547,21 +564,6 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                     "full_translation_en": {"type": ["string", "null"]},
                     "content_category": {
                         "type": ["string", "null"],
-                        "enum": [
-                            "diplomacy",
-                            "military",
-                            "sanctions",
-                            "fed",
-                            "energy",
-                            "market",
-                            "domestic_politics",
-                            "routine",
-                            "social",
-                            "economy",
-                            "technology",
-                            "other",
-                            None,
-                        ],
                     },
                     "topic_tags": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
                     "mentioned_actors": {"type": "array", "items": {"type": "string"}, "maxItems": 12},

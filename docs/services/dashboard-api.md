@@ -218,7 +218,16 @@ include_empty_text
 GET /raw-items/filters
 ```
 
-回傳目前資料庫中可用的 `content_categories`、`topic_tags` 與 `mentioned_actors`，供 Dashboard 使用 dropdown，避免使用者手動輸入 taxonomy 值。
+回傳目前資料庫中可用的 `content_categories`、`topic_tags` 與 `mentioned_actors`，供 Dashboard 補充 actor dropdown 與 debug。
+
+正式 taxonomy dropdown 來源：
+
+```text
+GET /taxonomy/categories
+GET /taxonomy/tags
+```
+
+`/taxonomy/categories` 讀取 controlled `content_categories` dictionary，回傳 `key`、`label_zh`、`label_en`、`description`、`sort_order`。`/taxonomy/tags` 讀取 semi-controlled `tags` dictionary，回傳 normalized `key`、`label`、`tag_type`、`aliases`、`usage_count`。
 
 ### 7.4 Processing
 

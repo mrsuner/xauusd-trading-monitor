@@ -157,6 +157,7 @@ class NormalizerClassifierWorker:
         text, truncated = self._translation_input_text(task.source, normalized.text_clean)
         full_translation_required = task.source.translation_policy == "full" or task.source.always_full_translate
         last_error = None
+        taxonomy_context = await self.db.get_taxonomy_context()
 
         for index, client in enumerate(self.translation_model_clients):
             is_paid_fallback = index > 0
@@ -174,12 +175,14 @@ class NormalizerClassifierWorker:
                     full_translation_required=full_translation_required,
                     input_text=text,
                     truncated=truncated,
+                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.update_translation_result(
                     raw_item_id=task.raw_item.id,
                     response=response,
                     status="completed_truncated" if truncated else "completed",
                     input_chars=len(text),
+                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.insert_ai_model_call(
                     usage=response.usage,

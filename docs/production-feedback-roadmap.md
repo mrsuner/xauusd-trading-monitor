@@ -559,7 +559,7 @@ Source:
   - relevance score：此消息對本系統目標的相關性。
   - alert score：此事件是否值得通知。
 
-### 8.3 已完成：Layer 1 Taxonomy
+### 8.3 已完成：Controlled Categories + Semi-controlled Tags
 
 已新增 `raw_items` 描述型欄位：
 
@@ -593,6 +593,27 @@ GET /raw-items/filters
 ```
 
 Timeline 已支援 category / topic / actor filters，並在 card 顯示 category badge、topic tags 與 mentioned actors。
+
+已新增 taxonomy dictionary：
+
+```text
+content_categories  -- controlled category dictionary
+tags                -- semi-controlled normalized tag dictionary
+raw_item_tags       -- raw item 與 tag 的正規關聯
+```
+
+Category 規則：
+
+- `content_category` 必須優先使用啟用的 `content_categories.key`。
+- 若模型輸出不在 dictionary，normalizer 回寫為 `other`。
+- Timeline category dropdown 讀 `/taxonomy/categories`，不再由前端 hard code。
+
+Tag 規則：
+
+- Layer 1 可輸出新 tags。
+- normalizer 做 lowercase、slug normalization、alias mapping、去重與數量限制。
+- normalized tag 自動 upsert 到 `tags`，並寫入 `raw_item_tags`。
+- Timeline tag dropdown 讀 `/taxonomy/tags`。
 
 ### 8.4 後續：Scoring fusion 方向
 
@@ -732,10 +753,12 @@ event_id / has_event
 
 ### Phase 4: Timeline taxonomy filters
 
-- 狀態：已完成 V1 taxonomy 版本。
+- 狀態：已完成 V1 taxonomy 版本與 Phase 4.1 dictionary 版本。
 - Layer 1 translation-summary 回寫 `content_category`、`topic_tags`、`mentioned_actors`。
+- 新增 controlled `content_categories` 與 semi-controlled `tags` / `raw_item_tags`。
 - Dashboard API `/raw-items` 支援 `content_category`、`topic_tag`、`actor` filters。
 - Dashboard API `/raw-items/filters` 回傳 dropdown options。
+- Dashboard API `/taxonomy/categories` 與 `/taxonomy/tags` 回傳正式 taxonomy options。
 - Timeline card 顯示 category、topic tags 與 mentioned actors。
 
 後續獨立處理：

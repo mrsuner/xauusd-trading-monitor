@@ -374,6 +374,8 @@ create table raw_items (
 
 `content_category`、`topic_tags` 與 `mentioned_actors` 由 Layer 1 在翻譯摘要時同步回寫，只用於 Timeline taxonomy、filter 與搜尋。這些欄位不代表交易相關性、通知等級或事件嚴重度。
 
+`content_category` 是 controlled category key，應來自 `content_categories.key`；若模型輸出不在啟用字典內，normalizer 會回寫為 `other`。`topic_tags` 是 semi-controlled normalized tag keys，normalizer 會做 lowercase、slug normalization、alias mapping，並 upsert 到 `tags` 與 `raw_item_tags`。
+
 `translation_status`：
 
 | 狀態 | 說明 |
@@ -458,9 +460,90 @@ V1 先使用兩個簡單 trigram index 與 taxonomy GIN index。若後續需要�
 - 若 `edited_at` 或 `content_hash` 變更，更新 `title`、`text_raw`、`text_clean`、`edited_at`、`raw_json`、`content_hash`。
 - V1 不建立 `raw_item_versions`，後續版本再做。
 
-## 8. raw_item_processing
+## 8. Taxonomy Dictionaries
 
-### 8.1 用途
+### 8.1 content_categories
+
+`content_categories` 是 controlled category dictionary。Layer 1 必須優先從啟用的 category keys 中選擇；若都不適合，使用 `other`。
+
+```sql
+create table content_categories (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  label_zh text not null,
+  label_en text not null,
+  description text,
+  sort_order integer not null default 1000,
+  enabled boolean not null default true,
+  is_system boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+V1 system categories：
+
+```text
+diplomacy
+military
+sanctions
+fed
+energy
+market
+domestic_politics
+economy
+technology
+routine
+social
+other
+```
+
+### 8.2 tags
+
+`tags` 是 semi-controlled tag dictionary。Layer 1 可以輸出新 tags，但 normalizer 會先做 normalization 與 alias mapping，然後自動 upsert。
+
+```sql
+create table tags (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  label text not null,
+  tag_type text not null default 'topic',
+  aliases jsonb not null default '[]'::jsonb,
+  usage_count integer not null default 0,
+  enabled boolean not null default true,
+  is_system boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+Normalization 規則：
+
+- lowercase。
+- trim。
+- spaces、underscores、slash 轉為 `-`。
+- 移除多餘 punctuation。
+- alias mapping，例如 `usa` / `u.s.` / `america` -> `united-states`。
+- 限制每筆 raw item 最多 12 個 tags。
+
+### 8.3 raw_item_tags
+
+`raw_item_tags` 保存 raw item 與 tag dictionary 的正規關聯。`raw_items.topic_tags` 仍保留為 Timeline 查詢快取。
+
+```sql
+create table raw_item_tags (
+  raw_item_id uuid not null references raw_items(id) on delete cascade,
+  tag_id uuid not null references tags(id) on delete cascade,
+  source text not null default 'ai_layer_1',
+  confidence smallint,
+  created_at timestamptz not null default now(),
+  primary key (raw_item_id, tag_id)
+);
+```
+
+## 9. raw_item_processing
+
+### 9.1 用途
 
 `raw_item_processing` 是 V1 reliable processing queue，同時保存 normalizer-classifier 的處理結果。
 

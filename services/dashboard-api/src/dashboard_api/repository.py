@@ -261,6 +261,41 @@ class DashboardRepository:
         )
         return row or {"content_categories": [], "topic_tags": [], "mentioned_actors": []}
 
+    async def list_content_categories(self) -> list[dict[str, Any]]:
+        return await self._db.fetch_all(
+            """
+            select
+              key,
+              label_zh,
+              label_en,
+              description,
+              sort_order,
+              enabled,
+              is_system
+            from content_categories
+            where enabled = true
+            order by sort_order, key
+            """
+        )
+
+    async def list_tags(self) -> list[dict[str, Any]]:
+        return await self._db.fetch_all(
+            """
+            select
+              key,
+              label,
+              tag_type,
+              aliases,
+              usage_count,
+              enabled,
+              is_system
+            from tags
+            where enabled = true
+            order by usage_count desc, is_system desc, key
+            limit 500
+            """
+        )
+
     async def get_event(self, event_id: UUID) -> dict[str, Any] | None:
         event = await self._db.fetch_one(
             """

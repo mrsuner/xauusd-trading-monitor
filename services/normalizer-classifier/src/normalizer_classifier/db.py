@@ -18,6 +18,7 @@ from .models import (
     SourceMetadata,
     )
 from .normalization import severity_for
+from .taxonomy import CategoryOption, TagOption, TaxonomyContext, normalize_actors, normalize_category, normalize_topic_tags
 
 
 class Database:
@@ -191,6 +192,44 @@ class Database:
             )
         await self.conn.commit()
 
+    async def get_taxonomy_context(self) -> TaxonomyContext:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select key, label_en, description
+                from content_categories
+                where enabled = true
+                order by sort_order, key
+                """
+            )
+            category_rows = await cur.fetchall()
+            await cur.execute(
+                """
+                select key, label, tag_type, aliases
+                from tags
+                where enabled = true
+                order by is_system desc, usage_count desc, key
+                limit 250
+                """
+            )
+            tag_rows = await cur.fetchall()
+
+        return TaxonomyContext(
+            categories=[
+                CategoryOption(key=row["key"], label_en=row["label_en"], description=row["description"])
+                for row in category_rows
+            ],
+            tags=[
+                TagOption(
+                    key=row["key"],
+                    label=row["label"],
+                    tag_type=row["tag_type"],
+                    aliases=tuple(row["aliases"] or []),
+                )
+                for row in tag_rows
+            ],
+        )
+
     async def update_normalized_item(self, *, raw_item_id: Any, normalized: NormalizedItem) -> None:
         async with self.conn.cursor() as cur:
             await cur.execute(
@@ -321,8 +360,12 @@ class Database:
         response: AuxiliaryModelResponse,
         status: str,
         input_chars: int,
+        taxonomy_context: TaxonomyContext,
     ) -> None:
         result = response.result
+        content_category = normalize_category(result.content_category, taxonomy_context)
+        topic_tags = normalize_topic_tags(result.topic_tags, taxonomy_context)
+        mentioned_actors = normalize_actors(result.mentioned_actors)
         async with self.conn.cursor() as cur:
             await cur.execute(
                 """
@@ -349,15 +392,55 @@ class Database:
                     "summary_en": result.summary_en,
                     "full_translation_zh": result.full_translation_zh,
                     "full_translation_en": result.full_translation_en,
-                    "content_category": result.content_category,
-                    "topic_tags": Jsonb(result.topic_tags),
-                    "mentioned_actors": Jsonb(result.mentioned_actors),
+                    "content_category": content_category,
+                    "topic_tags": Jsonb(topic_tags),
+                    "mentioned_actors": Jsonb(mentioned_actors),
                     "translation_status": status,
                     "translation_model_provider": response.provider,
                     "translation_model": response.model,
                     "translation_input_chars": input_chars,
                 },
             )
+            await cur.execute("delete from raw_item_tags where raw_item_id = %(raw_item_id)s", {"raw_item_id": raw_item_id})
+            tag_ids: list[Any] = []
+            for tag in topic_tags:
+                await cur.execute(
+                    """
+                    insert into tags (key, label, tag_type, aliases, usage_count, enabled, is_system)
+                    values (%(key)s, %(label)s, 'topic', '[]'::jsonb, 0, true, false)
+                    on conflict (key) do update
+                    set updated_at = now()
+                    returning id
+                    """,
+                    {"key": tag, "label": tag},
+                )
+                tag_row = await cur.fetchone()
+                if tag_row:
+                    tag_ids.append(tag_row["id"])
+                    await cur.execute(
+                        """
+                        insert into raw_item_tags (raw_item_id, tag_id, source, confidence)
+                        values (%(raw_item_id)s, %(tag_id)s, 'ai_layer_1', null)
+                        on conflict (raw_item_id, tag_id) do nothing
+                        """,
+                        {"raw_item_id": raw_item_id, "tag_id": tag_row["id"]},
+                    )
+            if tag_ids:
+                await cur.execute(
+                    """
+                    update tags t
+                    set usage_count = counts.usage_count,
+                        updated_at = now()
+                    from (
+                      select tag_id, count(*)::integer as usage_count
+                      from raw_item_tags
+                      where tag_id = any(%(tag_ids)s::uuid[])
+                      group by tag_id
+                    ) counts
+                    where t.id = counts.tag_id
+                    """,
+                    {"tag_ids": tag_ids},
+                )
         await self.conn.commit()
 
     async def update_translation_skipped(self, *, raw_item_id: Any, reason: str) -> None:

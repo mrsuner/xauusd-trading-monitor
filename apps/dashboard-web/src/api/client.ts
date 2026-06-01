@@ -1,9 +1,11 @@
 import type {
   AlertItem,
   AIUsageStats,
+  ContentCategory,
   EventDetail,
   EventItem,
   Health,
+  ListEnvelope,
   OverviewStats,
   Page,
   ProcessingItem,
@@ -12,7 +14,8 @@ import type {
   RawItemFilterOptions,
   Source,
   SourcePayload,
-  SourceHealth
+  SourceHealth,
+  TagOption
 } from "./types";
 
 const runtimeConfig = window.__XAUUSD_DASHBOARD_CONFIG__ ?? {};
@@ -84,6 +87,8 @@ export const api = {
   sourceHealth: (params?: Record<string, QueryValue>) => request<Page<SourceHealth>>("/source-health", params),
   rawItems: (params?: Record<string, QueryValue>) => request<Page<RawItem>>("/raw-items", params),
   rawItemFilters: () => request<RawItemFilterOptions>("/raw-items/filters"),
+  taxonomyCategories: () => request<ListEnvelope<ContentCategory>>("/taxonomy/categories"),
+  taxonomyTags: () => request<ListEnvelope<TagOption>>("/taxonomy/tags"),
   processing: (params?: Record<string, QueryValue>) => request<Page<ProcessingItem>>("/processing", params),
   processingPipeline: (params?: Record<string, QueryValue>) => request<Page<ProcessingPipelineItem>>("/processing/pipeline", params),
   events: (params?: Record<string, QueryValue>) => request<Page<EventItem>>("/events", params),

@@ -147,23 +147,8 @@ const SOURCE_TYPES = [
 ] as const;
 
 const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
-const CONTENT_CATEGORIES = [
-  "diplomacy",
-  "military",
-  "sanctions",
-  "fed",
-  "energy",
-  "market",
-  "domestic_politics",
-  "routine",
-  "social",
-  "economy",
-  "technology",
-  "other"
-] as const;
-
 export function Timeline() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [q, setQ] = useState("");
   const [sourceGroup, setSourceGroup] = useState("");
   const [sourceType, setSourceType] = useState("");
@@ -181,6 +166,16 @@ export function Timeline() {
     queryFn: () => api.rawItemFilters(),
     staleTime: 60000
   });
+  const categories = useQuery({
+    queryKey: ["taxonomy-categories"],
+    queryFn: () => api.taxonomyCategories(),
+    staleTime: 300000
+  });
+  const tags = useQuery({
+    queryKey: ["taxonomy-tags"],
+    queryFn: () => api.taxonomyTags(),
+    staleTime: 300000
+  });
   const query = useQuery({
     queryKey: ["raw-items", q, sourceGroup, sourceType, sourceId, priority, contentCategory, topicTag, actor],
     queryFn: () =>
@@ -197,9 +192,6 @@ export function Timeline() {
       }),
     refetchInterval: 15000
   });
-  const categoryOptions = Array.from(
-    new Set([...CONTENT_CATEGORIES, ...(filterOptions.data?.content_categories ?? [])])
-  ).filter(Boolean);
 
   return (
     <>
@@ -253,17 +245,17 @@ export function Timeline() {
           onChange={(event) => setContentCategory(event.target.value)}
         >
           <option value="">{t("timeline.filter.allCategories")}</option>
-          {categoryOptions.map((category) => (
-            <option key={category} value={category}>
-              {category}
+          {categories.data?.items.map((category) => (
+            <option key={category.key} value={category.key}>
+              {i18n.language.startsWith("zh") ? category.label_zh : category.label_en}
             </option>
           ))}
         </select>
         <select className="select select-bordered select-sm" value={topicTag} onChange={(event) => setTopicTag(event.target.value)}>
           <option value="">{t("timeline.filter.allTopics")}</option>
-          {filterOptions.data?.topic_tags.slice(0, 200).map((tag) => (
-            <option key={tag} value={tag}>
-              #{tag}
+          {tags.data?.items.slice(0, 200).map((tag) => (
+            <option key={tag.key} value={tag.key}>
+              #{tag.key}
             </option>
           ))}
         </select>

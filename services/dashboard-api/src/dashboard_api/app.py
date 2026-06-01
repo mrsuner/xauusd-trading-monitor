@@ -223,6 +223,14 @@ def create_app() -> FastAPI:
         )
         return await list_response(repository, builder, page, page_size, default_page_size)
 
+    @app.get("/taxonomy/categories", dependencies=[Depends(require_token)])
+    async def list_content_categories(repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        return {"items": await repository.list_content_categories()}
+
+    @app.get("/taxonomy/tags", dependencies=[Depends(require_token)])
+    async def list_tags(repository: DashboardRepository = Depends(repo)) -> dict[str, Any]:
+        return {"items": await repository.list_tags()}
+
     @app.get("/raw-items", dependencies=[Depends(require_token)])
     async def list_raw_items(
         repository: DashboardRepository = Depends(repo),
