@@ -1,6 +1,9 @@
+import i18n from "../i18n";
+
 export function formatTime(value?: string | null) {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("zh-Hant", {
+  const locale = i18n.resolvedLanguage === "zh-Hant" ? "zh-Hant" : "en";
+  return new Intl.DateTimeFormat(locale, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",

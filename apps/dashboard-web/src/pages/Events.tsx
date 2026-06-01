@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -8,6 +9,7 @@ import { formatTime, Score, Truncate } from "../components/Format";
 import { PageHeader } from "../components/Layout";
 
 export function Events() {
+  const { t } = useTranslation();
   const [severity, setSeverity] = useState("");
   const query = useQuery({
     queryKey: ["events", severity],
@@ -17,12 +19,12 @@ export function Events() {
 
   return (
     <>
-      <PageHeader title="Events" description="High relevance events created by normalizer-classifier." />
+      <PageHeader title={t("events.title")} description={t("events.description")} />
       <div className="mb-4 max-w-full overflow-x-auto">
         <div className="tabs tabs-box w-fit">
         {["", "S", "A", "B", "C"].map((item) => (
           <button key={item || "all"} className={`tab ${severity === item ? "tab-active" : ""}`} onClick={() => setSeverity(item)}>
-            {item || "All"}
+            {item || t("events.all")}
           </button>
         ))}
         </div>
@@ -32,18 +34,18 @@ export function Events() {
         <table className="table table-sm min-w-[860px]">
           <thead>
             <tr>
-              <th className="w-32">Time</th>
-              <th className="w-16">Severity</th>
-              <th className="w-40">Type</th>
-              <th>Title</th>
-              <th className="w-32">Source</th>
-              <th className="w-24">Score</th>
-              <th className="w-24">Confidence</th>
+              <th className="w-32">{t("events.col.time")}</th>
+              <th className="w-16">{t("events.col.severity")}</th>
+              <th className="w-40">{t("events.col.type")}</th>
+              <th>{t("events.col.title")}</th>
+              <th className="w-32">{t("events.col.source")}</th>
+              <th className="w-24">{t("events.col.score")}</th>
+              <th className="w-24">{t("events.col.confidence")}</th>
             </tr>
           </thead>
           <tbody>
             {query.isLoading ? <LoadingRows columns={7} /> : null}
-            {query.data?.items.length === 0 ? <EmptyRow columns={7}>No events in selected range.</EmptyRow> : null}
+            {query.data?.items.length === 0 ? <EmptyRow columns={7}>{t("events.empty")}</EmptyRow> : null}
             {query.data?.items.map((event) => (
               <tr key={event.id}>
                 <td>{formatTime(event.detected_at)}</td>

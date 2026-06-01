@@ -1,0 +1,256 @@
+{
+  "common": {
+    "brand": "XAUUSD Event Radar",
+    "tagline": "News operations dashboard",
+    "theme": "Theme",
+    "language": "Language",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "enable": "Enable",
+    "disable": "Disable",
+    "archive": "Archive",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "unknownError": "Unknown error",
+    "noRows": "No rows in selected range.",
+    "keywordSearch": "Keyword search",
+    "allSources": "All sources",
+    "allPriorities": "All priorities",
+    "loading": "loading",
+    "sourceType": {
+      "all": "All source types",
+      "telegram": "Telegram",
+      "rss": "RSS",
+      "atom": "Atom",
+      "htmlPolling": "HTML polling"
+    }
+  },
+  "nav": {
+    "overview": "Overview",
+    "timeline": "Timeline",
+    "events": "Events",
+    "sources": "Sources",
+    "processing": "Processing",
+    "alerts": "Alerts"
+  },
+  "layout": {
+    "openNav": "Open navigation",
+    "closeNav": "Close navigation",
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme",
+    "switchLanguage": "Switch language"
+  },
+  "badges": {
+    "severityHint": {
+      "S": "Severity S — may immediately move XAUUSD or risk pricing",
+      "A": "Severity A — may affect trading logic within hours",
+      "B": "Severity B — background or unconfirmed news",
+      "C": "Severity C — archived, not pushed"
+    },
+    "severityFallback": "Event severity",
+    "priorityHint": {
+      "P0": "Priority P0 — highest-priority source",
+      "P1": "Priority P1 — high-priority source",
+      "P2": "Priority P2 — standard source",
+      "P3": "Priority P3 — low-priority source"
+    },
+    "priorityFallback": "Source priority tier",
+    "status": "Status: {{value}}",
+    "officialLevel": "Source official level: {{value}}"
+  },
+  "overview": {
+    "title": "Overview",
+    "description": "System status and recent news-layer activity.",
+    "apiHealth": "API health",
+    "stat": {
+      "activeSources": "Active Sources",
+      "rawItems1h": "Raw Items 1h",
+      "rawItems24h": "Raw Items 24h",
+      "events24h": "Events 24h",
+      "highImpact": "S/A Events 24h",
+      "failedProcessing": "Failed Processing",
+      "failedAlerts": "Failed Alerts",
+      "events1h": "Events 1h"
+    }
+  },
+  "events": {
+    "title": "Events",
+    "description": "High relevance events created by normalizer-classifier.",
+    "all": "All",
+    "col": {
+      "time": "Time",
+      "severity": "Severity",
+      "type": "Type",
+      "title": "Title",
+      "source": "Source",
+      "score": "Score",
+      "confidence": "Confidence"
+    },
+    "empty": "No events in selected range."
+  },
+  "alerts": {
+    "title": "Alerts",
+    "description": "Telegram and Pushover delivery tracking.",
+    "col": {
+      "created": "Created",
+      "channel": "Channel",
+      "priority": "Priority",
+      "status": "Status",
+      "event": "Event",
+      "sent": "Sent"
+    },
+    "empty": "No alerts recorded."
+  },
+  "timeline": {
+    "title": "Live Timeline",
+    "description": "Recent raw items from Telegram, RSS and official pages.",
+    "fullTranslation": "Full translation",
+    "originalContent": "Original content",
+    "empty": "No raw items in selected range.",
+    "meta": {
+      "official": "Official",
+      "officialTip": "Source official level",
+      "priority": "Priority",
+      "priorityTip": "Source priority tier (P0 is highest)",
+      "group": "Group",
+      "groupTip": "Source group",
+      "translation": "Translation",
+      "translationTip": "Translation pipeline status"
+    }
+  },
+  "eventDetail": {
+    "meta": {
+      "severity": "Severity",
+      "relevance": "Relevance",
+      "confidence": "Confidence",
+      "detected": "Detected",
+      "official": "Official"
+    },
+    "section": {
+      "rawItems": "Raw Items",
+      "claims": "Claims",
+      "alerts": "Alerts"
+    },
+    "noClaims": "No claims extracted.",
+    "noAlerts": "No alerts recorded.",
+    "chineseFullText": "Chinese Full Text",
+    "englishFullText": "English Full Text",
+    "translation": "translation"
+  },
+  "sources": {
+    "title": "Sources",
+    "description": "Source registry, collector health, scoring and alert policy management.",
+    "addSource": "Add Source",
+    "editSource": "Edit Source",
+    "modalSubtitle": "Enum fields use dropdowns to keep source registry consistent.",
+    "filter": {
+      "allSourceTypes": "All source types",
+      "allSourceGroups": "All source groups",
+      "allPriorities": "All priorities",
+      "allEnabled": "All enabled states",
+      "enabled": "enabled",
+      "disabled": "disabled",
+      "allArchive": "All archive states",
+      "activeRegistry": "active registry",
+      "archived": "archived"
+    },
+    "loading": "Loading sources...",
+    "count": "{{count}} sources",
+    "empty": "No sources found.",
+    "section": {
+      "identity": "Identity",
+      "scoring": "Scoring",
+      "translation": "Translation",
+      "alertPolicy": "Alert Policy"
+    },
+    "field": {
+      "name": "Name",
+      "handleOrUrl": "Handle or URL",
+      "sourceType": "Source Type",
+      "sourceGroup": "Source Group",
+      "officialLevel": "Official Level",
+      "language": "Language",
+      "priority": "Priority",
+      "stance": "Stance",
+      "reliabilityScore": "Reliability Score",
+      "latencyScore": "Latency Score",
+      "alertWeight": "Alert Weight",
+      "requiresConfirmation": "Requires Confirmation",
+      "policy": "Policy",
+      "maxChars": "Max Chars",
+      "alwaysFullTranslate": "Always Full Translate",
+      "telegramAlerts": "Telegram Alerts",
+      "telegramMinSeverity": "Telegram Min Severity",
+      "pushoverAlerts": "Pushover Alerts",
+      "pushoverMinSeverity": "Pushover Min Severity",
+      "rateLimit": "Rate Limit / Hour",
+      "cooldownMinutes": "Cooldown Minutes",
+      "enabled": "Enabled"
+    },
+    "card": {
+      "reliability": "Reliability",
+      "latency": "Latency",
+      "rawItems24h": "Raw Items 24h",
+      "events24h": "Events 24h",
+      "lastItem": "Last Item",
+      "languageFallback": "language: -",
+      "off": "off",
+      "weight": "Weight {{value}}",
+      "lastSuccess": "Last Success {{time}}"
+    },
+    "archiveConfirm": "Archive {{name}}? Historical rows remain linked, but collectors should ignore it."
+  },
+  "processing": {
+    "title": "Processing",
+    "description": "AI pipeline monitor for translation-summary and classification-reasoning layers.",
+    "stat": {
+      "aiCalls": "AI calls / 24h",
+      "failed": "failed {{count}}",
+      "tokens": "tokens / 24h",
+      "tokensInOut": "in {{in}} / out {{out}}",
+      "estCost": "estimated cost / 24h",
+      "costBasis": "based on configured model pricing",
+      "topModel": "top model",
+      "noCalls": "no calls",
+      "tokensCount": "{{count}} tokens"
+    },
+    "byLayer": {
+      "title": "AI usage by layer",
+      "calls": "calls {{count}} / failed {{failed}}",
+      "tokensCost": "tokens {{tokens}} / cost {{cost}}",
+      "avgLatency": "avg latency {{ms}}ms"
+    },
+    "filter": {
+      "allL1": "All L1 statuses",
+      "allL2": "All L2 statuses",
+      "allL2Stages": "All L2 stages",
+      "allRelevance": "All relevance",
+      "relevant": "relevant",
+      "notRelevant": "not relevant"
+    },
+    "showing": "Showing {{shown}} of {{total}} pipeline items.",
+    "empty": "No processing pipeline items found.",
+    "layer1Title": "Layer 1 translation-summary",
+    "layer2Title": "Layer 2 classification-reasoning",
+    "field": {
+      "model": "model",
+      "updated": "updated",
+      "aiCalls": "AI calls",
+      "tokens": "tokens",
+      "tokensInOut": "(in {{in}} / out {{out}})",
+      "cost": "cost",
+      "inputChars": "input chars",
+      "stage": "stage",
+      "relevance": "relevance",
+      "score": "score",
+      "reason": "reason"
+    },
+    "relevance": {
+      "yes": "yes",
+      "no": "no"
+    }
+  }
+}

@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./styles.css";
+import "./i18n";
 import { Layout } from "./components/Layout";
 import { Alerts } from "./pages/Alerts";
 import { EventDetail } from "./pages/EventDetail";

@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { RawItem } from "../api/types";
@@ -42,13 +43,14 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 function RawItemCard({ item }: { item: RawItem }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const summary = item.summary_zh || item.summary_en || item.text_clean || item.text_raw || "-";
   const fullTranslation = item.full_translation_zh || item.full_translation_en;
   const originalContent = item.text_clean || item.text_raw || "-";
   const title = item.title || item.source_name;
-  const contentLabel = fullTranslation ? "Full translation" : "Original content";
+  const contentLabel = fullTranslation ? t("timeline.fullTranslation") : t("timeline.originalContent");
   const contentText = fullTranslation || originalContent;
   const collapsible = isCollapsible(contentText);
 
@@ -57,16 +59,16 @@ function RawItemCard({ item }: { item: RawItem }) {
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-base-content/60">
         <span className="font-mono text-base-content/70">{formatTime(item.published_at || item.ingested_at)}</span>
         <span className="font-medium text-base-content">{item.source_name}</span>
-        <MetaField label="Official" tip="Source official level">
+        <MetaField label={t("timeline.meta.official")} tip={t("timeline.meta.officialTip")}>
           <OfficialBadge value={item.official_level} />
         </MetaField>
-        <MetaField label="Priority" tip="Source priority tier (P0 is highest)">
+        <MetaField label={t("timeline.meta.priority")} tip={t("timeline.meta.priorityTip")}>
           <PriorityBadge value={item.priority} />
         </MetaField>
-        <MetaField label="Group" tip="Source group">
+        <MetaField label={t("timeline.meta.group")} tip={t("timeline.meta.groupTip")}>
           <span className="rounded bg-base-200 px-2 py-0.5">{item.source_group}</span>
         </MetaField>
-        <MetaField label="Translation" tip="Translation pipeline status">
+        <MetaField label={t("timeline.meta.translation")} tip={t("timeline.meta.translationTip")}>
           <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
         </MetaField>
       </div>
@@ -82,7 +84,7 @@ function RawItemCard({ item }: { item: RawItem }) {
               aria-expanded={expanded}
               onClick={() => setExpanded((value) => !value)}
             >
-              {expanded ? "Show less" : "Show more"}
+              {expanded ? t("common.showLess") : t("common.showMore")}
               <ChevronIcon open={expanded} />
             </button>
           ) : null}
@@ -116,16 +118,17 @@ function RawItemCard({ item }: { item: RawItem }) {
 }
 
 const SOURCE_TYPES = [
-  { label: "All source types", value: "" },
-  { label: "Telegram", value: "telegram" },
-  { label: "RSS", value: "rss" },
-  { label: "Atom", value: "atom" },
-  { label: "HTML polling", value: "html_polling" }
+  { labelKey: "common.sourceType.all", value: "" },
+  { labelKey: "common.sourceType.telegram", value: "telegram" },
+  { labelKey: "common.sourceType.rss", value: "rss" },
+  { labelKey: "common.sourceType.atom", value: "atom" },
+  { labelKey: "common.sourceType.htmlPolling", value: "html_polling" }
 ] as const;
 
 const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
 
 export function Timeline() {
+  const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [sourceGroup, setSourceGroup] = useState("");
   const [sourceType, setSourceType] = useState("");
@@ -151,9 +154,9 @@ export function Timeline() {
 
   return (
     <>
-      <PageHeader title="Live Timeline" description="Recent raw items from Telegram, RSS and official pages." />
+      <PageHeader title={t("timeline.title")} description={t("timeline.description")} />
       <div className="mb-4 grid gap-2 md:grid-cols-[1fr_180px_220px_120px_220px]">
-        <input className="input input-bordered input-sm" placeholder="Keyword search" value={q} onChange={(event) => setQ(event.target.value)} />
+        <input className="input input-bordered input-sm" placeholder={t("common.keywordSearch")} value={q} onChange={(event) => setQ(event.target.value)} />
         <select
           className="select select-bordered select-sm"
           value={sourceType}
@@ -164,7 +167,7 @@ export function Timeline() {
         >
           {SOURCE_TYPES.map((sourceTypeOption) => (
             <option key={sourceTypeOption.value} value={sourceTypeOption.value}>
-              {sourceTypeOption.label}
+              {t(sourceTypeOption.labelKey)}
             </option>
           ))}
         </select>
@@ -173,7 +176,7 @@ export function Timeline() {
           value={sourceId}
           onChange={(event) => setSourceId(event.target.value)}
         >
-          <option value="">All sources</option>
+          <option value="">{t("common.allSources")}</option>
           {sources.data?.items.map((source) => (
             <option key={source.id} value={source.id}>
               {source.name}
@@ -188,7 +191,7 @@ export function Timeline() {
             setSourceId("");
           }}
         >
-          <option value="">All priorities</option>
+          <option value="">{t("common.allPriorities")}</option>
           {PRIORITIES.map((priorityOption) => (
             <option key={priorityOption} value={priorityOption}>
               {priorityOption}
@@ -210,7 +213,7 @@ export function Timeline() {
           : null}
         {query.data?.items.length === 0 ? (
           <div className="rounded border border-base-300 bg-base-100 py-10 text-center text-base-content/50">
-            No raw items in selected range.
+            {t("timeline.empty")}
           </div>
         ) : null}
         {query.data?.items.map((item) => <RawItemCard key={item.id} item={item} />)}

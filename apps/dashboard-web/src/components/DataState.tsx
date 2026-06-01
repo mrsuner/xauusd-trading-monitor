@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export function LoadingRows({ columns = 6 }: { columns?: number }) {
   return (
@@ -17,15 +18,17 @@ export function LoadingRows({ columns = 6 }: { columns?: number }) {
 }
 
 export function ErrorPanel({ error }: { error: unknown }) {
-  const message = error instanceof Error ? error.message : "Unknown error";
+  const { t } = useTranslation();
+  const message = error instanceof Error ? error.message : t("common.unknownError");
   return <div className="alert alert-error my-4 text-sm">{message}</div>;
 }
 
-export function EmptyRow({ columns, children = "No rows in selected range." }: { columns: number; children?: ReactNode }) {
+export function EmptyRow({ columns, children }: { columns: number; children?: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <tr>
       <td className="py-8 text-center text-base-content/50" colSpan={columns}>
-        {children}
+        {children ?? t("common.noRows")}
       </td>
     </tr>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { OfficialBadge, PriorityBadge, StatusBadge } from "../components/Badges";
@@ -8,11 +9,11 @@ import { formatTime, Score } from "../components/Format";
 import { PageHeader } from "../components/Layout";
 
 const SOURCE_TYPES = [
-  { label: "All source types", value: "" },
-  { label: "Telegram", value: "telegram" },
-  { label: "RSS", value: "rss" },
-  { label: "Atom", value: "atom" },
-  { label: "HTML polling", value: "html_polling" }
+  { labelKey: "common.sourceType.all", value: "" },
+  { labelKey: "common.sourceType.telegram", value: "telegram" },
+  { labelKey: "common.sourceType.rss", value: "rss" },
+  { labelKey: "common.sourceType.atom", value: "atom" },
+  { labelKey: "common.sourceType.htmlPolling", value: "html_polling" }
 ] as const;
 
 const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
@@ -48,6 +49,7 @@ function LayerBlock({
   error?: string | null;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="rounded border border-base-300 bg-base-200/25 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -56,11 +58,11 @@ function LayerBlock({
       </div>
       <div className="grid gap-1 text-xs text-base-content/65">
         <div>
-          <span className="mr-2 font-medium text-base-content/75">model</span>
+          <span className="mr-2 font-medium text-base-content/75">{t("processing.field.model")}</span>
           <span className="break-all">{model || "-"}</span>
         </div>
         <div>
-          <span className="mr-2 font-medium text-base-content/75">updated</span>
+          <span className="mr-2 font-medium text-base-content/75">{t("processing.field.updated")}</span>
           <span>{formatTime(updatedAt)}</span>
         </div>
         {children}
@@ -83,23 +85,24 @@ function UsageRow({
   outputTokens?: number | null;
   cost?: string | number | null;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <div>
-        <span className="mr-2 font-medium text-base-content/75">AI calls</span>
+        <span className="mr-2 font-medium text-base-content/75">{t("processing.field.aiCalls")}</span>
         <span>{callCount ?? 0}</span>
       </div>
       <div>
-        <span className="mr-2 font-medium text-base-content/75">tokens</span>
+        <span className="mr-2 font-medium text-base-content/75">{t("processing.field.tokens")}</span>
         <span>
           {formatCompactNumber(totalTokens)}{" "}
           <span className="text-base-content/50">
-            (in {formatCompactNumber(inputTokens)} / out {formatCompactNumber(outputTokens)})
+            {t("processing.field.tokensInOut", { in: formatCompactNumber(inputTokens), out: formatCompactNumber(outputTokens) })}
           </span>
         </span>
       </div>
       <div>
-        <span className="mr-2 font-medium text-base-content/75">cost</span>
+        <span className="mr-2 font-medium text-base-content/75">{t("processing.field.cost")}</span>
         <span>{formatUsd(cost)}</span>
       </div>
     </>
@@ -107,6 +110,7 @@ function UsageRow({
 }
 
 export function Processing() {
+  const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [sourceId, setSourceId] = useState("");
@@ -159,48 +163,48 @@ export function Processing() {
 
   return (
     <>
-      <PageHeader title="Processing" description="AI pipeline monitor for translation-summary and classification-reasoning layers." />
+      <PageHeader title={t("processing.title")} description={t("processing.description")} />
 
       <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="text-xs uppercase text-base-content/50">AI calls / 24h</div>
+          <div className="text-xs uppercase text-base-content/50">{t("processing.stat.aiCalls")}</div>
           <div className="mt-1 text-2xl font-semibold">{aiUsage.data?.totals.call_count ?? 0}</div>
-          <div className="mt-1 text-xs text-base-content/55">failed {aiUsage.data?.totals.failure_count ?? 0}</div>
+          <div className="mt-1 text-xs text-base-content/55">{t("processing.stat.failed", { count: aiUsage.data?.totals.failure_count ?? 0 })}</div>
         </div>
         <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="text-xs uppercase text-base-content/50">tokens / 24h</div>
+          <div className="text-xs uppercase text-base-content/50">{t("processing.stat.tokens")}</div>
           <div className="mt-1 text-2xl font-semibold">{formatCompactNumber(aiUsage.data?.totals.total_tokens)}</div>
           <div className="mt-1 text-xs text-base-content/55">
-            in {formatCompactNumber(aiUsage.data?.totals.input_tokens)} / out {formatCompactNumber(aiUsage.data?.totals.output_tokens)}
+            {t("processing.stat.tokensInOut", { in: formatCompactNumber(aiUsage.data?.totals.input_tokens), out: formatCompactNumber(aiUsage.data?.totals.output_tokens) })}
           </div>
         </div>
         <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="text-xs uppercase text-base-content/50">estimated cost / 24h</div>
+          <div className="text-xs uppercase text-base-content/50">{t("processing.stat.estCost")}</div>
           <div className="mt-1 text-2xl font-semibold">{formatUsd(aiUsage.data?.totals.estimated_cost_usd)}</div>
-          <div className="mt-1 text-xs text-base-content/55">based on configured model pricing</div>
+          <div className="mt-1 text-xs text-base-content/55">{t("processing.stat.costBasis")}</div>
         </div>
         <div className="rounded border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="text-xs uppercase text-base-content/50">top model</div>
+          <div className="text-xs uppercase text-base-content/50">{t("processing.stat.topModel")}</div>
           <div className="mt-1 truncate text-sm font-semibold">
             {aiUsage.data?.by_model[0] ? `${aiUsage.data.by_model[0].route_name} / ${aiUsage.data.by_model[0].model_name}` : "-"}
           </div>
           <div className="mt-1 text-xs text-base-content/55">
-            {aiUsage.data?.by_model[0] ? `${formatCompactNumber(aiUsage.data.by_model[0].total_tokens)} tokens` : "no calls"}
+            {aiUsage.data?.by_model[0] ? t("processing.stat.tokensCount", { count: formatCompactNumber(aiUsage.data.by_model[0].total_tokens) }) : t("processing.stat.noCalls")}
           </div>
         </div>
       </section>
 
       {aiUsage.data?.by_layer.length ? (
         <section className="mb-4 rounded border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="mb-3 text-xs font-semibold uppercase text-base-content/55">AI usage by layer</div>
+          <div className="mb-3 text-xs font-semibold uppercase text-base-content/55">{t("processing.byLayer.title")}</div>
           <div className="grid gap-2 md:grid-cols-2">
             {aiUsage.data.by_layer.map((layer) => (
               <div key={layer.ai_layer || "unknown"} className="rounded bg-base-200/40 p-3 text-xs">
                 <div className="mb-1 font-semibold text-base-content">{layer.ai_layer}</div>
                 <div className="grid gap-1 text-base-content/65">
-                  <span>calls {layer.call_count} / failed {layer.failure_count}</span>
-                  <span>tokens {formatCompactNumber(layer.total_tokens)} / cost {formatUsd(layer.estimated_cost_usd)}</span>
-                  <span>avg latency {layer.avg_latency_ms ?? "-"}ms</span>
+                  <span>{t("processing.byLayer.calls", { count: layer.call_count, failed: layer.failure_count })}</span>
+                  <span>{t("processing.byLayer.tokensCost", { tokens: formatCompactNumber(layer.total_tokens), cost: formatUsd(layer.estimated_cost_usd) })}</span>
+                  <span>{t("processing.byLayer.avgLatency", { ms: layer.avg_latency_ms ?? "-" })}</span>
                 </div>
               </div>
             ))}
@@ -209,7 +213,7 @@ export function Processing() {
       ) : null}
 
       <div className="mb-4 grid gap-2 xl:grid-cols-[minmax(220px,1fr)_170px_220px_110px_170px_170px]">
-        <input className="input input-bordered input-sm" placeholder="Keyword search" value={q} onChange={(event) => setQ(event.target.value)} />
+        <input className="input input-bordered input-sm" placeholder={t("common.keywordSearch")} value={q} onChange={(event) => setQ(event.target.value)} />
         <select
           className="select select-bordered select-sm"
           value={sourceType}
@@ -220,7 +224,7 @@ export function Processing() {
         >
           {SOURCE_TYPES.map((sourceTypeOption) => (
             <option key={sourceTypeOption.value} value={sourceTypeOption.value}>
-              {sourceTypeOption.label}
+              {t(sourceTypeOption.labelKey)}
             </option>
           ))}
         </select>
@@ -229,7 +233,7 @@ export function Processing() {
           value={sourceId}
           onChange={(event) => setSourceId(event.target.value)}
         >
-          <option value="">All sources</option>
+          <option value="">{t("common.allSources")}</option>
           {sources.data?.items.map((source) => (
             <option key={source.id} value={source.id}>
               {source.name}
@@ -244,7 +248,7 @@ export function Processing() {
             setSourceId("");
           }}
         >
-          <option value="">All priorities</option>
+          <option value="">{t("common.allPriorities")}</option>
           {PRIORITIES.map((priorityOption) => (
             <option key={priorityOption} value={priorityOption}>
               {priorityOption}
@@ -252,7 +256,7 @@ export function Processing() {
           ))}
         </select>
         <select className="select select-bordered select-sm" value={translationStatus} onChange={(event) => setTranslationStatus(event.target.value)}>
-          <option value="">All L1 statuses</option>
+          <option value="">{t("processing.filter.allL1")}</option>
           {TRANSLATION_STATUSES.map((status) => (
             <option key={status} value={status}>
               {status}
@@ -260,7 +264,7 @@ export function Processing() {
           ))}
         </select>
         <select className="select select-bordered select-sm" value={classificationStatus} onChange={(event) => setClassificationStatus(event.target.value)}>
-          <option value="">All L2 statuses</option>
+          <option value="">{t("processing.filter.allL2")}</option>
           {CLASSIFICATION_STATUSES.map((status) => (
             <option key={status} value={status}>
               {status}
@@ -271,7 +275,7 @@ export function Processing() {
 
       <div className="mb-4 grid gap-2 md:grid-cols-[180px_180px_minmax(220px,1fr)]">
         <select className="select select-bordered select-sm" value={classificationStage} onChange={(event) => setClassificationStage(event.target.value)}>
-          <option value="">All L2 stages</option>
+          <option value="">{t("processing.filter.allL2Stages")}</option>
           {CLASSIFICATION_STAGES.map((stage) => (
             <option key={stage} value={stage}>
               {stage}
@@ -279,9 +283,9 @@ export function Processing() {
           ))}
         </select>
         <select className="select select-bordered select-sm" value={isRelevant} onChange={(event) => setIsRelevant(event.target.value)}>
-          <option value="">All relevance</option>
-          <option value="true">relevant</option>
-          <option value="false">not relevant</option>
+          <option value="">{t("processing.filter.allRelevance")}</option>
+          <option value="true">{t("processing.filter.relevant")}</option>
+          <option value="false">{t("processing.filter.notRelevant")}</option>
         </select>
         <input className="input input-bordered input-sm" placeholder="source_group" value={sourceGroup} onChange={(event) => setSourceGroup(event.target.value)} />
       </div>
@@ -289,7 +293,7 @@ export function Processing() {
       {query.error ? <ErrorPanel error={query.error} /> : null}
 
       <div className="mb-3 text-xs text-base-content/50">
-        Showing {query.data?.items.length ?? 0} of {query.data?.total ?? 0} pipeline items.
+        {t("processing.showing", { shown: query.data?.items.length ?? 0, total: query.data?.total ?? 0 })}
       </div>
 
       <div className="space-y-3">
@@ -307,7 +311,7 @@ export function Processing() {
           : null}
         {query.data?.items.length === 0 ? (
           <div className="rounded border border-base-300 bg-base-100 py-10 text-center text-base-content/50">
-            No processing pipeline items found.
+            {t("processing.empty")}
           </div>
         ) : null}
         {query.data?.items.map((item) => {
@@ -330,14 +334,14 @@ export function Processing() {
 
               <div className="grid gap-3 lg:grid-cols-2">
                 <LayerBlock
-                  title="Layer 1 translation-summary"
+                  title={t("processing.layer1Title")}
                   status={item.translation_status}
                   model={translationModel}
                   updatedAt={item.translation_updated_at}
                   error={item.translation_error}
                 >
                   <div>
-                    <span className="mr-2 font-medium text-base-content/75">input chars</span>
+                    <span className="mr-2 font-medium text-base-content/75">{t("processing.field.inputChars")}</span>
                     <span>{item.translation_input_chars ?? "-"}</span>
                   </div>
                   <UsageRow
@@ -350,22 +354,22 @@ export function Processing() {
                 </LayerBlock>
 
                 <LayerBlock
-                  title="Layer 2 classification-reasoning"
+                  title={t("processing.layer2Title")}
                   status={item.classification_status || "pending"}
                   model={classificationModel}
                   updatedAt={item.classification_updated_at}
                   error={item.classification_error}
                 >
                   <div>
-                    <span className="mr-2 font-medium text-base-content/75">stage</span>
+                    <span className="mr-2 font-medium text-base-content/75">{t("processing.field.stage")}</span>
                     <span>{item.classification_stage || "-"}</span>
                   </div>
                   <div>
-                    <span className="mr-2 font-medium text-base-content/75">relevance</span>
-                    <span>{item.is_relevant === null || item.is_relevant === undefined ? "-" : item.is_relevant ? "yes" : "no"}</span>
+                    <span className="mr-2 font-medium text-base-content/75">{t("processing.field.relevance")}</span>
+                    <span>{item.is_relevant === null || item.is_relevant === undefined ? "-" : item.is_relevant ? t("processing.relevance.yes") : t("processing.relevance.no")}</span>
                   </div>
                   <div>
-                    <span className="mr-2 font-medium text-base-content/75">score</span>
+                    <span className="mr-2 font-medium text-base-content/75">{t("processing.field.score")}</span>
                     <Score value={item.relevance_score} />
                   </div>
                   <UsageRow
@@ -377,7 +381,7 @@ export function Processing() {
                   />
                   {item.filter_reason ? (
                     <div>
-                      <span className="mr-2 font-medium text-base-content/75">reason</span>
+                      <span className="mr-2 font-medium text-base-content/75">{t("processing.field.reason")}</span>
                       <span>{item.filter_reason}</span>
                     </div>
                   ) : null}

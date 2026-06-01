@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Source, SourcePayload } from "../api/types";
@@ -191,7 +192,8 @@ function SourceModal({
   onSubmit: () => void;
   setForm: (form: SourceFormState) => void;
 }) {
-  const title = mode === "create" ? "Add Source" : "Edit Source";
+  const { t } = useTranslation();
+  const title = mode === "create" ? t("sources.addSource") : t("sources.editSource");
   const set = <K extends keyof SourceFormState>(key: K, value: SourceFormState[K]) => setForm({ ...form, [key]: value });
 
   return (
@@ -200,10 +202,10 @@ function SourceModal({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-base-300 bg-base-100 px-4 py-3">
           <div>
             <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-xs text-base-content/55">Enum fields use dropdowns to keep source registry consistent.</p>
+            <p className="text-xs text-base-content/55">{t("sources.modalSubtitle")}</p>
           </div>
           <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
         </div>
 
@@ -211,68 +213,68 @@ function SourceModal({
           {error ? <ErrorPanel error={error} /> : null}
 
           <section>
-            <h3 className="mb-2 text-sm font-semibold">Identity</h3>
+            <h3 className="mb-2 text-sm font-semibold">{t("sources.section.identity")}</h3>
             <div className="grid gap-3 lg:grid-cols-2">
               <div>
-                <FieldLabel>Name</FieldLabel>
+                <FieldLabel>{t("sources.field.name")}</FieldLabel>
                 <input className="input input-bordered input-sm w-full" value={form.name} onChange={(event) => set("name", event.target.value)} />
               </div>
               <div>
-                <FieldLabel>Handle or URL</FieldLabel>
+                <FieldLabel>{t("sources.field.handleOrUrl")}</FieldLabel>
                 <input className="input input-bordered input-sm w-full" value={form.handle_or_url} onChange={(event) => set("handle_or_url", event.target.value)} />
               </div>
-              <SelectField label="Source Type" value={form.source_type} options={SOURCE_TYPES} onChange={(value) => set("source_type", value)} />
-              <SelectField label="Source Group" value={form.source_group} options={SOURCE_GROUPS} onChange={(value) => set("source_group", value)} />
-              <SelectField label="Official Level" value={form.official_level} options={OFFICIAL_LEVELS} onChange={(value) => set("official_level", value)} />
-              <SelectField label="Language" value={form.language ?? "unknown"} options={LANGUAGES} onChange={(value) => set("language", value)} />
-              <SelectField label="Priority" value={form.priority} options={PRIORITIES} onChange={(value) => set("priority", value)} />
+              <SelectField label={t("sources.field.sourceType")} value={form.source_type} options={SOURCE_TYPES} onChange={(value) => set("source_type", value)} />
+              <SelectField label={t("sources.field.sourceGroup")} value={form.source_group} options={SOURCE_GROUPS} onChange={(value) => set("source_group", value)} />
+              <SelectField label={t("sources.field.officialLevel")} value={form.official_level} options={OFFICIAL_LEVELS} onChange={(value) => set("official_level", value)} />
+              <SelectField label={t("sources.field.language")} value={form.language ?? "unknown"} options={LANGUAGES} onChange={(value) => set("language", value)} />
+              <SelectField label={t("sources.field.priority")} value={form.priority} options={PRIORITIES} onChange={(value) => set("priority", value)} />
               <div>
-                <FieldLabel>Stance</FieldLabel>
+                <FieldLabel>{t("sources.field.stance")}</FieldLabel>
                 <input className="input input-bordered input-sm w-full" value={form.stance ?? ""} onChange={(event) => set("stance", event.target.value)} />
               </div>
             </div>
           </section>
 
           <section>
-            <h3 className="mb-2 text-sm font-semibold">Scoring</h3>
+            <h3 className="mb-2 text-sm font-semibold">{t("sources.section.scoring")}</h3>
             <div className="grid gap-3 lg:grid-cols-4">
-              <NumberField label="Reliability Score" value={form.reliability_score} max={100} onChange={(value) => set("reliability_score", value ?? 0)} />
-              <NumberField label="Latency Score" value={form.latency_score} max={100} onChange={(value) => set("latency_score", value ?? 0)} />
-              <NumberField label="Alert Weight" value={form.alert_weight} max={100} onChange={(value) => set("alert_weight", value ?? 0)} />
-              <ToggleField label="Requires Confirmation" checked={form.requires_confirmation} onChange={(checked) => set("requires_confirmation", checked)} />
+              <NumberField label={t("sources.field.reliabilityScore")} value={form.reliability_score} max={100} onChange={(value) => set("reliability_score", value ?? 0)} />
+              <NumberField label={t("sources.field.latencyScore")} value={form.latency_score} max={100} onChange={(value) => set("latency_score", value ?? 0)} />
+              <NumberField label={t("sources.field.alertWeight")} value={form.alert_weight} max={100} onChange={(value) => set("alert_weight", value ?? 0)} />
+              <ToggleField label={t("sources.field.requiresConfirmation")} checked={form.requires_confirmation} onChange={(checked) => set("requires_confirmation", checked)} />
             </div>
           </section>
 
           <section>
-            <h3 className="mb-2 text-sm font-semibold">Translation</h3>
+            <h3 className="mb-2 text-sm font-semibold">{t("sources.section.translation")}</h3>
             <div className="grid gap-3 lg:grid-cols-4">
-              <SelectField label="Policy" value={form.translation_policy} options={TRANSLATION_POLICIES} onChange={(value) => set("translation_policy", value)} />
-              <SelectField label="Priority" value={form.translation_priority} options={TRANSLATION_PRIORITIES} onChange={(value) => set("translation_priority", value)} />
-              <NumberField label="Max Chars" value={form.translation_max_chars ?? null} onChange={(value) => set("translation_max_chars", value)} />
-              <ToggleField label="Always Full Translate" checked={form.always_full_translate} onChange={(checked) => set("always_full_translate", checked)} />
+              <SelectField label={t("sources.field.policy")} value={form.translation_policy} options={TRANSLATION_POLICIES} onChange={(value) => set("translation_policy", value)} />
+              <SelectField label={t("sources.field.priority")} value={form.translation_priority} options={TRANSLATION_PRIORITIES} onChange={(value) => set("translation_priority", value)} />
+              <NumberField label={t("sources.field.maxChars")} value={form.translation_max_chars ?? null} onChange={(value) => set("translation_max_chars", value)} />
+              <ToggleField label={t("sources.field.alwaysFullTranslate")} checked={form.always_full_translate} onChange={(checked) => set("always_full_translate", checked)} />
             </div>
           </section>
 
           <section>
-            <h3 className="mb-2 text-sm font-semibold">Alert Policy</h3>
+            <h3 className="mb-2 text-sm font-semibold">{t("sources.section.alertPolicy")}</h3>
             <div className="grid gap-3 lg:grid-cols-4">
-              <ToggleField label="Telegram Alerts" checked={form.telegram_alert_enabled} onChange={(checked) => set("telegram_alert_enabled", checked)} />
-              <SelectField label="Telegram Min Severity" value={form.telegram_min_severity} options={SEVERITIES} onChange={(value) => set("telegram_min_severity", value)} />
-              <ToggleField label="Pushover Alerts" checked={form.pushover_alert_enabled} onChange={(checked) => set("pushover_alert_enabled", checked)} />
-              <SelectField label="Pushover Min Severity" value={form.pushover_min_severity} options={SEVERITIES} onChange={(value) => set("pushover_min_severity", value)} />
-              <NumberField label="Rate Limit / Hour" value={form.alert_rate_limit_per_hour ?? null} onChange={(value) => set("alert_rate_limit_per_hour", value)} />
-              <NumberField label="Cooldown Minutes" value={form.alert_cooldown_minutes ?? null} onChange={(value) => set("alert_cooldown_minutes", value)} />
-              <ToggleField label="Enabled" checked={form.enabled} onChange={(checked) => set("enabled", checked)} />
+              <ToggleField label={t("sources.field.telegramAlerts")} checked={form.telegram_alert_enabled} onChange={(checked) => set("telegram_alert_enabled", checked)} />
+              <SelectField label={t("sources.field.telegramMinSeverity")} value={form.telegram_min_severity} options={SEVERITIES} onChange={(value) => set("telegram_min_severity", value)} />
+              <ToggleField label={t("sources.field.pushoverAlerts")} checked={form.pushover_alert_enabled} onChange={(checked) => set("pushover_alert_enabled", checked)} />
+              <SelectField label={t("sources.field.pushoverMinSeverity")} value={form.pushover_min_severity} options={SEVERITIES} onChange={(value) => set("pushover_min_severity", value)} />
+              <NumberField label={t("sources.field.rateLimit")} value={form.alert_rate_limit_per_hour ?? null} onChange={(value) => set("alert_rate_limit_per_hour", value)} />
+              <NumberField label={t("sources.field.cooldownMinutes")} value={form.alert_cooldown_minutes ?? null} onChange={(value) => set("alert_cooldown_minutes", value)} />
+              <ToggleField label={t("sources.field.enabled")} checked={form.enabled} onChange={(checked) => set("enabled", checked)} />
             </div>
           </section>
         </div>
 
         <div className="sticky bottom-0 flex justify-end gap-2 border-t border-base-300 bg-base-100 px-4 py-3">
           <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="btn btn-primary btn-sm" type="button" disabled={isPending || !form.name || !form.handle_or_url} onClick={onSubmit}>
-            {isPending ? "Saving..." : "Save"}
+            {isPending ? t("common.saving") : t("common.save")}
           </button>
         </div>
       </div>
@@ -299,6 +301,7 @@ function SourceCard({
   onArchive: () => void;
   actionPending: boolean;
 }) {
+  const { t } = useTranslation();
   const status = source.archived_at ? "archived" : source.enabled ? healthStatus || "unknown" : "disabled";
   return (
     <article className="rounded border border-base-300 bg-base-100 p-4">
@@ -314,62 +317,63 @@ function SourceCard({
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-base-content/65">
             <span className="rounded bg-base-200 px-2 py-1">{source.source_type}</span>
             <span className="rounded bg-base-200 px-2 py-1">{source.source_group}</span>
-            <span className="rounded bg-base-200 px-2 py-1">{source.language || "language: -"}</span>
+            <span className="rounded bg-base-200 px-2 py-1">{source.language || t("sources.card.languageFallback")}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-outline btn-sm" type="button" onClick={onEdit}>
-            Edit
+            {t("common.edit")}
           </button>
           {source.enabled ? (
             <button className="btn btn-outline btn-sm" type="button" disabled={actionPending} onClick={onDisable}>
-              Disable
+              {t("common.disable")}
             </button>
           ) : (
             <button className="btn btn-outline btn-sm" type="button" disabled={actionPending} onClick={onEnable}>
-              Enable
+              {t("common.enable")}
             </button>
           )}
           <button className="btn btn-outline btn-sm text-error" type="button" disabled={actionPending || Boolean(source.archived_at)} onClick={onArchive}>
-            Archive
+            {t("common.archive")}
           </button>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div>
-          <div className="text-xs text-base-content/50">Reliability</div>
+          <div className="text-xs text-base-content/50">{t("sources.card.reliability")}</div>
           <Score value={source.reliability_score} />
         </div>
         <div>
-          <div className="text-xs text-base-content/50">Latency</div>
+          <div className="text-xs text-base-content/50">{t("sources.card.latency")}</div>
           <Score value={source.latency_score} />
         </div>
         <div>
-          <div className="text-xs text-base-content/50">Raw Items 24h</div>
+          <div className="text-xs text-base-content/50">{t("sources.card.rawItems24h")}</div>
           <span className="font-mono text-sm">{source.raw_items_24h ?? 0}</span>
         </div>
         <div>
-          <div className="text-xs text-base-content/50">Events 24h</div>
+          <div className="text-xs text-base-content/50">{t("sources.card.events24h")}</div>
           <span className="font-mono text-sm">{source.events_24h ?? 0}</span>
         </div>
         <div>
-          <div className="text-xs text-base-content/50">Last Item</div>
+          <div className="text-xs text-base-content/50">{t("sources.card.lastItem")}</div>
           <span className="text-sm">{formatTime(source.last_raw_item_at)}</span>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-base-content/65">
-        <span className="rounded bg-base-200 px-2 py-1">TG {source.telegram_alert_enabled ? source.telegram_min_severity : "off"}</span>
-        <span className="rounded bg-base-200 px-2 py-1">Pushover {source.pushover_alert_enabled ? source.pushover_min_severity : "off"}</span>
-        <span className="rounded bg-base-200 px-2 py-1">Weight {source.alert_weight}</span>
-        <span className="rounded bg-base-200 px-2 py-1">Last Success {formatTime(lastSuccess)}</span>
+        <span className="rounded bg-base-200 px-2 py-1">TG {source.telegram_alert_enabled ? source.telegram_min_severity : t("sources.card.off")}</span>
+        <span className="rounded bg-base-200 px-2 py-1">Pushover {source.pushover_alert_enabled ? source.pushover_min_severity : t("sources.card.off")}</span>
+        <span className="rounded bg-base-200 px-2 py-1">{t("sources.card.weight", { value: source.alert_weight })}</span>
+        <span className="rounded bg-base-200 px-2 py-1">{t("sources.card.lastSuccess", { time: formatTime(lastSuccess) })}</span>
       </div>
     </article>
   );
 }
 
 export function Sources() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [sourceType, setSourceType] = useState("");
   const [sourceGroup, setSourceGroup] = useState("");
@@ -428,40 +432,40 @@ export function Sources() {
   return (
     <>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <PageHeader title="Sources" description="Source registry, collector health, scoring and alert policy management." />
+        <PageHeader title={t("sources.title")} description={t("sources.description")} />
         <button className="btn btn-primary btn-sm" type="button" onClick={() => setModal({ mode: "create", form: defaultSourceForm() })}>
-          Add Source
+          {t("sources.addSource")}
         </button>
       </div>
 
       <div className="mb-4 grid gap-3 rounded border border-base-300 bg-base-100 p-3 sm:grid-cols-2 lg:grid-cols-5">
         <select className="select select-bordered select-sm w-full" value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
-          <option value="">All source types</option>
+          <option value="">{t("sources.filter.allSourceTypes")}</option>
           {SOURCE_TYPES.map((value) => (
             <option key={value} value={value}>{value}</option>
           ))}
         </select>
         <select className="select select-bordered select-sm w-full" value={sourceGroup} onChange={(event) => setSourceGroup(event.target.value)}>
-          <option value="">All source groups</option>
+          <option value="">{t("sources.filter.allSourceGroups")}</option>
           {SOURCE_GROUPS.map((value) => (
             <option key={value} value={value}>{value}</option>
           ))}
         </select>
         <select className="select select-bordered select-sm w-full" value={priority} onChange={(event) => setPriority(event.target.value)}>
-          <option value="">All priorities</option>
+          <option value="">{t("sources.filter.allPriorities")}</option>
           {PRIORITIES.map((value) => (
             <option key={value} value={value}>{value}</option>
           ))}
         </select>
         <select className="select select-bordered select-sm w-full" value={enabled} onChange={(event) => setEnabled(event.target.value)}>
-          <option value="">All enabled states</option>
-          <option value="true">enabled</option>
-          <option value="false">disabled</option>
+          <option value="">{t("sources.filter.allEnabled")}</option>
+          <option value="true">{t("sources.filter.enabled")}</option>
+          <option value="false">{t("sources.filter.disabled")}</option>
         </select>
         <select className="select select-bordered select-sm w-full" value={archived} onChange={(event) => setArchived(event.target.value)}>
-          <option value="">All archive states</option>
-          <option value="false">active registry</option>
-          <option value="true">archived</option>
+          <option value="">{t("sources.filter.allArchive")}</option>
+          <option value="false">{t("sources.filter.activeRegistry")}</option>
+          <option value="true">{t("sources.filter.archived")}</option>
         </select>
       </div>
 
@@ -470,12 +474,12 @@ export function Sources() {
       {actionMutation.error ? <ErrorPanel error={actionMutation.error} /> : null}
 
       <div className="mb-3 text-sm text-base-content/60">
-        {sources.isLoading ? "Loading sources..." : `${sources.data?.total ?? 0} sources`}
+        {sources.isLoading ? t("sources.loading") : t("sources.count", { count: sources.data?.total ?? 0 })}
       </div>
 
       <div className="space-y-3">
         {sources.data?.items.length === 0 ? (
-          <div className="rounded border border-base-300 bg-base-100 py-10 text-center text-base-content/50">No sources found.</div>
+          <div className="rounded border border-base-300 bg-base-100 py-10 text-center text-base-content/50">{t("sources.empty")}</div>
         ) : null}
         {sources.data?.items.map((source) => {
           const sourceHealth = healthBySource.get(source.id);
@@ -490,7 +494,7 @@ export function Sources() {
               onEnable={() => actionMutation.mutate({ action: "enable", sourceId: source.id })}
               onDisable={() => actionMutation.mutate({ action: "disable", sourceId: source.id })}
               onArchive={() => {
-                if (window.confirm(`Archive ${source.name}? Historical rows remain linked, but collectors should ignore it.`)) {
+                if (window.confirm(t("sources.archiveConfirm", { name: source.name }))) {
                   actionMutation.mutate({ action: "archive", sourceId: source.id });
                 }
               }}

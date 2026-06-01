@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { persistLanguage, type Language } from "../i18n";
 
 const navItems = [
-  { to: "/", label: "Overview" },
-  { to: "/timeline", label: "Timeline" },
-  { to: "/events", label: "Events" },
-  { to: "/sources", label: "Sources" },
-  { to: "/processing", label: "Processing" },
-  { to: "/alerts", label: "Alerts" }
+  { to: "/", labelKey: "nav.overview" },
+  { to: "/timeline", labelKey: "nav.timeline" },
+  { to: "/events", labelKey: "nav.events" },
+  { to: "/sources", labelKey: "nav.sources" },
+  { to: "/processing", labelKey: "nav.processing" },
+  { to: "/alerts", labelKey: "nav.alerts" }
 ];
 
 type Theme = "radar-light" | "radar-dark";
@@ -18,6 +20,7 @@ function currentTheme(): Theme {
 }
 
 function ThemeToggle() {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<Theme>(currentTheme);
 
   useEffect(() => {
@@ -30,12 +33,13 @@ function ThemeToggle() {
   }, [theme]);
 
   const next = theme === "radar-dark" ? "radar-light" : "radar-dark";
+  const label = next === "radar-dark" ? t("layout.switchToDark") : t("layout.switchToLight");
   return (
     <button
       type="button"
       className="btn btn-ghost btn-sm btn-circle"
-      aria-label={`Switch to ${next === "radar-dark" ? "dark" : "light"} theme`}
-      title={`Switch to ${next === "radar-dark" ? "dark" : "light"} theme`}
+      aria-label={label}
+      title={label}
       onClick={() => setTheme(next)}
     >
       {theme === "radar-dark" ? (
@@ -48,6 +52,31 @@ function ThemeToggle() {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       )}
+    </button>
+  );
+}
+
+function LanguageToggle() {
+  const { t, i18n } = useTranslation();
+  const current = (i18n.resolvedLanguage ?? "en") as Language;
+  const next: Language = current === "zh-Hant" ? "en" : "zh-Hant";
+  const shortLabel = current === "zh-Hant" ? "中" : "EN";
+
+  const switchLanguage = () => {
+    void i18n.changeLanguage(next);
+    persistLanguage(next);
+    document.documentElement.lang = next;
+  };
+
+  return (
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm btn-circle text-xs font-semibold"
+      aria-label={t("layout.switchLanguage")}
+      title={t("layout.switchLanguage")}
+      onClick={switchLanguage}
+    >
+      {shortLabel}
     </button>
   );
 }
@@ -69,15 +98,17 @@ function CloseIcon() {
 }
 
 function Brand() {
+  const { t } = useTranslation();
   return (
     <div className="min-w-0">
-      <div className="truncate text-lg font-semibold">XAUUSD Event Radar</div>
-      <div className="truncate text-xs text-base-content/55">News operations dashboard</div>
+      <div className="truncate text-lg font-semibold">{t("common.brand")}</div>
+      <div className="truncate text-xs text-base-content/55">{t("common.tagline")}</div>
     </div>
   );
 }
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useTranslation();
   return (
     <nav className="flex flex-col gap-1">
       {navItems.map((item) => (
@@ -95,7 +126,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             ].join(" ")
           }
         >
-          {item.label}
+          {t(item.labelKey)}
         </NavLink>
       ))}
     </nav>
@@ -103,6 +134,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function Layout() {
+  const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
 
@@ -119,8 +151,11 @@ export function Layout() {
         <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 p-3">
           <Navigation />
           <div className="flex items-center justify-between rounded border border-base-300 bg-base-200/60 px-3 py-2">
-            <span className="text-xs text-base-content/60">Theme</span>
-            <ThemeToggle />
+            <span className="text-xs text-base-content/60">{t("common.theme")}</span>
+            <div className="flex items-center gap-1">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </aside>
@@ -131,14 +166,15 @@ export function Layout() {
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-circle shrink-0"
-              aria-label="Open navigation"
-              title="Open navigation"
+              aria-label={t("layout.openNav")}
+              title={t("layout.openNav")}
               onClick={() => setMobileNavOpen(true)}
             >
               <MenuIcon />
             </button>
             <Brand />
-            <div className="shrink-0">
+            <div className="flex shrink-0 items-center gap-1">
+              <LanguageToggle />
               <ThemeToggle />
             </div>
           </div>
@@ -149,7 +185,7 @@ export function Layout() {
             <button
               type="button"
               className="absolute inset-0 bg-black/35"
-              aria-label="Close navigation"
+              aria-label={t("layout.closeNav")}
               onClick={() => setMobileNavOpen(false)}
             />
             <aside className="relative flex h-full w-72 max-w-[86vw] flex-col border-r border-base-300 bg-base-100 shadow-xl">
@@ -158,8 +194,8 @@ export function Layout() {
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm btn-circle shrink-0"
-                  aria-label="Close navigation"
-                  title="Close navigation"
+                  aria-label={t("layout.closeNav")}
+                  title={t("layout.closeNav")}
                   onClick={() => setMobileNavOpen(false)}
                 >
                   <CloseIcon />
