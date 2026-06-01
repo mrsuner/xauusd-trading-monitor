@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "tickbase-dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #0a0a0b;
+  --color-base-200: #141416;
+  --color-base-300: #1f1f23;
+  --color-base-content: #fafaf9;
+
+  --color-primary: #f5b301;
+  --color-primary-content: #1a1205;
+  --color-secondary: #a1a1aa;
+  --color-secondary-content: #0a0a0b;
+  --color-accent: #fbbf24;
+  --color-accent-content: #1a1205;
+  --color-neutral: #27272a;
+  --color-neutral-content: #fafaf9;
+
+  --color-info: #38bdf8;
+  --color-info-content: #06141f;
+  --color-success: #34d399;
+  --color-success-content: #04140d;
+  --color-warning: #fbbf24;
+  --color-warning-content: #1a1205;
+  --color-error: #f87171;
+  --color-error-content: #1f0606;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "tickbase-light";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #fafaf9;
+  --color-base-300: #f4f4f5;
+  --color-base-content: #1c1917;
+
+  --color-primary: #c08a00;
+  --color-primary-content: #fffdf7;
+  --color-secondary: #71717a;
+  --color-secondary-content: #ffffff;
+  --color-accent: #d97706;
+  --color-accent-content: #ffffff;
+  --color-neutral: #27272a;
+  --color-neutral-content: #fafafa;
+
+  --color-info: #0ea5e9;
+  --color-info-content: #ffffff;
+  --color-success: #059669;
+  --color-success-content: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-content: #ffffff;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code",
+    Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-base-100);
+  color: var(--color-base-content);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklch, var(--color-base-content) 5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--color-base-content) 5%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+}

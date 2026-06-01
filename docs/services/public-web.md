@@ -410,3 +410,79 @@ Browser tests：
 - source links 可點擊。
 - filters 可用。
 - About page 清楚說明非交易建議。
+
+## 13. V1 實作狀態
+
+目前第一版已建立於：
+
+```text
+apps/public-web
+```
+
+已完成：
+
+- React Router V7 app shell。
+- TanStack Query API client。
+- TailwindCSS V4 + DaisyUI V5 `tickbase-dark` / `tickbase-light` theme。
+- TickBase-style sticky nav、theme toggle、footer。
+- Public timeline card list。
+- Event detail page。
+- Tag page。
+- About page。
+- Status page。
+- severity、confirmation、category、tag、search filters。
+- API unavailable / empty / loading state。
+- local demo data mode，方便在 public-api 尚未部署或無資料時檢查 UI。
+
+尚未完成：
+
+- Cloudflare Pages project setup。
+- production `PUBLIC_API_BASE_URL` 設定。
+- browser e2e tests。
+- public claim group。
+- related events。
+- SEO / OG dynamic event detail metadata。
+
+### 13.1 Local Development
+
+使用 demo data 檢查 UI：
+
+```text
+cd apps/public-web
+VITE_PUBLIC_WEB_DEMO=true npm run dev
+```
+
+使用本機 public-api proxy：
+
+```text
+cd apps/public-web
+VITE_PUBLIC_API_PROXY_TARGET=http://localhost:8080 npm run dev
+```
+
+使用遠端 public-api：
+
+```text
+cd apps/public-web
+VITE_PUBLIC_API_BASE_URL=https://api.news.thetickbase.com npm run dev
+```
+
+### 13.2 Cloudflare Pages
+
+V1 建議設定：
+
+```text
+Root directory: apps/public-web
+Build command: npm ci && npm run build
+Build output directory: dist
+Environment variables:
+  VITE_PUBLIC_API_BASE_URL=https://api.news.thetickbase.com
+```
+
+若需要 runtime override，可上傳 `public/env.js` 類似：
+
+```js
+window.__TICKBASE_NEWS_CONFIG__ = {
+  PUBLIC_API_BASE_URL: "https://api.news.thetickbase.com",
+  PUBLIC_WEB_DEMO: false
+};
+```

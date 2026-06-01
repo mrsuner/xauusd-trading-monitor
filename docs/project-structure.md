@@ -4,7 +4,7 @@
 
 本專案採用 monorepo 結構。V1 會包含多個 Python 後端服務、共用 Python package、Alembic migration、HomeLab production infra，以及文件。
 
-目前只建立目錄骨架，不放服務程式碼。
+目前已逐步補上服務程式碼與前端 app。目錄仍維持每個 service / app 可獨立 build、測試與部署的 monorepo 邊界。
 
 ## 2. 根目錄
 
@@ -230,15 +230,13 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `dashboard-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>` |
 | `public-web` | Cloudflare Pages build artifact，V1 不需要 Docker image |
 
-## 9. 暫不建立的內容
+## 9. 仍待補強的內容
 
-目前不建立：
+目前仍待補強：
 
-- service code
-- Dockerfile
-- `pyproject.toml`
-- Alembic config
-- frontend app code
-- CI workflow
+- CI workflow。
+- `public-web` Cloudflare Pages 實際部署設定。
+- `public-web` browser tests。
+- public claim group / related events。
 
-這些會在實作階段逐步加入。
+這些會在後續實作階段逐步加入。
