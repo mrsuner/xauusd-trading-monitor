@@ -15,6 +15,7 @@
 本文不替代既有服務文檔，而是補充 V1+ 的產品與工程規劃。實作時仍應分別更新：
 
 - `docs/services/normalizer-classifier.md`
+- `docs/services/event-router.md`
 - `docs/services/alert-dispatcher.md`
 - `docs/services/dashboard-api.md`
 - `docs/services/dashboard-web.md`
@@ -29,6 +30,7 @@
 | Normalizer 多 worker queue | P0 | 部分完成 | 已支援 production compose scale 2 個 normalizer instance、PostgreSQL `FOR UPDATE SKIP LOCKED` claim、stale running task recovery；backlog 指標與跨 worker budget guard 待補 |
 | Timeline taxonomy filters | P0 | 已完成第一版 | Layer 1 已回寫 category/tags/actors，Timeline 可按分類、主題與角色檢索 |
 | Per-item value scoring / Timeline relevance UI | P0 | 部分完成 | Timeline 已顯示 Layer 2 relevance / event state；後續再補 `item_value_score` 與 source metadata 融合 |
+| Event routing layer | P0 | 規劃中 | 需要把私人通知與公共發布的出口決策集中化，讓 dispatcher / publisher 只負責 delivery |
 | Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
 | Public publishing plane | P2 | 規劃中 | HomeLab 控制公共發布，VPS 只承擔 public API / public website / public DB |
@@ -40,6 +42,7 @@
 P0：
 
 - Per-item value scoring：在現有 Layer 2 relevance 基礎上，後續加入可解釋的 `item_value_score` / routing decision，融合 AI relevance、event type、actor、keyword、source priority / reliability、routine / commentary / duplicate penalty。
+- Event routing layer：新增 `event-router`，集中從 `events` 建立 `alerts`、`public_outbox` 與 `event_route_decisions`，並把 `alert-dispatcher` 收斂為純 delivery worker。
 - Normalizer 多 worker queue：支援多個 `normalizer-classifier` instance 並行、stale lock recovery、production compose replicas、backlog / oldest pending age / throughput 指標，以及跨 worker AI budget guard。
 
 P1：
@@ -62,7 +65,7 @@ P2 / 技術債：
 
 - V2 Claim Conflict Engine：完整 claim group、跨來源口徑衝突偵測。
 - V3 Market Context Layer：`mt5-collector`、`market_snapshots`、XAUUSD 異動偵測、行情先動反查消息、market move explainer。
-- Public Publishing Plane：公共網站、public ingest API、`public_outbox`、`public-syncer`、Telegram Channel publisher 與 X publisher。
+- Public Publishing Plane：公共網站、public ingest API、`event-router`、`public_outbox`、`public-syncer`、Telegram Channel publisher 與 X publisher。
 - Dashboard review system：Claim Groups 專頁、Market Move Review、行情 overlay、WebSocket / SSE、Replay mode、User preferences、Alert rule editor。
 
 ### 2.2 Timeline Relevance UI Plan
@@ -925,6 +928,7 @@ event_id / has_event
 
 HomeLab 新增元件：
 
+- `event-router`：集中根據 `events`、source metadata 與 route policy 建立 `alerts`、`public_outbox` 與 route audit。
 - `public_outbox`：保存已去敏、可公開、可重試的事件草稿。`0010_public_outbox` 已完成第一版 schema。
 - `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。
 - `telegram-channel-publisher`：把 public-safe event 發布到公共 Telegram Channel。runtime skeleton 已完成，預設 dry-run 且需透過 `public-publishing` profile 啟動。
@@ -940,13 +944,13 @@ VPS 新增元件：
 
 - public payload 必須是摘要與來源連結，不發布完整 `text_raw` 或大段原文。
 - public ingest API 需要 HMAC / API key、timestamp / nonce、`idempotency_key`、`schema_version`、rate limit 與 audit log。
-- public publisher 與 `alert-dispatcher` 不共用策略與 delivery 狀態；前者面向公開訂閱者，後者面向個人通知。
+- `event-router` 統一管理出口策略；public publisher 與 `alert-dispatcher` 不共用 delivery 狀態，前者面向公開訂閱者，後者面向個人通知。
 - aggregator / OSINT 單源消息需要標記未確認，或預設不進入公共發布。
 
 建議實作順序：
 
 1. 定義 public payload schema 與 `public_outbox` migration。已完成第一版。
-2. 實作 public draft generator，從 `events` 生成 public-safe content。
+2. 實作 `event-router`，從 `events` 生成 private alert decisions 與 public-safe content。
 3. 實作 VPS `public-api` ingest，先不做 public website UI。
 4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。
 5. 實作 `public-web` 第一版列表與事件詳情。

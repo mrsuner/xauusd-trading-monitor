@@ -25,11 +25,13 @@ make dev
    - `telegram-collector`
    - `rss-collector`
    - `normalizer-classifier`
+   - `event-router`，後續實作後加入
+   - `alert-dispatcher`
    - `dashboard-api`
 5. 用 `npm run dev` 背景啟動：
    - `dashboard-web`
 
-`alert-dispatcher` 已加入 `make dev`。本機預設 `ALERT_DRY_RUN=true` 與 `DISPATCH_EXISTING_EVENTS_ON_START=false`，避免開發資料庫已有歷史事件時直接大量推送。
+`alert-dispatcher` 已加入 `make dev`。本機預設 `ALERT_DRY_RUN=true` 與 `DISPATCH_EXISTING_EVENTS_ON_START=false`，避免開發資料庫已有歷史事件時直接大量推送。`event-router` 實作後，歷史事件 route / backfill 保護應移到 `event-router`。
 
 ## 3. 查看狀態與 logs
 

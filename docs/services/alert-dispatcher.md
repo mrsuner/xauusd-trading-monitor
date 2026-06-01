@@ -2,35 +2,33 @@
 
 ## 1. 服務定位
 
-`alert-dispatcher` 是 V1 新聞消息層的通知出口服務，負責把 `normalizer-classifier` 產生的高相關 `events` 轉換成可掃描、可追蹤、可重試的 Telegram Bot 與 Pushover 通知。
+`alert-dispatcher` 是 V1 新聞消息層的私人通知 delivery worker，負責把 `alerts` table 中已由 `event-router` 建立的 pending / retry 通知發送到私人 Telegram Bot 與 Pushover。
 
-此服務不做採集、不做 AI 分析、不做交易判斷。它只根據已入庫的事件、來源 metadata、相關度分數、severity 與通知規則決定是否發送、發送到哪個 channel、用什麼 priority，並把 delivery result 寫回 `alerts`。
+此服務不做採集、不做 AI 分析、不做交易判斷，也不決定 event 應該送往哪個 channel。出口判斷、route score、public outbox 建立與 skipped reason 應集中在 [event-router](./event-router.md)。
 
 V1 的目標不是「每條新聞都提醒」，而是建立一條低噪音通知通道：
 
 ```text
 events
   ↓
-alert-dispatcher
+event-router
   ↓
-alerts pending / sent / failed / skipped
+alerts pending / retry
+  ↓
+alert-dispatcher
   ↓
 Telegram Bot / Pushover
 ```
 
 ## 2. V1 目標
 
-- 監聽 `event_created` PostgreSQL notification，或以 polling fallback 掃描近期未處理事件。
-- 讀取 `events`、`sources`、`raw_items`、`event_claims` 與既有 `alerts`。
-- 根據 relevance score、severity、source priority、official level、requires confirmation 與 source group 決定通知策略。
-- 對每個應通知 channel 建立或 claim `alerts` row。
+- claim `alerts` 中的 pending / retry rows。
 - 格式化 Telegram / Pushover message。
 - 發送 Telegram Bot API message。
 - 發送 Pushover message。
 - 記錄 provider response、sent time、delivery status、attempt count 與 error message。
-- 支援 dedupe，避免同一事件同一 channel 重複通知。
 - 支援 retry 與 backoff。
-- 對 OSINT / aggregator 單源消息降噪。
+- 保持 delivery worker 無事件路由邏輯。
 - 保證通知內容不包含交易指令。
 
 ## 2.1 實作狀態
@@ -59,7 +57,8 @@ V1 runtime 已實作：
 
 後續可補強：
 
-- 直接使用 PostgreSQL `LISTEN event_created` 降低延遲。
+- 將目前 runtime 內的 event scanning / alert decision 建立邏輯遷移到 `event-router`。
+- 由 `event-router` 使用 PostgreSQL `LISTEN event_created` 或 polling fallback 降低 route latency。
 - 更細緻的 user preference / quiet hours / 多 chat routing。
 
 ## 3. 非目標
@@ -80,7 +79,7 @@ V1 不包含：
 | 類別 | 選型 | 說明 |
 | --- | --- | --- |
 | Language | Python 3.12+ | V1 主語言，與其他 backend services 保持一致 |
-| Database | PostgreSQL 16+ | 讀 `events`，寫 `alerts` |
+| Database | PostgreSQL 16+ | 讀寫 `alerts` delivery state |
 | DB driver | psycopg 3 | `LISTEN/NOTIFY`、row locking、JSONB |
 | HTTP client | httpx | Telegram Bot API / Pushover REST |
 | Config | pydantic-settings | env 管理 |
@@ -95,12 +94,7 @@ Go 可作為後續備選，適合單 binary、低 footprint 的通知 worker，�
 
 ### 5.1 輸入
 
-- `events`
-- `sources`
-- `raw_items`
-- `event_claims`
 - `alerts`
-- `event_created` notification
 
 ### 5.2 輸出
 
@@ -111,46 +105,32 @@ Go 可作為後續備選，適合單 binary、低 footprint 的通知 worker，�
 
 ## 6. 資料流
 
-V1 推薦採用「notification 加 polling fallback」：
+目標資料流：
 
 ```text
-normalizer-classifier creates event
+event-router creates alert decisions
   ↓
-PostgreSQL trigger emits event_created(event_id)
+alerts pending / retry
   ↓
-alert-dispatcher receives event_id
-  ↓
-load event context
-  ↓
-evaluate notification policy
-  ↓
-upsert or claim alerts rows per channel
+alert-dispatcher claim alert row
   ↓
 send provider request
   ↓
 write delivery result
 ```
 
-若 `LISTEN/NOTIFY` 斷線或服務重啟，dispatcher 必須靠 polling 補漏：
-
-```text
-poll events from last N minutes
-  ↓
-find events without sent/skipped alerts for required channels
-  ↓
-evaluate and send
-```
-
 關鍵原則：
 
 - PostgreSQL 是 source of truth。
-- `NOTIFY` 只用於降低延遲，不是唯一可靠 queue。
 - `alerts` table 保存每次通知決策與發送狀態。
 - 同一 `event_id` 同一 channel 只允許一筆有效通知紀錄。
+- `alert-dispatcher` 不讀 raw item 原文補內容，也不建立 public outbox。
 
 ## 7. Notification Policy
 
-V1+ 已改為 source-aware policy。`alert-dispatcher` 不再只依賴 `severity`，而是計算可 audit 的 `alert_score`：
+Notification policy 由 `event-router` 負責。`alert-dispatcher` 只尊重 `alerts.channel`、`alerts.priority`、`alerts.message`、`alerts.delivery_status` 與 retry metadata。
+
+目前 runtime 仍包含 source-aware `alert_score` 與 alert decision 建立邏輯；這是過渡狀態。引入 `event-router` 後，以下策略會遷移到 `event-router`：
 
 ```text
 alert_score =
@@ -200,38 +180,26 @@ Backfill policy：
 | `telegram_only` | 啟動前 event 只允許 Telegram，不允許 Pushover |
 | `normal` | 啟動前 event 依正常 policy 判斷 |
 
-## 8. Event Context
+遷移完成後，`ALERT_BACKFILL_MODE` 相關語義應移至 `event-router`，`alert-dispatcher` 只處理已存在的 `alerts` row。
 
-發送前需要組裝最小 context：
+## 8. Alert Delivery Context
+
+目標架構中，發送前只需要 claim `alerts` row：
 
 ```text
-event
-  ├── source metadata
-  ├── primary raw item
-  ├── related event_claims
-  └── existing alerts
+alerts
+  ├── id
+  ├── event_id
+  ├── channel
+  ├── priority
+  ├── message
+  ├── attempt_count
+  └── delivery metadata
 ```
 
-V1 可先使用 `events.raw_item_ids[0]` 作為 primary raw item。若事件沒有 raw item 或 source metadata 不完整，仍可發 Telegram，但應降低 Pushover priority 或跳過 Pushover。
+`alerts.message` 應由 `event-router` 在建立 alert decision 時產生。`alert-dispatcher` 不需要再組裝 event context。
 
-必要欄位：
-
-- `events.id`
-- `events.event_time`
-- `events.event_type`
-- `events.severity`
-- `events.relevance_score`
-- `events.confidence`
-- `events.title`
-- `events.summary_zh`
-- `events.confirmation_state`
-- `events.requires_confirmation`
-- `events.xauusd_impact_channel`
-- `sources.name`
-- `sources.source_group`
-- `sources.official_level`
-- `sources.priority`
-- `raw_items.url`
+目前 runtime 仍會在建立 alert decision 時載入 event、source、raw item 與 claims。這是遷移到 `event-router` 前的過渡狀態。
 
 ## 9. Alerts Table Contract
 

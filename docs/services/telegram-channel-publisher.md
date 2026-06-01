@@ -9,14 +9,14 @@
 - `alert-dispatcher` 面向個人 Telegram Bot / Pushover 通知。
 - `telegram-channel-publisher` 面向公共訂閱者。
 
-此服務不做資料採集、不做 AI 判斷、不直接讀取未去敏原文來生成公共內容。它只讀取 `public_outbox` 中已產生的 public-safe payload，根據平台格式與發布策略產生 Telegram Channel message，並寫回 delivery state。
+此服務不做資料採集、不做 AI 判斷、不直接讀取未去敏原文來生成公共內容，也不決定事件是否應發布。它只讀取 `event-router` 已寫入 `public_outbox` 的 public-safe payload，根據 Telegram API 要求做最後一層 deterministic formatting，並寫回 delivery state。
 
 目標資料流：
 
 ```text
 events / event_claims
   ↓
-public draft generator
+event-router
   ↓
 public_outbox
   ↓
@@ -30,7 +30,7 @@ Telegram Channel
 - 部署於 HomeLab。
 - 讀取核心 PostgreSQL 的 `public_outbox`。
 - 只處理 `approved_for_public = true` 的 public-safe event。
-- 將事件格式化為適合 Telegram Channel 閱讀的短消息。
+- 將 `public_outbox` payload 包裝為適合 Telegram Channel API 的 message。
 - 支援中文優先，英文可選的雙語內容策略。
 - 支援 source attribution 與原始來源連結。
 - 支援 dedupe，避免同一 public event 重複發布。
@@ -53,7 +53,7 @@ Telegram Channel
 
 尚未完成：
 
-- public draft generator，尚未自動從 `events` 建立 `public_outbox`。
+- `event-router` 尚未實作，因此尚未自動從 `events` 建立 `public_outbox`。
 - Dashboard public outbox review / approve UI。
 - 真實 Telegram Channel production 發布驗證。
 
@@ -140,12 +140,14 @@ publish_status_telegram in ('pending', 'retry')
 public_summary_zh or public_summary_en exists
 ```
 
-建議額外條件：
+Route / publish eligibility 由 `event-router` 判斷。Publisher 可保留平台級保護條件，避免錯誤資料被發送：
 
 - `severity in ('S', 'A')` 預設可發布。
 - `severity = 'B'` 只有高 relevance 或重要 source group 才發布。
 - `source_group in ('osint_aggregator', 'market_squawk')` 且沒有確認來源時，預設不發布或標記為「未確認」。
 - `public_source_links` 至少有一個可公開連結，否則降低發布優先級。
+
+上述條件不應成為 publisher 的主要內容判斷邏輯；它們主要是最後防線。正常情況下，publisher 只處理已由 `event-router` queue 好的資料。
 
 ## 8. Message Format
 
@@ -172,6 +174,7 @@ Tags: #iran #trump #fed
 - 不發布完整原文。
 - 每則消息都應能獨立理解。
 - 未確認消息必須明確標示。
+- 不使用 AI 針對 Telegram Channel 再次改寫內容。
 
 可選策略：
 

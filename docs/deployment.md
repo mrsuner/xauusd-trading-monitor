@@ -23,6 +23,7 @@ V1 只部署新聞消息層：
 - `telegram-collector`
 - `rss-collector`
 - `normalizer-classifier`
+- `event-router`，後續新增，用於統一建立 private alerts 與 public outbox
 - `alert-dispatcher`
 - `dashboard-api`，可選但建議保留作為 debug API
 - `dashboard-web`，HomeLab 內網 Dashboard UI
@@ -32,8 +33,9 @@ V1 不部署：
 - `mt5-collector`
 - market data collector
 - public website / public ingest API
-- public social publishers
 - RabbitMQ / Kafka
+
+公共 Telegram Channel / X publisher 會部署在 HomeLab，但它們只負責讀取 `public_outbox` 並呼叫平台 API；公共網站與 public API 部署在 VPS。
 
 ## 2. 目錄約定
 
@@ -69,6 +71,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>
+ghcr.io/mrsuner/xauusd-trading-monitor/event-router:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>
@@ -105,6 +108,7 @@ db-migrate
 telegram-collector
 rss-collector
 normalizer-classifier
+event-router
 alert-dispatcher
 telegram-channel-publisher
 dashboard-api
@@ -191,9 +195,11 @@ Telethon session 特別重要：
 3. `telegram-collector`
 4. `rss-collector`
 5. `normalizer-classifier`
-6. `alert-dispatcher`
-7. `dashboard-api`
-8. `dashboard-web`
+6. `event-router`
+7. `alert-dispatcher`
+8. `telegram-channel-publisher`，啟用公共出口時
+9. `dashboard-api`
+10. `dashboard-web`
 
 Docker Compose 使用 `depends_on.condition` 控制順序：application services 等待 PostgreSQL healthy，並等待 `db-migrate` `service_completed_successfully`。服務本身仍需實作 DB retry，不能只依賴 Compose 順序。
 
@@ -444,6 +450,7 @@ flowchart LR
   subgraph HomeLab["HomeLab Core + Publishers"]
     DB["Core PostgreSQL"]
     N["normalizer-classifier"]
+    R["event-router"]
     A["alert-dispatcher<br/>Personal Telegram / Pushover"]
     O["public_outbox"]
     S["public-syncer"]
@@ -459,8 +466,9 @@ flowchart LR
   end
 
   N --> DB
-  DB --> A
-  DB --> O
+  DB --> R
+  R --> A
+  R --> O
   O --> S
   O --> TG
   O --> X
@@ -508,7 +516,7 @@ created_at
 updated_at
 ```
 
-V1+ 可以先由規則自動產生 public draft；後續若要提高發布品質，可在 `approved_for_public` 前加入人工審核。
+V1+ 由 `event-router` 根據 `events`、source metadata 與 route policy 自動產生 public-safe payload；後續若要提高發布品質，可在 `approved_for_public` 前加入人工審核。
 
 ### 10.4 public-syncer
 
@@ -532,12 +540,12 @@ HomeLab sync 失敗時只更新 `public_outbox.publish_status_web` 與 `last_err
 
 `telegram-channel-publisher` 與 `x-publisher` 建議部署在 HomeLab，而不是 VPS。原因是：
 
-- 它們可以直接讀 HomeLab 中央資料庫與 `public_outbox`，取得完整事件上下文。
+- 它們可以直接讀 HomeLab 中央資料庫與 `public_outbox`，取得已由 `event-router` 準備好的 public-safe payload。
 - 不需要讓 VPS 回調 HomeLab，也不需要在 VPS 複製內部 API。
 - 發布格式、字數限制、節流、重試與平台錯誤處理可以彼此獨立。
 - 私人通知 `alert-dispatcher` 與公共發布 publisher 的責任邊界清楚。
 
-`alert-dispatcher` 的目標是通知個人使用者；public publisher 的目標是向公開訂閱者發布經過去敏與格式化的事件摘要。兩者不應共用 delivery 狀態，也不應共用通知策略。
+`event-router` 的目標是決定 event 應送往哪些出口；`alert-dispatcher` 的目標是通知個人使用者；public publisher 的目標是向公開訂閱者發布經過去敏與格式化的事件摘要。Dispatcher / publisher 不應各自重新判斷事件價值，也不應共用 delivery 狀態。
 
 Publisher 功能需求詳見 [telegram-channel-publisher](./services/telegram-channel-publisher.md) 與 [x-publisher](./services/x-publisher.md)。
 

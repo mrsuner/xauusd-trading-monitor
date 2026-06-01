@@ -41,9 +41,9 @@ filtered_items / events / event_claims
   ↓
 relevance scoring
   ↓
-alert-dispatcher
-  ↓
-Telegram / Pushover / Dashboard
+event-router
+  ├── alerts → alert-dispatcher → Telegram / Pushover
+  └── public_outbox → public publishers
 ```
 
 長期版本會包含兩條輸入線：
@@ -74,7 +74,9 @@ event trigger
   ↓
 model relevance scoring
   ↓
-alert-dispatcher
+event-router
+  ↓
+alerts
   ↓
 Telegram / Pushover
 ```
@@ -171,7 +173,8 @@ Layer 2 classification-reasoning:
 | `telegram-collector` | 實作 | 使用 Telethon 監聽 Telegram channels，寫入 `raw_items` |
 | `rss-collector` | 實作 | 輪詢 RSS / 官方頁面，寫入 `raw_items` |
 | `normalizer-classifier` | 實作 | 預處理、過濾、摘要、相關度判斷、回寫 DB |
-| `alert-dispatcher` | 實作 | 根據事件與相關度發送 Telegram / Pushover |
+| `event-router` | 規劃 / 待實作 | 集中判斷 event 應送往哪些出口，寫入 `alerts` / `public_outbox` |
+| `alert-dispatcher` | 實作 | claim `alerts` 並發送私人 Telegram / Pushover |
 | `dashboard-api` | 可選 / 最小實作 | V1 可先只提供 health 與事件查詢 API |
 | `dashboard-web` | 可選 / 極簡 | V1 可先做 read-only UI，用於查看 timeline、events、sources、processing 與 alerts |
 | `mt5-collector` | 暫緩 | V1 不接行情資料 |

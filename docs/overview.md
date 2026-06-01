@@ -111,11 +111,11 @@ MVP 應圍繞以下閉環，而不是擴張成綜合新聞系統：
 MVP 的主資料流如下：
 
 ```text
-Telegram / RSS / Official Pages / MT5
+Telegram / RSS / Official Pages
   ↓
 Collectors
   ↓
-raw_items / market_snapshots
+raw_items
   ↓
 PostgreSQL LISTEN/NOTIFY
   ↓
@@ -123,9 +123,15 @@ normalizer-classifier
   ↓
 events / event_claims
   ↓
-alert-dispatcher
-  ↓
-Telegram / Pushover / Dashboard
+event-router
+  ├── alerts
+  │     ↓
+  │   alert-dispatcher
+  │     ↓
+  │   private Telegram / Pushover
+  └── public_outbox
+        ↓
+      telegram-channel-publisher / x-publisher / public-syncer
 ```
 
 關鍵原則：
@@ -134,12 +140,14 @@ Telegram / Pushover / Dashboard
 - `raw_items` 保存所有原始採集資料。
 - `events` 保存規則與 AI 處理後的標準事件。
 - `event_claims` 保存不同來源對同一事件的說法，用於衝突識別。
+- `event-router` 負責出口路由判斷，寫入私人通知 queue 與公共發布 outbox。
+- `alert-dispatcher` 與各 publisher 只負責 delivery，不再判斷事件應送往哪裡。
 - `NOTIFY` 只傳 ID，不傳完整消息內容。
 - Redis 與 RabbitMQ 暫不作為 MVP 的可靠事件總線。
 
 ## 6. 服務拆分
 
-第一版建議拆成 5 個主要服務。
+第一版新聞消息層建議拆成下列主要服務。
 
 ### 6.1 telegram-collector
 
@@ -189,15 +197,34 @@ source_priority_score
 = preliminary_severity
 ```
 
-### 6.4 alert-dispatcher
+### 6.4 event-router
 
 職責：
 
-- 監聽新事件。
-- 根據 severity 與 channel policy 發送 Telegram / Pushover。
+- 讀取 `events`、`event_claims`、`sources` 與 primary `raw_items`。
+- 計算 route score。
+- 判斷事件應進入哪些 route。
+- 寫入 `alerts`、`public_outbox` 與 `event_route_decisions`。
+- 保持私人通知與公共出口的 route policy 可審計。
+
+關鍵原則：
+
+- 決定 `what / where / why`。
+- 不呼叫 Telegram / Pushover / X API。
+- 不再次呼叫 AI 針對 publisher 改寫內容。
+- 不輸出交易指令。
+
+### 6.5 alert-dispatcher
+
+職責：
+
+- claim `alerts` 中的 pending / retry 私人通知。
+- 根據 `alerts.message` 與 `alerts.priority` 發送 Telegram / Pushover。
 - 記錄推送狀態到 `alerts`。
 
-推送策略：
+事件是否應送往 Telegram / Pushover 由 `event-router` 決定；`alert-dispatcher` 只負責 API delivery、retry 與 provider response。
+
+私人通知策略：
 
 | Severity | Telegram | Pushover |
 | --- | --- | --- |
@@ -206,7 +233,18 @@ source_priority_score
 | B | yes | no |
 | C | no | no |
 
-### 6.5 dashboard-api / dashboard-web
+### 6.6 telegram-channel-publisher / x-publisher / public-syncer
+
+職責：
+
+- claim `public_outbox` 或後續 public delivery queue。
+- 依平台 API 進行 deterministic formatting。
+- 發送到 Telegram Channel、X 或 VPS public API。
+- 寫回 delivery state。
+
+Publisher 不判斷事件價值、不讀 raw item 原文補內容、不呼叫 AI。
+
+### 6.7 dashboard-api / dashboard-web
 
 職責：
 

@@ -4,7 +4,7 @@
 
 `normalizer-classifier` 是 V1 新聞消息層的處理核心，負責讀取 `raw_items`，完成文字預處理、低價值消息過濾、重複合併、模型路由、相關度判斷、事件生成與結果回寫 DB。
 
-此服務是 collector 與 alert-dispatcher 之間的邏輯層。它可以使用規則、本地 8B model、雲端 small model，或備選整合 Claude Code Agent SDK 提供高階模型能力，但不得輸出交易方向或自動交易建議。
+此服務是 collector 與 event-router 之間的語義處理層。它可以使用規則、本地 8B model、雲端 small model，或備選整合 Claude Code Agent SDK 提供高階模型能力，但不得輸出交易方向或自動交易建議。
 
 ## 2. V1 目標
 
@@ -19,7 +19,7 @@
 - 回寫 processing result。
 - 對高相關消息建立 `events`。
 - 可選建立簡化 `event_claims`。
-- 觸發 `event_created` 或 alert processing task。
+- 觸發 `event_created`，交由 `event-router` 決定出口。
 
 ## 3. 非目標
 
@@ -39,7 +39,7 @@ V1 不包含：
 | 類別 | 選型 | 說明 |
 | --- | --- | --- |
 | Language | Python 3.12+ | V1 主語言 |
-| Database | PostgreSQL 16+ | 讀寫 processing、events、alerts |
+| Database | PostgreSQL 16+ | 讀寫 processing、raw item translation、events、event claims |
 | DB driver | psycopg 3 | 支援 task locking |
 | Text cleanup | regex / trafilatura 可選 | V1 以輕量清洗為主 |
 | Language detection | source metadata + lightweight script detection | V1 先用來源設定與簡單 script fallback |
@@ -74,7 +74,7 @@ Go 可作為後續備選，但 V1 建議 Python，因為文字處理與模型 SD
 - `events`。
 - `event_claims`，V1 可簡化。
 - `ai_model_calls`，保存 Layer 1 / Layer 2 的 token usage、model route、latency 與估算成本。
-- `event_created` notification 或 alert processing task。
+- `event_created` notification，供 `event-router` 消費。
 
 ## 6. Processing Table
 
@@ -124,7 +124,7 @@ dedupe / near-dedupe
   ├── Layer 2 classification-reasoning
   │     - input: source metadata + original text_clean/text_raw only
   │     - output: relevance, event_type, claim_direction, event fields
-  │     - write processing result / create event / notify alert-dispatcher
+  │     - write processing result / create event / notify event-router
   ↓
   Layer 1 translation-summary, best-effort after classification
         - input: original text only

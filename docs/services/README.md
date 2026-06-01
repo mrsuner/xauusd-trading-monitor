@@ -13,7 +13,8 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `telegram-collector` | [telegram-collector.md](./telegram-collector.md) | 已建立 |
 | `rss-collector` | [rss-collector.md](./rss-collector.md) | 已建立 |
 | `normalizer-classifier` | [normalizer-classifier.md](./normalizer-classifier.md) | 已建立 |
-| `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作 |
+| `event-router` | [event-router.md](./event-router.md) | 新增規劃 / 待實作 |
+| `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作，後續收斂為 delivery worker |
 | `telegram-channel-publisher` | [telegram-channel-publisher.md](./telegram-channel-publisher.md) | 後續公共出口 / runtime skeleton 已實作 |
 | `x-publisher` | [x-publisher.md](./x-publisher.md) | 後續公共出口 / 已建立 |
 | `dashboard-api` | [dashboard-api.md](./dashboard-api.md) | V1 可選 / 已建立 |

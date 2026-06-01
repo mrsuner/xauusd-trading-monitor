@@ -43,6 +43,10 @@ services/
     src/normalizer_classifier/
     tests/
 
+  event-router/
+    src/event_router/
+    tests/
+
   alert-dispatcher/
     src/alert_dispatcher/
     tests/
@@ -74,27 +78,31 @@ services/
 
 負責預處理、模型路由、相關度判斷、事件建立與結果回寫。
 
-### 3.4 alert-dispatcher
+### 3.4 event-router
 
-負責 Telegram Bot / Pushover 通知發送與 `alerts` delivery tracking。
+負責讀取 `events`，集中決定事件應送往哪些出口，並寫入 `alerts`、`public_outbox` 與 `event_route_decisions`。
 
-### 3.5 telegram-channel-publisher
+### 3.5 alert-dispatcher
+
+負責 claim `alerts`，發送私人 Telegram Bot / Pushover 通知，並寫回 delivery tracking。
+
+### 3.6 telegram-channel-publisher
 
 後續公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到公共 Telegram Channel。
 
-### 3.6 x-publisher
+### 3.7 x-publisher
 
 後續公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到 X。
 
-### 3.7 dashboard-api
+### 3.8 dashboard-api
 
 V1 可選的 read-only debug API，供後續 Dashboard Web 與人工排障使用。
 
-### 3.8 dashboard-web
+### 3.9 dashboard-web
 
 V1 可選的前端操作台，供人工查看 timeline、events、sources、processing 與 alerts。
 
-### 3.9 db-migrate
+### 3.10 db-migrate
 
 負責打包 Alembic migration，Docker Compose boot 時執行：
 
@@ -187,6 +195,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `telegram-collector` | `ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:<tag>` |
 | `rss-collector` | `ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:<tag>` |
 | `normalizer-classifier` | `ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>` |
+| `event-router` | `ghcr.io/mrsuner/xauusd-trading-monitor/event-router:<tag>` |
 | `alert-dispatcher` | `ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>` |
 | `telegram-channel-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>` |
 | `x-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:<tag>` |

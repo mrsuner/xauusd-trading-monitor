@@ -875,13 +875,66 @@ create index alerts_channel_created_idx
   on alerts (channel, created_at desc);
 ```
 
-## 11.1 public_outbox，V1+
+## 11.5 event_route_decisions，V1+
 
-### 11.1.1 用途
+### 11.5.1 用途
 
-`public_outbox` 保存已去敏、可公開、可重試的公共發布草稿。公共網站 sync、Telegram Channel publisher 與 X publisher 都應讀取這張表，而不是各自直接從 `events` 臨時組文案。
+`event_route_decisions` 保存 `event-router` 對每個出口 route 的 queued / skipped 結果。它不是 delivery queue，而是 audit log，用於回答「為什麼這個 event 有或沒有送到某個出口」。
 
-### 11.1.2 欄位
+### 11.5.2 欄位
+
+```sql
+create table event_route_decisions (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references events(id) on delete cascade,
+  route_key text not null,
+  decision_status text not null,
+  route_score integer,
+  reason text,
+  payload_table text,
+  payload_id uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+
+  constraint event_route_decisions_status_check check (
+    decision_status in ('queued', 'skipped')
+  ),
+  constraint event_route_decisions_route_score_check check (
+    route_score is null or route_score >= 0
+  )
+);
+```
+
+### 11.5.3 Indexes
+
+```sql
+create unique index event_route_decisions_event_route_uidx
+  on event_route_decisions (event_id, route_key);
+
+create index event_route_decisions_route_created_idx
+  on event_route_decisions (route_key, created_at desc);
+
+create index event_route_decisions_status_created_idx
+  on event_route_decisions (decision_status, created_at desc);
+```
+
+### 11.5.4 Route keys
+
+```text
+private.telegram
+private.pushover
+public.telegram_channel
+public.website
+public.x
+```
+
+## 11.6 public_outbox，V1+
+
+### 11.6.1 用途
+
+`public_outbox` 保存由 `event-router` 產生、已去敏、可公開、可重試的公共發布 payload。公共網站 sync、Telegram Channel publisher 與 X publisher 都應讀取這張表，而不是各自直接從 `events` 臨時組文案。
+
+### 11.6.2 欄位
 
 ```sql
 create table public_outbox (
@@ -930,7 +983,7 @@ create table public_outbox (
 );
 ```
 
-### 11.1.3 Indexes
+### 11.6.3 Indexes
 
 ```sql
 create unique index public_outbox_event_uidx
@@ -944,11 +997,12 @@ create index public_outbox_generated_idx
   on public_outbox (generated_at desc);
 ```
 
-### 11.1.4 發布邊界
+### 11.6.4 發布邊界
 
 - `public_outbox` 只保存 public-safe payload，不保存完整 `text_raw`。
 - `approved_for_public = true` 是所有公共出口的必要條件。
 - 不同平台各自使用獨立 status、retry count、error 與 provider response，避免 Telegram Channel、X 與 public web sync 互相影響。
+- Publisher 不應讀取 raw item 原文來補寫內容；若 payload 不足，應回到 `event-router` 修正。
 
 ## 12. ai_model_calls
 
@@ -1139,7 +1193,7 @@ for each row execute function enqueue_raw_item_processing();
 
 ### 15.3 event created notify
 
-`events` insert 後通知 `alert-dispatcher`：
+`events` insert 後通知 `event-router`：
 
 ```sql
 create or replace function notify_event_created()

@@ -11,14 +11,14 @@
 - rate limit 與 duplicate policy 更嚴格。
 - 公開擴散與截圖傳播風險更高。
 
-因此 `x-publisher` 必須比 Telegram Channel 更保守。它只讀取 `public_outbox` 中已產生的 public-safe payload，不直接把 `raw_items` 或內部 `events.summary_zh` 原樣發布出去。
+因此 `x-publisher` 必須比 Telegram Channel 更保守。它只讀取 `event-router` 已寫入 `public_outbox` 的 public-safe payload，不直接把 `raw_items` 或內部 `events.summary_zh` 原樣發布出去，也不自行判斷事件是否應發布。
 
 目標資料流：
 
 ```text
 events / event_claims
   ↓
-public draft generator
+event-router
   ↓
 public_outbox
   ↓
@@ -32,7 +32,7 @@ X post
 - 部署於 HomeLab。
 - 讀取核心 PostgreSQL 的 `public_outbox`。
 - 只處理 `approved_for_public = true` 的 public-safe event。
-- 將事件壓縮成適合 X 的短文。
+- 將 `public_outbox` payload 包裝成適合 X API 的短文。
 - 支援中文優先，英文可選。
 - 支援 source attribution，優先附一個 canonical source link。
 - 支援 dedupe，避免同一事件重複發文。
@@ -126,7 +126,7 @@ public_deliveries
 
 ## 7. 發布條件
 
-X 應比 Telegram Channel 更嚴格。V1 建議：
+Route / publish eligibility 由 `event-router` 判斷。X publisher 可保留平台級最後防線，避免錯誤資料被發送。V1 建議：
 
 ```text
 approved_for_public = true
@@ -147,6 +147,8 @@ public_summary_zh or public_summary_en exists
 
 - `severity = B` 但 `relevance_score` 很高，且來自官方 / 半官方 source。
 - 已有多來源確認的 `market_squawk` 事件。
+
+上述條件主要應在 `event-router` 實作；publisher 不應重新理解事件或呼叫 AI 做內容判斷。
 
 ## 8. Post Format
 
@@ -173,6 +175,7 @@ https://...
 - 不發布完整原文。
 - 未確認消息必須使用清楚措辭，例如「未確認」、「單一來源」。
 - hashtag 控制在 1-3 個，避免像 spam。
+- V1 不使用 AI 針對 X 再次改寫內容；若後續加入 copy adapter，也只能做壓縮，不得新增事實。
 
 建議 hashtag：
 
