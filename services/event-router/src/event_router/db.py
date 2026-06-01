@@ -110,7 +110,16 @@ class Database:
                 left join raw_item_tags rit on rit.raw_item_id = r.id
                 left join tags t on t.id = rit.tag_id
                 where e.id = %(event_id)s
-                group by e.id, s.id, r.id
+                group by
+                  e.id,
+                  s.id,
+                  r.id,
+                  r.title,
+                  r.url,
+                  r.summary_zh,
+                  r.summary_en,
+                  r.text_clean,
+                  r.text_raw
                 """,
                 {"event_id": event_id},
             )
