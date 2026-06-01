@@ -252,6 +252,45 @@ services:
     networks:
       - xauusd
 
+  x-publisher:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/x-publisher:${IMAGE_TAG}
+    restart: unless-stopped
+    profiles:
+      - public-publishing
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: ${APP_ENV}
+      SERVICE_NAME: x-publisher
+      DATABASE_URL: ${DATABASE_URL}
+      X_PUBLISHER_ENABLED: ${X_PUBLISHER_ENABLED:-false}
+      X_PUBLISHER_DRY_RUN: ${X_PUBLISHER_DRY_RUN:-true}
+      X_API_BASE_URL: ${X_API_BASE_URL:-https://api.twitter.com/2}
+      X_API_KEY: ${X_API_KEY:-}
+      X_API_SECRET: ${X_API_SECRET:-}
+      X_ACCESS_TOKEN: ${X_ACCESS_TOKEN:-}
+      X_ACCESS_TOKEN_SECRET: ${X_ACCESS_TOKEN_SECRET:-}
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      X_POST_MAX_CHARS: ${X_POST_MAX_CHARS:-260}
+      X_PUBLISHER_MIN_SEVERITY: ${X_PUBLISHER_MIN_SEVERITY:-A}
+      X_PUBLISHER_INCLUDE_B_EVENTS: ${X_PUBLISHER_INCLUDE_B_EVENTS:-false}
+      X_PUBLISHER_MAX_PER_HOUR: ${X_PUBLISHER_MAX_PER_HOUR:-10}
+      X_PUBLISHER_MAX_PER_DAY: ${X_PUBLISHER_MAX_PER_DAY:-50}
+      X_PUBLISHER_MAX_ATTEMPTS: ${X_PUBLISHER_MAX_ATTEMPTS:-4}
+      X_PUBLISHER_RETRY_BACKOFF_SECONDS: ${X_PUBLISHER_RETRY_BACKOFF_SECONDS:-300}
+      X_PUBLISHER_BATCH_SIZE: ${X_PUBLISHER_BATCH_SIZE:-1}
+      X_PUBLISHER_PROVIDER_TIMEOUT_SECONDS: ${X_PUBLISHER_PROVIDER_TIMEOUT_SECONDS:-10}
+      X_PUBLISHER_LOCK_TIMEOUT_SECONDS: ${X_PUBLISHER_LOCK_TIMEOUT_SECONDS:-300}
+      X_PUBLISHER_REQUIRE_SOURCE_LINK: ${X_PUBLISHER_REQUIRE_SOURCE_LINK:-true}
+      PUBLISHER_POLL_INTERVAL_SECONDS: ${PUBLISHER_POLL_INTERVAL_SECONDS:-10}
+      LOG_LEVEL: ${LOG_LEVEL}
+      TZ: ${TZ}
+    networks:
+      - xauusd
+
   dashboard-api:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/dashboard-api:${IMAGE_TAG}
     restart: unless-stopped

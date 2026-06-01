@@ -113,6 +113,9 @@ start_service "alert-dispatcher" "services/alert-dispatcher" alert-dispatcher ru
 if grep -Eq '^TELEGRAM_CHANNEL_PUBLISHER_ENABLED=true$' "$ENV_PATH"; then
   start_service "telegram-channel-publisher" "services/telegram-channel-publisher" telegram-channel-publisher run
 fi
+if grep -Eq '^X_PUBLISHER_ENABLED=true$' "$ENV_PATH"; then
+  start_service "x-publisher" "services/x-publisher" x-publisher run
+fi
 start_service "dashboard-api" "services/dashboard-api" dashboard-api run
 
 start_web() {

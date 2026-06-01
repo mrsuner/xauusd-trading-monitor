@@ -40,6 +40,26 @@ X post
 - 記錄 X provider response、post id、sent time、status 與 error。
 - 與 `alert-dispatcher`、`telegram-channel-publisher` 的策略與 delivery state 分離。
 
+## 2.1 實作狀態
+
+目前已完成第一版 runtime skeleton：
+
+- `services/x-publisher` Python service。
+- X API v2 `/tweets` provider。
+- OAuth 1.0a user-context request signing。
+- deterministic post formatter 與 260 字保守長度限制。
+- `public_outbox` claim / sent / skipped / retry / failed 狀態更新。
+- `X_PUBLISHER_DRY_RUN` 安全模式。
+- 每小時 / 每日發布上限。
+- Dockerfile、GHCR image build mapping、production Compose `public-publishing` profile。
+- 單元測試。
+
+尚未完成：
+
+- 真實 X account production 發布驗證。
+- OAuth 2.0 user token auth mode。
+- Dashboard public outbox / X delivery audit UI。
+
 ## 3. 非目標
 
 V1 不包含：

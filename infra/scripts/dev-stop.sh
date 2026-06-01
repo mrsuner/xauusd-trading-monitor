@@ -28,7 +28,7 @@ stop_pid() {
 
   local command_line
   command_line="$(ps -p "$pid" -o command= 2>/dev/null || true)"
-  if [[ "$command_line" != *"telegram-collector"* && "$command_line" != *"rss-collector"* && "$command_line" != *"normalizer-classifier"* && "$command_line" != *"alert-dispatcher"* && "$command_line" != *"telegram-channel-publisher"* && "$command_line" != *"dashboard-api"* && "$command_line" != *"npm run dev"* && "$command_line" != *"vite"* ]]; then
+  if [[ "$command_line" != *"telegram-collector"* && "$command_line" != *"rss-collector"* && "$command_line" != *"normalizer-classifier"* && "$command_line" != *"alert-dispatcher"* && "$command_line" != *"telegram-channel-publisher"* && "$command_line" != *"x-publisher"* && "$command_line" != *"dashboard-api"* && "$command_line" != *"npm run dev"* && "$command_line" != *"vite"* ]]; then
     echo "Skipping $name pid=$pid; command does not look like a project dev service"
     rm -f "$pid_file"
     return
@@ -86,6 +86,7 @@ stop_matching_processes "rss-collector" "rss-collector run"
 stop_matching_processes "normalizer-classifier" "normalizer-classifier run"
 stop_matching_processes "alert-dispatcher" "alert-dispatcher run"
 stop_matching_processes "telegram-channel-publisher" "telegram-channel-publisher run"
+stop_matching_processes "x-publisher" "x-publisher run"
 stop_matching_processes "dashboard-api" "dashboard-api run"
 
 if [[ "$MODE" != "--apps-only" && -f "$ENV_PATH" ]]; then

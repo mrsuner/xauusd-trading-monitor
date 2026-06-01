@@ -92,7 +92,7 @@ services/
 
 ### 3.7 x-publisher
 
-後續公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到 X。
+公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到 X。
 
 ### 3.8 dashboard-api
 

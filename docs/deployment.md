@@ -74,6 +74,7 @@ ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/event-router:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>
+ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>
 ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>
 ```

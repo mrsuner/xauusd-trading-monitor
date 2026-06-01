@@ -16,6 +16,7 @@ SERVICES=(
   "event-router:services/event-router/Dockerfile"
   "alert-dispatcher:services/alert-dispatcher/Dockerfile"
   "telegram-channel-publisher:services/telegram-channel-publisher/Dockerfile"
+  "x-publisher:services/x-publisher/Dockerfile"
   "dashboard-api:services/dashboard-api/Dockerfile"
   "dashboard-web:apps/dashboard-web/Dockerfile"
 )

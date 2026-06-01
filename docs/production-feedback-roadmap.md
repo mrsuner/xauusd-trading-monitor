@@ -931,7 +931,7 @@ HomeLab 新增元件：
 - `public_outbox`：保存已去敏、可公開、可重試的事件草稿。`0010_public_outbox` 已完成第一版 schema。
 - `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。
 - `telegram-channel-publisher`：把 public-safe event 發布到公共 Telegram Channel。runtime skeleton 已完成，預設 dry-run 且需透過 `public-publishing` profile 啟動。
-- `x-publisher`：把 public-safe event 發布到 X。
+- `x-publisher`：把 public-safe event 發布到 X。runtime skeleton 已完成，預設 disabled / dry-run，待真實 X API 權限驗證。
 
 VPS 新增元件：
 
