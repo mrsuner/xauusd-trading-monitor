@@ -104,7 +104,7 @@ class JsonLogFormatter(logging.Formatter):
 
 def configure_logging(level: str) -> None:
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonLogFormatter(os.environ.get("SERVICE_NAME", "rss-collector")))
+    handler.setFormatter(JsonLogFormatter(os.environ.get("SERVICE_NAME", "dashboard-api")))
     root = logging.getLogger()
     root.handlers.clear()
     root.addHandler(handler)

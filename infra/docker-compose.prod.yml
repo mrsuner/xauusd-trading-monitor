@@ -1,9 +1,16 @@
 name: xauusd-event-radar
 
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: ${DOCKER_LOG_MAX_SIZE:-100m}
+    max-file: "${DOCKER_LOG_MAX_FILE:-45}"
+
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -22,6 +29,7 @@ services:
   db-migrate:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/db-migrate:${IMAGE_TAG}
     restart: "no"
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,6 +46,7 @@ services:
   telegram-collector:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/telegram-collector:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,6 +76,7 @@ services:
   rss-collector:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/rss-collector:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,6 +102,7 @@ services:
   normalizer-classifier:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/normalizer-classifier:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,6 +170,7 @@ services:
   alert-dispatcher:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/alert-dispatcher:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -200,6 +212,7 @@ services:
   event-router:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/event-router:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -237,6 +250,7 @@ services:
   telegram-channel-publisher:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/telegram-channel-publisher:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     profiles:
       - public-publishing
     depends_on:
@@ -275,6 +289,7 @@ services:
   x-publisher:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/x-publisher:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     profiles:
       - public-publishing
     depends_on:
@@ -317,6 +332,7 @@ services:
   public-syncer:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/public-syncer:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     profiles:
       - public-website
     depends_on:
@@ -354,6 +370,7 @@ services:
   dashboard-api:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/dashboard-api:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -380,6 +397,7 @@ services:
   dashboard-web:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/dashboard-web:${IMAGE_TAG}
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       dashboard-api:
         condition: service_started

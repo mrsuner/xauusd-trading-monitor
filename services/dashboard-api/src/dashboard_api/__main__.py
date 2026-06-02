@@ -4,6 +4,7 @@ import argparse
 
 import uvicorn
 
+from .logging import configure_logging
 from .settings import Settings
 
 
@@ -14,6 +15,7 @@ def main() -> None:
 
     if args.command == "run":
         settings = Settings()
+        configure_logging(settings.log_level)
         uvicorn.run(
             "dashboard_api.app:create_app",
             factory=True,

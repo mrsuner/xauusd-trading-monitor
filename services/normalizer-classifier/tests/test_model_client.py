@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -94,6 +95,48 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
     assert response.model == "test-model"
     assert response.result.is_relevant is True
     assert response.result.relevance_score == 82
+
+
+async def test_openai_style_model_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        assert headers["Authorization"] == "Bearer test-key"
+        content = {
+            "is_relevant": True,
+            "relevance_score": 82,
+            "event_type": "IRAN_NUCLEAR",
+            "claim_direction": "confirm",
+            "summary_zh": "Trump 表示伊朗協議接近完成。",
+            "requires_confirmation": True,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}], "usage": {"total_tokens": 12}},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="cloud_small",
+        base_url="https://api.example.test/v1/",
+        api_key="test-key",
+        model="test-model",
+        timeout_seconds=5,
+        response_format="json_object",
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="normalizer_classifier.model_client"):
+        await client.classify(raw_item, source, normalized)
+
+    request_record = next(record for record in caplog.records if record.message == "ai_model_api_request")
+    response_record = next(record for record in caplog.records if record.message == "ai_model_api_response")
+    assert request_record.request_kind == "classify_raw_item"
+    assert request_record.headers["Authorization"] == "[REDACTED]"
+    assert request_record.payload["messages"][1]["content"]
+    assert response_record.status_code == 200
+    assert response_record.response_body["usage"]["total_tokens"] == 12
+    assert "test-key" not in json.dumps(request_record.headers)
 
 
 async def test_openai_style_model_client_can_omit_json_response_format(monkeypatch) -> None:
