@@ -6,6 +6,7 @@ import httpx
 
 from .message import build_message, compact_text
 from .models import ProviderResult, PublicOutboxItem
+from .security import sanitize_provider_response, sanitize_text
 from .settings import Settings
 
 
@@ -44,9 +45,9 @@ class TelegramChannelProvider:
 
         try:
             response = await self._client.post(url, json=payload)
-            response_json = _response_json(response)
+            response_json = _telegram_response(response, _response_json(response))
         except httpx.HTTPError as exc:
-            return ProviderResult(success=False, error_message=str(exc), is_transient=True)
+            return ProviderResult(success=False, error_message=sanitize_text(exc), is_transient=True)
 
         if response.status_code == 200 and response_json.get("ok") is True:
             return ProviderResult(success=True, status_code=response.status_code, response_json=response_json)
@@ -57,7 +58,7 @@ class TelegramChannelProvider:
             status_code=response.status_code,
             response_json=response_json,
             retry_after_seconds=retry_after,
-            error_message=_provider_error(response_json) or response.text,
+            error_message=_provider_error(response_json) or sanitize_text(response.text),
             is_transient=response.status_code == 429 or response.status_code >= 500,
         )
 
@@ -66,8 +67,25 @@ def _response_json(response: httpx.Response) -> dict[str, Any]:
     try:
         data = response.json()
     except ValueError:
-        return {"raw_text": response.text}
-    return data if isinstance(data, dict) else {"response": data}
+        return {"raw_text": sanitize_text(response.text)}
+    return sanitize_provider_response(data if isinstance(data, dict) else {"response": data})
+
+
+def _telegram_response(response: httpx.Response, data: dict[str, Any]) -> dict[str, Any]:
+    result = data.get("result")
+    clean: dict[str, Any] = {
+        "provider": "telegram",
+        "status_code": response.status_code,
+        "ok": data.get("ok"),
+    }
+    if isinstance(result, dict) and result.get("message_id") is not None:
+        clean["result"] = {"message_id": result["message_id"]}
+    if data.get("description"):
+        clean["description"] = data["description"]
+    parameters = data.get("parameters")
+    if isinstance(parameters, dict) and parameters.get("retry_after") is not None:
+        clean["parameters"] = {"retry_after": parameters["retry_after"]}
+    return clean
 
 
 def _telegram_retry_after(response_json: dict[str, Any]) -> int | None:

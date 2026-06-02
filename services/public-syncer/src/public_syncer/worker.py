@@ -11,6 +11,7 @@ from .db import Database
 from .models import PublicOutboxItem
 from .payload import build_payload, idempotency_key_for
 from .providers import PublicApiProvider
+from .security_scrub import sanitize_text
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,11 @@ class PublicSyncer:
             await self.db.mark_skipped(
                 item_id=item.id,
                 reason="dry_run",
-                provider_response={"dry_run": True, "payload": payload},
+                provider_response={
+                    "dry_run": True,
+                    "schema_version": payload.get("schema_version"),
+                    "idempotency_key": idempotency_key,
+                },
             )
             return
 
@@ -117,5 +122,5 @@ class PublicSyncer:
             item.event_id,
             result.is_transient,
             result.status_code,
-            result.error_message,
+            sanitize_text(result.error_message or "public_sync_failed"),
         )

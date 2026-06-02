@@ -8,6 +8,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .models import PublicOutboxItem
+from .security import sanitize_provider_response, sanitize_text
 
 
 class Database:
@@ -136,7 +137,7 @@ class Database:
                 """,
                 {
                     "item_id": item_id,
-                    "provider_response": Jsonb(provider_response),
+                    "provider_response": Jsonb(sanitize_provider_response(provider_response)),
                     "post_id": post_id,
                 },
             )
@@ -164,8 +165,8 @@ class Database:
                 """,
                 {
                     "item_id": item_id,
-                    "provider_response": Jsonb(provider_response or {}),
-                    "reason": reason[:2000],
+                    "provider_response": Jsonb(sanitize_provider_response(provider_response or {})),
+                    "reason": sanitize_text(reason),
                 },
             )
         await self.conn.commit()
@@ -200,8 +201,8 @@ class Database:
                 {
                     "item_id": item.id,
                     "status": status,
-                    "provider_response": Jsonb(provider_response),
-                    "error_message": error_message[:2000],
+                    "provider_response": Jsonb(sanitize_provider_response(provider_response)),
+                    "error_message": sanitize_text(error_message),
                     "next_retry_at": next_retry_at,
                 },
             )

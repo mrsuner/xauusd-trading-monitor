@@ -32,7 +32,7 @@
 | Per-item value scoring / Timeline relevance UI | P0 | 部分完成 | Timeline 已顯示 Layer 2 relevance / event state；後續再補 `item_value_score` 與 source metadata 融合 |
 | Event routing layer | P0 | 已完成第一版 | `event-router` 已集中建立 `alerts`、`public_outbox` 與 `event_route_decisions`，dispatcher / publisher 收斂為 delivery |
 | Public publishing plane | P0 | 部分完成 | `event-router`、`public_outbox`、Telegram Channel publisher、`public-syncer`、`public-api`、`public-web` 已有第一版；VPS / Cloudflare Pages end-to-end production deployment 待完成 |
-| Publisher / notification security cleanup | P0 | 待實作 | 需要降低 Bot API URL / token 類資訊出現在 logs 的風險 |
+| Publisher / notification security cleanup | P0 | 已完成第一版 | 已降低 Bot API URL / token / signature 類資訊出現在 logs、provider response 與 DB writeback 的風險 |
 | Timeline 非文本消息降噪 | P1 | 部分完成 | `/raw-items` 已有預設過濾空文本能力；仍需補測試與確認 media-only item 不進 Timeline |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
 
@@ -52,7 +52,6 @@
 P0：
 
 - Public website end-to-end production deployment：在 VPS 啟動 `public-api` / `public-postgres` / migration，設定 Cloudflare Tunnel / reverse proxy，部署 Cloudflare Pages `public-web` 到 `news.thetickbase.com`，並驗證 HomeLab `public-syncer -> public-api -> public-web` 全鏈路。
-- Public publisher security cleanup：降低 `httpx` / provider client logs 中出現完整 Bot API URL、token、signature 或 private payload 的風險；補充 production log policy。
 - Normalizer backlog observability：補齊 backlog、oldest pending age、retry / failed、worker throughput、processing latency 指標，讓多 worker 是否忙不過來可以在 Dashboard 直接判斷。
 - Cross-worker AI budget guard：避免多個 `normalizer-classifier` instance 同時放大 paid model call；至少先加入每小時 / 每日 soft cap 與清楚的 skipped / deferred 狀態。
 
@@ -75,6 +74,29 @@ P2 / 技術債：
 - Claude Code Agent SDK route。
 - normalizer metrics endpoint。
 - public-web browser e2e tests、public claim group、related events、SEO / OG dynamic metadata。
+- 將各 publisher 內部 duplicated sanitizer 收斂到正式 packaged `packages/py-shared`。目前 `py-shared` 尚未打包，第一版先在各 delivery service 內落地相同 helper，避免 Docker / dependency churn。
+
+### 2.3 Publisher / Notification Security Cleanup
+
+實作狀態：已完成第一版。
+
+已完成：
+
+- `alert-dispatcher`、`telegram-channel-publisher`、`x-publisher`、`public-syncer` 都新增 sanitizer helper。
+- `httpx` / `httpcore` logger 降到 `WARNING`，降低完整 request URL 被記錄的機率。
+- provider response 寫入 DB 前先 scrub，遮罩 token、secret、signature、API key、OAuth、Bearer、Telegram Bot API URL 與 chat id 類欄位。
+- Telegram provider response 只保留 `message_id`、`status_code`、`ok`、`retry_after` 與錯誤摘要，不保存 chat object 或 message text。
+- X provider response 只保留 post id、status、錯誤摘要，不保存 OAuth header 或完整 post text。
+- Pushover provider response 只保留 status、request / receipt 與錯誤摘要，不保存 app token / user key。
+- `public-syncer` response 只保留 public API status、public event id、idempotency key、schema version 與錯誤摘要，不保存 Authorization / HMAC signature。
+- dry-run / skipped writeback 不再保存完整 Telegram message、X post 或 public payload，只保存 `*_chars`、`schema_version`、`idempotency_key` 等 metadata。
+
+邊界：
+
+- 不改 event routing policy。
+- 不改 notification threshold。
+- 不導入 Vault / KMS / secret rotation。
+- 不重構 shared package；後續再將 duplicated sanitizer 收斂到 `packages/py-shared`。
 
 後續大版本：
 

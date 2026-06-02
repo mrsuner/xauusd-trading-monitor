@@ -7,8 +7,8 @@ from uuid import uuid4
 import httpx
 
 from .models import PublicApiResult
-from .payload import idempotency_key_for
 from .security import sign_ingest_request
+from .security_scrub import sanitize_provider_response, sanitize_text
 from .settings import Settings
 
 
@@ -50,11 +50,11 @@ class PublicApiProvider:
         try:
             response = await self.client.post(self.settings.ingest_url, content=body, headers=headers)
         except httpx.TimeoutException as exc:
-            return PublicApiResult(success=False, is_transient=True, error_message=f"timeout:{exc}")
+            return PublicApiResult(success=False, is_transient=True, error_message=sanitize_text(f"timeout:{exc}"))
         except httpx.HTTPError as exc:
-            return PublicApiResult(success=False, is_transient=True, error_message=f"http_error:{exc}")
+            return PublicApiResult(success=False, is_transient=True, error_message=sanitize_text(f"http_error:{exc}"))
 
-        response_json = _response_json(response)
+        response_json = _public_api_response(response, _response_json(response))
         public_event_id = _public_event_id(response_json)
         if response.status_code in {200, 201, 202}:
             status = str(response_json.get("status") or "")
@@ -88,8 +88,19 @@ def _response_json(response: httpx.Response) -> dict:
     try:
         value = response.json()
     except ValueError:
-        return {"text": response.text[:2000]}
-    return value if isinstance(value, dict) else {"data": value}
+        return {"text": sanitize_text(response.text)}
+    return sanitize_provider_response(value if isinstance(value, dict) else {"data": value})
+
+
+def _public_api_response(response: httpx.Response, data: dict) -> dict:
+    clean: dict = {
+        "provider": "public-api",
+        "status_code": response.status_code,
+    }
+    for key in ("status", "public_event_id", "idempotency_key", "schema_version", "error", "detail"):
+        if key in data:
+            clean[key] = data[key]
+    return sanitize_provider_response(clean)
 
 
 def _public_event_id(response_json: dict) -> str | None:

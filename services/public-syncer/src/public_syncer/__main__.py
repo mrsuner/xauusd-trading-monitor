@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import logging
 
+from .logging import configure_logging
 from .settings import Settings
 from .worker import PublicSyncer
 
@@ -14,10 +14,7 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = Settings()
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    )
+    configure_logging(settings.log_level)
 
     syncer = PublicSyncer(settings)
     if args.command == "once":

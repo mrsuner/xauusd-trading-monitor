@@ -11,6 +11,7 @@ from .db import Database
 from .message import build_post, canonical_source_link, contains_trade_advice, summary_for
 from .models import PublicOutboxItem
 from .providers import XProvider
+from .security import sanitize_text
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class XPublisher:
             await self.db.mark_skipped(
                 item_id=item.id,
                 reason="contains_trade_advice_language",
-                provider_response={"post": post},
+                provider_response={"post_chars": len(post)},
             )
             logger.warning("x_public_item_skipped_trade_advice item_id=%s", item.id)
             return
@@ -103,7 +104,7 @@ class XPublisher:
             await self.db.mark_skipped(
                 item_id=item.id,
                 reason="dry_run",
-                provider_response={"dry_run": True, "post": post},
+                provider_response={"dry_run": True, "post_chars": len(post)},
             )
             return
 
@@ -136,7 +137,7 @@ class XPublisher:
             item.id,
             item.event_id,
             result.is_transient,
-            result.error_message,
+            sanitize_text(result.error_message or "x_send_failed"),
         )
 
     def _skip_reason(self, item: PublicOutboxItem) -> str | None:

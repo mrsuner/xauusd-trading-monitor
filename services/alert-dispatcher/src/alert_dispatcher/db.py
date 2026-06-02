@@ -8,6 +8,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .models import AlertChannelStats, AlertDecision, AlertDelivery, EventClaimContext, EventContext, RawItemContext, SourceContext
+from .security import sanitize_provider_response, sanitize_text
 
 
 class Database:
@@ -264,7 +265,7 @@ class Database:
                     updated_at = now()
                 where id = %(alert_id)s
                 """,
-                {"alert_id": alert_id, "provider_response_json": Jsonb(provider_response)},
+                {"alert_id": alert_id, "provider_response_json": Jsonb(sanitize_provider_response(provider_response))},
             )
         await self.conn.commit()
 
@@ -284,8 +285,8 @@ class Database:
                 """,
                 {
                     "alert_id": alert_id,
-                    "provider_response_json": Jsonb(provider_response or {}),
-                    "error_message": reason[:2000],
+                    "provider_response_json": Jsonb(sanitize_provider_response(provider_response or {})),
+                    "error_message": sanitize_text(reason),
                 },
             )
         await self.conn.commit()
@@ -320,8 +321,8 @@ class Database:
                 {
                     "alert_id": alert.id,
                     "delivery_status": status,
-                    "provider_response_json": Jsonb(provider_response),
-                    "error_message": error_message[:2000],
+                    "provider_response_json": Jsonb(sanitize_provider_response(provider_response)),
+                    "error_message": sanitize_text(error_message),
                     "next_retry_at": next_retry_at,
                 },
             )

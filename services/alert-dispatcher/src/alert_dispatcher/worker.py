@@ -10,6 +10,7 @@ import httpx
 from .db import Database
 from .models import AlertDelivery
 from .providers import AlertProvider, build_providers
+from .security import sanitize_text
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ class AlertDispatcher:
             await self.db.mark_skipped(
                 alert_id=alert.id,
                 reason="dry_run",
-                provider_response={"dry_run": True, "channel": alert.channel},
+                provider_response={"dry_run": True, "channel": alert.channel, "message_chars": len(alert.message)},
             )
             return
 
@@ -97,7 +98,7 @@ class AlertDispatcher:
             alert.channel,
             alert.event_id,
             result.is_transient,
-            result.error_message,
+            sanitize_text(result.error_message or "provider_send_failed"),
         )
 
     def _backoff_seconds(self, alert: AlertDelivery, retry_after_seconds: int | None) -> int:

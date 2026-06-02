@@ -7,6 +7,7 @@ import httpx
 
 from .models import ProviderResult
 from .oauth import build_oauth1_header
+from .security import sanitize_provider_response, sanitize_text
 from .settings import Settings
 
 
@@ -35,9 +36,9 @@ class XProvider:
 
         try:
             response = await self._client.post(url, json=payload, headers=headers)
-            response_json = _response_json(response)
+            response_json = _x_response(response, _response_json(response))
         except httpx.HTTPError as exc:
-            return ProviderResult(success=False, error_message=str(exc), is_transient=True)
+            return ProviderResult(success=False, error_message=sanitize_text(exc), is_transient=True)
 
         if response.status_code in {200, 201} and _has_post_id(response_json):
             return ProviderResult(success=True, status_code=response.status_code, response_json=response_json)
@@ -49,7 +50,7 @@ class XProvider:
             status_code=response.status_code,
             response_json=response_json,
             retry_after_seconds=retry_after,
-            error_message=_provider_error(response_json) or response.text,
+            error_message=_provider_error(response_json) or sanitize_text(response.text),
             is_transient=response.status_code == 429 or response.status_code >= 500,
             is_duplicate=duplicate,
         )
@@ -70,8 +71,22 @@ def _response_json(response: httpx.Response) -> dict[str, Any]:
     try:
         data = response.json()
     except ValueError:
-        return {"raw_text": response.text}
-    return data if isinstance(data, dict) else {"response": data}
+        return {"raw_text": sanitize_text(response.text)}
+    return sanitize_provider_response(data if isinstance(data, dict) else {"response": data})
+
+
+def _x_response(response: httpx.Response, data: dict[str, Any]) -> dict[str, Any]:
+    clean: dict[str, Any] = {
+        "provider": "x",
+        "status_code": response.status_code,
+    }
+    data_value = data.get("data")
+    if isinstance(data_value, dict) and data_value.get("id") is not None:
+        clean["data"] = {"id": data_value["id"]}
+    for key in ("title", "detail", "errors"):
+        if key in data:
+            clean[key] = data[key]
+    return sanitize_provider_response(clean)
 
 
 def _has_post_id(response_json: dict[str, Any]) -> bool:

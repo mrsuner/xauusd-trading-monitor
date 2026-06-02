@@ -11,6 +11,7 @@ from .db import Database
 from .message import build_message, summary_for
 from .models import PublicOutboxItem
 from .providers import TelegramChannelProvider
+from .security import sanitize_text
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class TelegramChannelPublisher:
             await self.db.mark_skipped(
                 item_id=item.id,
                 reason="dry_run",
-                provider_response={"dry_run": True, "message": message},
+                provider_response={"dry_run": True, "message_chars": len(message)},
             )
             return
 
@@ -110,7 +111,7 @@ class TelegramChannelPublisher:
             item.id,
             item.event_id,
             result.is_transient,
-            result.error_message,
+            sanitize_text(result.error_message or "telegram_channel_send_failed"),
         )
 
     def _skip_reason(self, item: PublicOutboxItem) -> str | None:
