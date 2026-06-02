@@ -31,26 +31,41 @@
 | Timeline taxonomy filters | P0 | 已完成第一版 | Layer 1 已回寫 category/tags/actors，Timeline 可按分類、主題與角色檢索 |
 | Per-item value scoring / Timeline relevance UI | P0 | 部分完成 | Timeline 已顯示 Layer 2 relevance / event state；後續再補 `item_value_score` 與 source metadata 融合 |
 | Event routing layer | P0 | 已完成第一版 | `event-router` 已集中建立 `alerts`、`public_outbox` 與 `event_route_decisions`，dispatcher / publisher 收斂為 delivery |
-| Timeline 非文本消息降噪 | P1 | 待實作 | Telegram media-only raw item 會在 Timeline 形成多則空消息 |
+| Public publishing plane | P0 | 部分完成 | `event-router`、`public_outbox`、Telegram Channel publisher、`public-syncer`、`public-api`、`public-web` 已有第一版；VPS / Cloudflare Pages end-to-end production deployment 待完成 |
+| Publisher / notification security cleanup | P0 | 待實作 | 需要降低 Bot API URL / token 類資訊出現在 logs 的風險 |
+| Timeline 非文本消息降噪 | P1 | 部分完成 | `/raw-items` 已有預設過濾空文本能力；仍需補測試與確認 media-only item 不進 Timeline |
 | Source management | P1 | 部分完成 | Dashboard 已可 create/edit/enable/disable/archive；test/backfill 與 collector reload 尚未完成 |
-| Public publishing plane | P2 | 規劃中 | HomeLab 控制公共發布，VPS 只承擔 public API / public website / public DB |
 
 ### 2.1 Current Todo List
 
-此清單是 2026-06-01 對照文檔與目前程式狀態後整理出的未完成項目。已完成第一版的 notification policy、AI usage 統計、taxonomy filters、source CRUD 與 HomeLab deployment 不再列入主待辦。
+此清單是 2026-06-02 對照文檔與目前程式狀態後整理出的未完成項目。已完成第一版的 notification policy、AI usage 統計、taxonomy filters、Timeline relevance UI、source CRUD、event-router、Telegram Channel publisher、public-api、public-syncer、public-web 與 HomeLab deployment 不再列入主待辦。
+
+已完成第一版的核心組件：
+
+- News ingestion：`telegram-collector`、`rss-collector`、source registry、source health。
+- Processing：`normalizer-classifier`、Layer 1 translation-summary、Layer 2 classification-reasoning、AI usage tracking、taxonomy dictionary。
+- Routing / delivery：`event-router`、`alerts`、`alert-dispatcher`、`public_outbox`、Telegram Channel publisher、X publisher skeleton。
+- Dashboard：Timeline、Processing、Sources、Alerts、AI Usage、responsive layout、taxonomy / relevance filters。
+- Public website plane：`public-api` runtime + migration、`public-syncer` runtime、`public-web` first frontend。
+- Deployment：HomeLab Docker Compose、GHCR image flow、normalizer scale 2、public-publishing profile。
 
 P0：
 
-- Per-item value scoring：在現有 Layer 2 relevance 基礎上，後續加入可解釋的 `item_value_score` / routing decision，融合 AI relevance、event type、actor、keyword、source priority / reliability、routine / commentary / duplicate penalty。
-- Normalizer 多 worker queue：支援多個 `normalizer-classifier` instance 並行、stale lock recovery、production compose replicas、backlog / oldest pending age / throughput 指標，以及跨 worker AI budget guard。
+- Public website end-to-end production deployment：在 VPS 啟動 `public-api` / `public-postgres` / migration，設定 Cloudflare Tunnel / reverse proxy，部署 Cloudflare Pages `public-web` 到 `news.thetickbase.com`，並驗證 HomeLab `public-syncer -> public-api -> public-web` 全鏈路。
+- Public publisher security cleanup：降低 `httpx` / provider client logs 中出現完整 Bot API URL、token、signature 或 private payload 的風險；補充 production log policy。
+- Normalizer backlog observability：補齊 backlog、oldest pending age、retry / failed、worker throughput、processing latency 指標，讓多 worker 是否忙不過來可以在 Dashboard 直接判斷。
+- Cross-worker AI budget guard：避免多個 `normalizer-classifier` instance 同時放大 paid model call；至少先加入每小時 / 每日 soft cap 與清楚的 skipped / deferred 狀態。
 
 P1：
 
 - Source test API / UI：支援 Telegram resolve channel、RSS fetch / parse、HTML polling selector test；Dashboard `Sources` 頁加入 test action。
 - Source 小範圍 backfill API / UI：限制時間窗口與數量，避免大量 AI call；Dashboard `Sources` 頁加入 backfill action。
 - Collector registry auto-reload：新增 / 修改 / disable / archive source 後，Telegram / RSS collector 不需要重啟即可生效。
-- Timeline / Processing 補齊 source metadata filters：目前 Timeline 已有部分 filter，後續需補齊 source metadata；Processing 也應支援更完整 source filter。
+- Timeline / Processing 補齊 source metadata filters：目前 Timeline 已有主要 filter，後續需補齊 source group、official level、enabled / archived state 等 source metadata；Processing 也應支援更完整 source filter。
 - Telegram media-only 降噪收尾：`/raw-items` 已有預設過濾空文本的部分實作，但仍需補測試、確認 photo / video / document 無 caption 不顯示，並更新文檔狀態。
+- Public sync status dashboard：在私人 Dashboard 增加 `public_outbox` / `event_route_decisions` 狀態檢視，方便排查 public website、Telegram Channel 與 X 發布是否 pending / retry / failed。
+- Public payload metadata 補齊：確認 `public_outbox` 是否需要保存 `content_category`、`mentioned_actors`、claim summary 或 related event metadata，避免 public website 只能看到 tags 而缺少更完整分類。
+- Per-item value scoring：在現有 Layer 2 relevance 基礎上，後續加入可解釋的 `item_value_score` / routing decision，融合 AI relevance、event type、actor、keyword、source priority / reliability、routine / commentary / duplicate penalty。
 
 P2 / 技術債：
 
@@ -59,13 +74,14 @@ P2 / 技術債：
 - 近似重複合併到既有 event。
 - Claude Code Agent SDK route。
 - normalizer metrics endpoint。
+- public-web browser e2e tests、public claim group、related events、SEO / OG dynamic metadata。
 
 後續大版本：
 
 - V2 Claim Conflict Engine：完整 claim group、跨來源口徑衝突偵測。
 - V3 Market Context Layer：`mt5-collector`、`market_snapshots`、XAUUSD 異動偵測、行情先動反查消息、market move explainer。
-- Public Publishing Plane：公共網站、public ingest API、`event-router`、`public_outbox`、`public-syncer`、Telegram Channel publisher 與 X publisher。
 - Dashboard review system：Claim Groups 專頁、Market Move Review、行情 overlay、WebSocket / SSE、Replay mode、User preferences、Alert rule editor。
+- X publisher production enablement：目前 X API 發文需要付費 credit，先保留 skeleton，待公共內容體系成熟後再評估啟用。
 
 ### 2.2 Timeline Relevance UI Plan
 
@@ -555,7 +571,7 @@ V1 簡化版：
 
 ### 7.2 Dashboard API endpoints
 
-建議把 `dashboard-api` 從 read-only 擴展為受 token 保護的管理 API：
+`dashboard-api` 已從 read-only 擴展為受 token 保護的管理 API。已完成與待補 endpoints：
 
 ```text
 GET /sources
@@ -916,7 +932,7 @@ event_id / has_event
 
 ### Phase 8: Public publishing plane
 
-實作狀態：規劃中。此階段目標是把系統從個人工作台延伸成公共資訊平台，但不走 SaaS 多租戶路線。整體架構已整理至 [Public Website 架構規劃](./public-website-architecture.md)，並已建立 `public-syncer`、`public-api`、`public-web` 功能需求文檔。
+實作狀態：部分完成。此階段目標是把系統從個人工作台延伸成公共資訊平台，但不走 SaaS 多租戶路線。整體架構已整理至 [Public Website 架構規劃](./public-website-architecture.md)，並已建立與實作 `public-syncer`、`public-api`、`public-web` 第一版 runtime / frontend。
 
 部署邊界：
 
@@ -927,16 +943,16 @@ event_id / has_event
 
 HomeLab 新增元件：
 
-- `event-router`：集中根據 `events`、source metadata 與 route policy 建立 `alerts`、`public_outbox` 與 route audit。
+- `event-router`：集中根據 `events`、source metadata 與 route policy 建立 `alerts`、`public_outbox` 與 route audit。已完成第一版 runtime。
 - `public_outbox`：保存已去敏、可公開、可重試的事件草稿。`0010_public_outbox` 已完成第一版 schema。
-- `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。功能需求文檔已建立。
-- `telegram-channel-publisher`：把 public-safe event 發布到公共 Telegram Channel。runtime skeleton 已完成，預設 dry-run 且需透過 `public-publishing` profile 啟動。
+- `public-syncer`：把 `public_outbox` 中可公開的資料同步到 VPS `public-api`。已完成第一版 runtime，待 VPS production end-to-end 驗證。
+- `telegram-channel-publisher`：把 public-safe event 發布到公共 Telegram Channel。已完成第一版 runtime，並已在 HomeLab 完成真實 Channel 發送驗證。
 - `x-publisher`：把 public-safe event 發布到 X。runtime skeleton 已完成，預設 disabled / dry-run，待真實 X API 權限驗證。
 
 VPS 新增元件：
 
-- `public-api`：提供 ingest endpoint 與 public read API。功能需求文檔已建立。
-- `public-web`：公共網站，只讀取 public database。功能需求文檔已建立。
+- `public-api`：提供 ingest endpoint 與 public read API。已完成第一版 runtime、獨立 migration 與 Docker Compose。
+- `public-web`：公共網站，只讀取 public API。已完成第一版 React Router frontend，待 Cloudflare Pages production setup。
 - `public-postgres`：只保存 public-safe event，不保存 raw item、prompt、私人通知設定或 Telegram session。
 
 安全與資料邊界：
@@ -950,11 +966,15 @@ VPS 新增元件：
 
 1. 定義 public payload schema 與 `public_outbox` migration。已完成第一版。
 2. 實作 `event-router`，從 `events` 生成 private alert decisions 與 public-safe content。已完成第一版。
-3. 實作 VPS `public-api` ingest，先不做 public website UI。文檔已完成。
-4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。文檔已完成。
-5. 實作 `public-web` 第一版列表與事件詳情。文檔已完成。
-6. 實作 Telegram Channel publisher。已完成第一版 runtime skeleton，尚未做真實 Channel 發布驗證。
-7. 實作 X publisher。
+3. 實作 VPS `public-api` ingest / read API 與獨立 migration。已完成第一版。
+4. 實作 HomeLab `public-syncer`，支援 retry 與 idempotency。已完成第一版。
+5. 實作 `public-web` 第一版列表與事件詳情。已完成第一版。
+6. 實作 Telegram Channel publisher。已完成第一版並完成真實 Channel 發布驗證。
+7. 實作 X publisher。已完成 skeleton；因 X API 發文需要付費 credit，暫不啟用。
+8. 部署 VPS `public-api` / `public-postgres`，設定 Cloudflare Tunnel / reverse proxy。
+9. 部署 Cloudflare Pages `public-web` 到 `news.thetickbase.com`。
+10. 驗證 HomeLab `public-syncer -> public-api -> public-web` end-to-end。
+11. 在私人 Dashboard 增加 `public_outbox` 與 public sync status 檢視。
 
 驗收：
 

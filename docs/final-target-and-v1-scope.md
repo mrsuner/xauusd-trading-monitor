@@ -173,10 +173,15 @@ Layer 2 classification-reasoning:
 | `telegram-collector` | 實作 | 使用 Telethon 監聽 Telegram channels，寫入 `raw_items` |
 | `rss-collector` | 實作 | 輪詢 RSS / 官方頁面，寫入 `raw_items` |
 | `normalizer-classifier` | 實作 | 預處理、過濾、摘要、相關度判斷、回寫 DB |
-| `event-router` | 規劃 / 待實作 | 集中判斷 event 應送往哪些出口，寫入 `alerts` / `public_outbox` |
+| `event-router` | 已實作第一版 | 集中判斷 event 應送往哪些出口，寫入 `alerts` / `public_outbox` / `event_route_decisions` |
 | `alert-dispatcher` | 實作 | claim `alerts` 並發送私人 Telegram / Pushover |
-| `dashboard-api` | 可選 / 最小實作 | V1 可先只提供 health 與事件查詢 API |
-| `dashboard-web` | 可選 / 極簡 | V1 可先做 read-only UI，用於查看 timeline、events、sources、processing 與 alerts |
+| `dashboard-api` | 已實作第一版 | 提供 timeline、events、sources、processing、alerts、AI usage 與 taxonomy API |
+| `dashboard-web` | 已實作第一版 | 提供 timeline、events、sources、processing、alerts 與 responsive Dashboard UI |
+| `telegram-channel-publisher` | 已實作第一版 | 公共 Telegram Channel publisher，讀取 `public_outbox` 發送 public-safe event |
+| `public-syncer` | 已實作第一版 | HomeLab outbound HTTPS 同步 public-safe event 到 VPS `public-api` |
+| `public-api` | 已實作第一版 | VPS public ingest / read API，使用獨立 public database 與 migration |
+| `public-web` | 已實作第一版 | Cloudflare Pages public website frontend，展示 public-safe event stream |
+| `x-publisher` | 已實作 skeleton / 暫不啟用 | X API 發文需要付費 credit，待內容體系成熟後再啟用 |
 | `mt5-collector` | 暫緩 | V1 不接行情資料 |
 
 ## 7. V1 資料表範圍
@@ -192,6 +197,10 @@ Layer 2 classification-reasoning:
 | `event_claims` | 可選 / 簡化 | V1 可先保存單條 claim，完整 claim group 後續強化 |
 | `alerts` | 實作 | 保存通知發送紀錄 |
 | `source_health` | 實作 | 保存來源與採集器健康狀態 |
+| `ai_model_calls` | 實作 | 保存 AI model usage、token、cost、latency 與 provider metadata |
+| `content_categories` / `tags` / `raw_item_tags` | 實作 | 保存 controlled categories 與 semi-controlled topic tags |
+| `public_outbox` | 實作 | 保存 public-safe event draft 與各 public publisher delivery 狀態 |
+| `event_route_decisions` | 實作 | 保存 event-router 對各 route 的決策、分數與跳過原因 |
 
 ### 7.2 V1 暫緩資料表
 

@@ -2,42 +2,49 @@
 
 ## 1. 服務定位
 
-`dashboard-api` 是 V1 可選的最小查詢 API，負責讓使用者或後續 Dashboard Web 查看系統狀態、來源健康、原始消息、處理結果、事件與通知紀錄。
+`dashboard-api` 是 HomeLab 私人工作台 API，負責讓 `dashboard-web` 查看系統狀態、來源健康、原始消息、處理結果、事件、通知紀錄與 AI usage，並提供受 token 保護的 source registry 管理能力。
 
-V1 不要求完整前端，但建議先建立 API 邊界，方便 debug 與後續 Dashboard Web 開發。
+它只服務內部 Dashboard，不承擔公共網站 API；公共網站使用獨立的 `public-api`。
 
 ## 2. V1 目標
 
-- 提供 read-only API 查詢 V1 核心資料。
+- 提供 API 查詢 V1 核心資料。
 - 支援 source health 檢查。
 - 支援 raw items 查詢。
 - 支援 processing status 查詢。
 - 支援 events 查詢。
 - 支援 alerts 查詢。
+- 支援 AI model usage 統計。
+- 支援 taxonomy categories / tags 查詢。
+- 支援 source create / edit / enable / disable / archive。
 - 提供基本 health endpoint。
 
 ## 2.1 實作狀態
 
-目前已建立 `services/dashboard-api` 最小服務骨架：
+目前已建立 `services/dashboard-api` 第一版 runtime：
 
 - FastAPI app factory。
 - PostgreSQL connection pool。
 - API token middleware。
 - CORS 設定。
 - read-only list / detail endpoints。
+- source create / update / enable / disable / archive endpoints。
+- raw item taxonomy filters 與 taxonomy dictionary endpoints。
+- AI usage stats endpoint。
 - pagination helper。
 - Dockerfile。
 - `make dev` 本機啟動整合。
 
-V1 實作仍維持 read-only，不包含 source 管理寫入。
+V1 已不再是純 read-only API。`dashboard-api` 仍以 HomeLab 私人工作台為邊界，但已包含受 `DASHBOARD_API_TOKEN` 保護的 source management 寫入能力。
 
 ## 3. 非目標
 
 V1 不包含：
 
-- 完整 dashboard web UI。
+- public website API；公共網站使用獨立 `public-api`。
+- source test / source backfill action；這兩項留在下一輪 source management Todo。
+- collector registry auto-reload；source 變更後 collector 是否即時生效仍需補強。
 - 使用者登入與多租戶。
-- source 編輯 UI；後續版本需要支援從 Dashboard 新增、停用與測試 Telegram/RSS sources。
 - alert preference UI。
 - market chart。
 - 行情事件疊加。
@@ -48,8 +55,8 @@ V1 不包含：
 | 類別 | 選型 | 說明 |
 | --- | --- | --- |
 | Language | Python 3.12+ | V1 主語言 |
-| Web framework | FastAPI | read-only API |
-| Database | PostgreSQL 16+ | 查詢核心資料 |
+| Web framework | FastAPI | HomeLab Dashboard API |
+| Database | PostgreSQL 16+ | 查詢核心資料並管理 source registry |
 | DB driver | psycopg 3 / asyncpg | async preferred |
 | Schema | pydantic | response schema |
 | Config | pydantic-settings | env 管理 |
@@ -77,7 +84,7 @@ Go 備選：`chi` / `fiber` + `pgx`。
 
 ## 6. API 範圍
 
-V1 endpoints 建議：
+V1 endpoints：
 
 ```text
 GET /health
@@ -99,7 +106,7 @@ POST /sources/{source_id}/disable
 POST /sources/{source_id}/archive
 ```
 
-可選：
+後續可選：
 
 ```text
 GET /stats/ingestion
@@ -311,7 +318,7 @@ V1 如果只部署在 HomeLab 內網，可先使用簡單 API token。
 
 要求：
 
-- read-only DB user，除 health endpoint 外不寫資料。
+- DB user 應採最小權限：允許讀取 Dashboard 所需資料表，並只允許對 `sources` / source policy 相關欄位執行必要寫入。
 - `GET /health` 不需要 token。
 - 其他 endpoints 若設定 `API_TOKEN`，需使用 `Authorization: Bearer <token>` 或 `X-API-Token: <token>`。
 - 不暴露 secrets。
