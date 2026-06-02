@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import psycopg
+from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
@@ -22,26 +25,31 @@ from .taxonomy import CategoryOption, TagOption, TaxonomyContext, normalize_acto
 
 
 class Database:
-    def __init__(self, database_url: str) -> None:
+    def __init__(self, database_url: str, *, min_size: int = 1, max_size: int = 10) -> None:
         self._database_url = database_url
-        self._conn: psycopg.AsyncConnection[Any] | None = None
+        self._pool = AsyncConnectionPool(
+            database_url,
+            min_size=min_size,
+            max_size=max_size,
+            kwargs={"row_factory": dict_row},
+            open=False,
+        )
 
     async def connect(self) -> None:
-        self._conn = await psycopg.AsyncConnection.connect(self._database_url, row_factory=dict_row)
+        await self._pool.open()
 
     async def close(self) -> None:
-        if self._conn:
-            await self._conn.close()
-            self._conn = None
+        await self._pool.close()
 
-    @property
-    def conn(self) -> psycopg.AsyncConnection[Any]:
-        if not self._conn:
-            raise RuntimeError("database is not connected")
-        return self._conn
+    @asynccontextmanager
+    async def cursor(self) -> AsyncIterator[psycopg.AsyncCursor[Any]]:
+        async with self._pool.connection() as conn:
+            async with conn.transaction():
+                async with conn.cursor() as cur:
+                    yield cur
 
     async def claim_next_task(self, *, worker_id: str, stale_task_timeout_seconds: int) -> ProcessingTask | None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_item_processing
@@ -83,7 +91,6 @@ class Database:
             )
             processing = await cur.fetchone()
             if not processing:
-                await self.conn.commit()
                 return None
 
             await cur.execute(
@@ -112,7 +119,6 @@ class Database:
                 {"raw_item_id": processing["raw_item_id"]},
             )
             row = await cur.fetchone()
-        await self.conn.commit()
 
         if not row:
             return None
@@ -149,7 +155,7 @@ class Database:
         event_id: Any | None = None,
         source_id: Any | None = None,
     ) -> None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 insert into ai_model_calls (
@@ -205,10 +211,9 @@ class Database:
                     "usage_json": Jsonb(usage.usage_json),
                 },
             )
-        await self.conn.commit()
 
     async def get_taxonomy_context(self) -> TaxonomyContext:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 select key, label_en, description
@@ -246,7 +251,7 @@ class Database:
         )
 
     async def update_normalized_item(self, *, raw_item_id: Any, normalized: NormalizedItem) -> None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_items
@@ -261,10 +266,9 @@ class Database:
                     "language": normalized.language,
                 },
             )
-        await self.conn.commit()
 
     async def defer_for_model_budget(self, *, processing_id: Any) -> None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_item_processing
@@ -278,10 +282,9 @@ class Database:
                 """,
                 {"processing_id": processing_id},
             )
-        await self.conn.commit()
 
     async def complete_skipped(self, *, processing_id: Any, normalized: NormalizedItem) -> None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_item_processing
@@ -303,7 +306,6 @@ class Database:
                     "normalized_json": Jsonb(normalized.model_dump(mode="json")),
                 },
             )
-        await self.conn.commit()
 
     async def complete_processed(
         self,
@@ -316,7 +318,7 @@ class Database:
         event_id = None
         result = model_response.result
 
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_items
@@ -365,7 +367,6 @@ class Database:
                     "event_id": event_id,
                 },
             )
-        await self.conn.commit()
         return event_id
 
     async def update_translation_result(
@@ -381,7 +382,7 @@ class Database:
         content_category = normalize_category(result.content_category, taxonomy_context)
         topic_tags = normalize_topic_tags(result.topic_tags, taxonomy_context)
         mentioned_actors = normalize_actors(result.mentioned_actors)
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_items
@@ -456,10 +457,9 @@ class Database:
                     """,
                     {"tag_ids": tag_ids},
                 )
-        await self.conn.commit()
 
     async def update_translation_skipped(self, *, raw_item_id: Any, reason: str) -> None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_items
@@ -471,7 +471,6 @@ class Database:
                 """,
                 {"raw_item_id": raw_item_id, "translation_error": reason[:2000]},
             )
-        await self.conn.commit()
 
     async def update_translation_failed(
         self,
@@ -481,7 +480,7 @@ class Database:
         model: str | None,
         error_message: str,
     ) -> None:
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_items
@@ -500,12 +499,11 @@ class Database:
                     "translation_error": error_message[:2000],
                 },
             )
-        await self.conn.commit()
 
     async def mark_failed(self, *, processing_id: Any, attempt_count: int, max_attempts: int, error_message: str) -> None:
         status = "failed" if attempt_count >= max_attempts else "retry"
         next_retry_at = None if status == "failed" else datetime.now(timezone.utc) + timedelta(seconds=30 * attempt_count)
-        async with self.conn.cursor() as cur:
+        async with self.cursor() as cur:
             await cur.execute(
                 """
                 update raw_item_processing
@@ -524,7 +522,6 @@ class Database:
                     "error_message": error_message[:2000],
                 },
             )
-        await self.conn.commit()
 
     async def _insert_event(
         self,

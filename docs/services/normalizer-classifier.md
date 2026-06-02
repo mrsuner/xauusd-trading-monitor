@@ -485,6 +485,15 @@ LOG_LEVEL=INFO
 
 生產環境可用 Docker Compose `--scale normalizer-classifier=N` 啟動多個 instance。V1 預設 `NORMALIZER_REPLICAS=2`、`WORKER_CONCURRENCY=2`，總併發約 4。`claim_next_task` 使用 `FOR UPDATE SKIP LOCKED`，同一筆 `raw_item_processing` task 不會被多個 worker 同時 claim。
 
+`normalizer-classifier` 需要使用 PostgreSQL connection pool，而不是讓所有 worker coroutine 共用同一條 `AsyncConnection`。每個 DB method 會從 pool 取得 connection 並在獨立 transaction 中執行，避免不同 worker 的 `commit` / `rollback` 互相影響，也讓 `FOR UPDATE SKIP LOCKED` 能真正支援併發 claim。
+
+Pool 設定：
+
+- local/dev service env 使用 `DB_POOL_MIN_SIZE` / `DB_POOL_MAX_SIZE`。
+- production compose 使用 `NORMALIZER_DB_POOL_MIN_SIZE` / `NORMALIZER_DB_POOL_MAX_SIZE`，再映射給 container。
+- `DB_POOL_MAX_SIZE=0` 表示依 `WORKER_CONCURRENCY` 自動推導，預設為 `max(WORKER_CONCURRENCY + 2, DB_POOL_MIN_SIZE, 4)`。
+- 每個 container 都有自己的 pool；總連線數約為 `NORMALIZER_REPLICAS * DB_POOL_MAX_SIZE`，調高 replicas 前需要確認 PostgreSQL `max_connections`。
+
 `STALE_TASK_TIMEOUT_SECONDS` 用於 worker crash recovery。若 task 長時間停在 `running` 且 `locked_at` 超過門檻，下一次 claim 前會恢復為 `retry`，避免 backlog 永久卡住。
 
 ## 18. 測試需求

@@ -434,6 +434,10 @@ running / completed / skipped / retry / failed
 短期：
 
 - production compose 支援 `normalizer-classifier` 多 replicas 或多 service instance。已完成第一版，使用 `NORMALIZER_REPLICAS=2` 與 `infra/scripts/prod-up.sh`。
+- `normalizer-classifier` 使用 PostgreSQL connection pool，避免多個 worker coroutine 共用單一 `AsyncConnection`。已完成第一版：
+  - 每個 DB method 從 pool 取得 connection。
+  - 每個 method 在獨立 transaction 中執行，成功 commit，失敗 rollback。
+  - `DB_POOL_MAX_SIZE=0` 時依 `WORKER_CONCURRENCY` 自動推導。
 - 加入 stale running task recovery。已完成第一版：
   - `locked_at < now() - interval 'N minutes'`
   - 將任務恢復為 `retry`

@@ -65,6 +65,27 @@ def test_settings_accepts_stale_task_timeout() -> None:
     assert settings.stale_task_timeout_seconds == 1200
 
 
+def test_settings_accepts_db_pool_size() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://user:pass@localhost/db",
+        CLOUD_MODEL_API_KEY="test-key",
+        DB_POOL_MIN_SIZE="2",
+        DB_POOL_MAX_SIZE="8",
+    )
+
+    assert settings.db_pool_min_size == 2
+    assert settings.db_pool_max_size == 8
+
+
+def test_settings_rejects_negative_db_pool_size() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            DATABASE_URL="postgresql://user:pass@localhost/db",
+            CLOUD_MODEL_API_KEY="test-key",
+            DB_POOL_MAX_SIZE="-1",
+        )
+
+
 def test_settings_rejects_short_stale_task_timeout() -> None:
     with pytest.raises(ValidationError):
         Settings(

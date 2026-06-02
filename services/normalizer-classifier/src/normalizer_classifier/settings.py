@@ -9,6 +9,8 @@ class Settings(BaseSettings):
 
     database_url: str = Field(alias="DATABASE_URL")
     worker_concurrency: int = Field(default=4, alias="WORKER_CONCURRENCY")
+    db_pool_min_size: int = Field(default=1, alias="DB_POOL_MIN_SIZE")
+    db_pool_max_size: int = Field(default=0, alias="DB_POOL_MAX_SIZE")
     poll_interval_seconds: float = Field(default=2.0, alias="POLL_INTERVAL_SECONDS")
     stale_task_timeout_seconds: int = Field(default=900, alias="STALE_TASK_TIMEOUT_SECONDS")
     model_route: str = Field(default="cloud_small", alias="MODEL_ROUTE")
@@ -74,6 +76,20 @@ class Settings(BaseSettings):
     def validate_worker_concurrency(cls, value: int) -> int:
         if value < 1:
             raise ValueError("WORKER_CONCURRENCY must be >= 1")
+        return value
+
+    @field_validator("db_pool_min_size")
+    @classmethod
+    def validate_db_pool_min_size(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("DB_POOL_MIN_SIZE must be >= 0")
+        return value
+
+    @field_validator("db_pool_max_size")
+    @classmethod
+    def validate_db_pool_max_size(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("DB_POOL_MAX_SIZE must be >= 0")
         return value
 
     @field_validator("stale_task_timeout_seconds")
