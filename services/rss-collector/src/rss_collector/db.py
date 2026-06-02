@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+import os
 from datetime import datetime
 from typing import Any
 
@@ -9,6 +12,32 @@ from psycopg.types.json import Jsonb
 
 from .models import PollingSource
 
+logger = logging.getLogger(__name__)
+
+
+def _positive_int_env(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning("invalid integer environment value", extra={"env_name": name, "env_value": raw})
+        return default
+    return max(value, 1)
+
+
+def _positive_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        logger.warning("invalid float environment value", extra={"env_name": name, "env_value": raw})
+        return default
+    return max(value, 0.1)
+
 
 class Database:
     def __init__(self, database_url: str) -> None:
@@ -16,7 +45,32 @@ class Database:
         self._conn: psycopg.AsyncConnection[Any] | None = None
 
     async def connect(self) -> None:
-        self._conn = await psycopg.AsyncConnection.connect(self._database_url, row_factory=dict_row)
+        max_attempts = _positive_int_env("DB_CONNECT_MAX_ATTEMPTS", 10)
+        delay_seconds = _positive_float_env("DB_CONNECT_INITIAL_BACKOFF_SECONDS", 1.0)
+        max_delay_seconds = _positive_float_env("DB_CONNECT_MAX_BACKOFF_SECONDS", 30.0)
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                self._conn = await psycopg.AsyncConnection.connect(self._database_url, row_factory=dict_row)
+                return
+            except Exception:
+                if attempt >= max_attempts:
+                    logger.exception(
+                        "database connection failed after retries",
+                        extra={"attempt": attempt, "max_attempts": max_attempts},
+                    )
+                    raise
+                logger.warning(
+                    "database connection failed; retrying",
+                    extra={
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "retry_in_seconds": delay_seconds,
+                    },
+                    exc_info=True,
+                )
+                await asyncio.sleep(delay_seconds)
+                delay_seconds = min(delay_seconds * 2, max_delay_seconds)
 
     async def close(self) -> None:
         if self._conn:

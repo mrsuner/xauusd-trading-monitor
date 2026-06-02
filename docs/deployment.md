@@ -204,6 +204,14 @@ Telethon session 特別重要：
 
 Docker Compose 使用 `depends_on.condition` 控制順序：application services 等待 PostgreSQL healthy，並等待 `db-migrate` `service_completed_successfully`。服務本身仍需實作 DB retry，不能只依賴 Compose 順序。
 
+DB startup retry 由各 Python service 的 `Database.connect()` 負責。預設策略是 bounded exponential backoff：
+
+- `DB_CONNECT_MAX_ATTEMPTS=10`
+- `DB_CONNECT_INITIAL_BACKOFF_SECONDS=1`
+- `DB_CONNECT_MAX_BACKOFF_SECONDS=30`
+
+超過 retry 上限後 service 仍會 raise 並退出，由 Docker `restart: unless-stopped` 作為最後恢復防線。這個設計用來處理 PostgreSQL cold start、migration 剛完成後的短暫連線抖動，以及 service restart 時的 DB 連線競態。
+
 Migration 策略詳見 [Database Migration 策略](./database-migrations.md)。
 
 ## 8. 使用方式

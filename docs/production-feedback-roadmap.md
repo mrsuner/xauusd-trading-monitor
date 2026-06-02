@@ -874,6 +874,7 @@ event_id / has_event
 - [x] 確認 `raw_item_processing` claim query 支援多 instance 競爭。
 - [x] 加入 stale lock recovery。
 - [x] production compose 支援擴展 `normalizer-classifier` replicas。
+- [x] 為 Python services 加入 DB startup retry，避免 PostgreSQL cold start / migration 後短暫抖動直接造成無意義 crash loop。
 - 增加 queue backlog / oldest pending age / throughput 統計。
 - 重新檢查 AI budget guard 是否能跨 worker 控制成本。
 
