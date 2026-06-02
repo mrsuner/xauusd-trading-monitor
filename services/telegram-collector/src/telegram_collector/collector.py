@@ -51,9 +51,9 @@ class TelegramCollector:
         await self.refresh_sources()
         self.register_handlers()
 
-        backfill_task = asyncio.create_task(self.backfill_all_sources(), name="telegram-backfill")
-        refresh_task = asyncio.create_task(self.refresh_loop(), name="telegram-source-refresh")
-        health_task = asyncio.create_task(self.health_loop(), name="telegram-health")
+        backfill_task = self.create_background_task(self.backfill_all_sources(), name="telegram-backfill")
+        refresh_task = self.create_background_task(self.refresh_loop(), name="telegram-source-refresh")
+        health_task = self.create_background_task(self.health_loop(), name="telegram-health")
 
         try:
             logger.info("telegram collector started", extra={"sources": len(self._resolved_by_channel_id)})
@@ -62,6 +62,7 @@ class TelegramCollector:
             self._stop_event.set()
             for task in (backfill_task, refresh_task, health_task):
                 task.cancel()
+            await asyncio.gather(backfill_task, refresh_task, health_task, return_exceptions=True)
             await self.client.disconnect()
             await self.db.close()
 
@@ -74,31 +75,73 @@ class TelegramCollector:
     def register_handlers(self) -> None:
         @self.client.on(events.NewMessage())
         async def new_message_handler(event: events.NewMessage.Event) -> None:
-            await self.handle_message(event.message)
+            try:
+                await self.handle_message(event.message)
+            except Exception:
+                logger.exception("failed to handle telegram new message")
 
         @self.client.on(events.MessageEdited())
         async def edited_message_handler(event: events.MessageEdited.Event) -> None:
-            await self.handle_message(event.message)
+            try:
+                await self.handle_message(event.message)
+            except Exception:
+                logger.exception("failed to handle telegram edited message")
+
+    def create_background_task(self, coro: Any, *, name: str) -> asyncio.Task[Any]:
+        task = asyncio.create_task(coro, name=name)
+        task.add_done_callback(self.background_task_done)
+        return task
+
+    def background_task_done(self, task: asyncio.Task[Any]) -> None:
+        if task.cancelled():
+            return
+
+        task_name = task.get_name()
+        try:
+            exc = task.exception()
+        except asyncio.CancelledError:
+            return
+
+        if exc is None:
+            logger.info("telegram collector background task finished", extra={"task_name": task_name})
+            return
+
+        logger.error(
+            "telegram collector background task crashed",
+            extra={"task_name": task_name},
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
+        self._stop_event.set()
+        try:
+            asyncio.create_task(self.client.disconnect(), name="telegram-background-shutdown")
+        except RuntimeError:
+            logger.exception("failed to schedule telegram collector shutdown")
 
     async def refresh_loop(self) -> None:
         while not self._stop_event.is_set():
             await asyncio.sleep(self.settings.source_refresh_interval_seconds)
-            await self.refresh_sources()
+            try:
+                await self.refresh_sources()
+            except Exception:
+                logger.exception("telegram source refresh failed")
 
     async def health_loop(self) -> None:
         while not self._stop_event.is_set():
-            now = datetime.now(UTC)
-            for resolved in list(self._resolved_by_channel_id.values()):
-                await self.db.upsert_source_health(
-                    source_id=resolved.source.id,
-                    service_name=self.settings.service_name,
-                    status="healthy",
-                    last_seen_at=now,
-                    metadata={
-                        "channel_id": resolved.channel_id,
-                        "public_username": resolved.public_username,
-                    },
-                )
+            try:
+                now = datetime.now(UTC)
+                for resolved in list(self._resolved_by_channel_id.values()):
+                    await self.db.upsert_source_health(
+                        source_id=resolved.source.id,
+                        service_name=self.settings.service_name,
+                        status="healthy",
+                        last_seen_at=now,
+                        metadata={
+                            "channel_id": resolved.channel_id,
+                            "public_username": resolved.public_username,
+                        },
+                    )
+            except Exception:
+                logger.exception("telegram health update failed")
             await asyncio.sleep(self.settings.health_update_interval_seconds)
 
     async def refresh_sources(self) -> None:
@@ -156,7 +199,10 @@ class TelegramCollector:
             list(self._resolved_by_channel_id.values()),
             key=lambda item: item.source.priority,
         ):
-            await self.backfill_source(resolved)
+            try:
+                await self.backfill_source(resolved)
+            except Exception:
+                logger.exception("telegram backfill source failed", extra={"source": resolved.source.name})
 
     async def backfill_source(self, resolved: ResolvedSource) -> None:
         started_at = datetime.now(UTC)
