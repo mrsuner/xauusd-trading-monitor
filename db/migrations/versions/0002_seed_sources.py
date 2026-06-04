@@ -205,35 +205,35 @@ def upgrade() -> None:
             ),
             (
               'CENTCOM Press Releases',
-              'https://www.centcom.mil/MEDIA/PRESS-RELEASES/',
-              'html_polling',
+              'https://www.centcom.mil/DesktopModules/ArticleCS/RSS.ashx?ContentType=9&Site=945&max=20',
+              'rss',
               'us_military',
               'official',
-              'US Central Command official press release page.',
+              'US Central Command official press release RSS endpoint.',
               'en',
               'P0',
               95::smallint,
               65::smallint,
               false,
-              '{"poll_interval_seconds":120,"request_timeout_seconds":15,"requires_parser_config":true}'::jsonb
+              '{"poll_interval_seconds":120,"request_timeout_seconds":15,"user_agent":"Mozilla/5.0 (compatible; XAUUSDEventRadar/1.0)"}'::jsonb
             ),
             (
               'US State Department RSS',
-              'https://www.state.gov/rss-feeds/',
-              'html_polling',
+              'https://www.state.gov/rss-feed/press-releases/feed/',
+              'rss',
               'us_diplomacy',
               'official',
-              'US State Department official RSS/feed index; parser configuration required per feed.',
+              'US State Department official press releases RSS feed.',
               'en',
               'P0',
               94::smallint,
               60::smallint,
               false,
-              '{"poll_interval_seconds":120,"request_timeout_seconds":15,"requires_parser_config":true}'::jsonb
+              '{"poll_interval_seconds":120,"request_timeout_seconds":15}'::jsonb
             ),
             (
               'Tasnim RSS',
-              'https://www.tasnimnews.com/en/rss',
+              'https://www.tasnimnews.ir/en/rss',
               'rss',
               'iran_irgc_adjacent',
               'semi_official',
@@ -243,11 +243,11 @@ def upgrade() -> None:
               78::smallint,
               75::smallint,
               true,
-              '{"poll_interval_seconds":60,"request_timeout_seconds":15}'::jsonb
+              '{"poll_interval_seconds":60,"request_timeout_seconds":30}'::jsonb
             ),
             (
               'Sepah News',
-              'https://www.sepahnews.com/',
+              'https://sepahnews.ir/',
               'html_polling',
               'iran_irgc_official',
               'official',
@@ -275,17 +275,17 @@ def upgrade() -> None:
             ),
             (
               'Press TV Website',
-              'https://www.presstv.ir/',
-              'html_polling',
+              'https://www.presstv.ir/rss/rss-101.xml',
+              'rss',
               'iran_external_media',
               'official',
-              'Press TV web source; parser configuration required.',
+              'Press TV Iran official RSS feed.',
               'en',
               'P1',
               78::smallint,
               70::smallint,
               true,
-              '{"poll_interval_seconds":120,"request_timeout_seconds":15,"requires_parser_config":true}'::jsonb
+              '{"poll_interval_seconds":120,"request_timeout_seconds":15}'::jsonb
             ),
             (
               'US Treasury Press Releases',
@@ -299,7 +299,7 @@ def upgrade() -> None:
               94::smallint,
               55::smallint,
               false,
-              '{"poll_interval_seconds":180,"request_timeout_seconds":15,"requires_parser_config":true}'::jsonb
+              '{"poll_interval_seconds":180,"request_timeout_seconds":15,"list_selector":".content--2col__body > div","title_selector":"h3.featured-stories__headline a","url_selector":"h3.featured-stories__headline a","published_selector":"time","published_attr":"datetime"}'::jsonb
             ),
             (
               'OFAC Recent Actions',
@@ -313,7 +313,7 @@ def upgrade() -> None:
               95::smallint,
               50::smallint,
               false,
-              '{"poll_interval_seconds":300,"request_timeout_seconds":15,"requires_parser_config":true}'::jsonb
+              '{"poll_interval_seconds":300,"request_timeout_seconds":15,"list_selector":".search-result.views-row","title_selector":"a[href^=\"/recent-actions/\"]","url_selector":"a[href^=\"/recent-actions/\"]","published_selector":".font-sans-2xs","published_regex":"^([A-Za-z]+ \\\\d{2}, \\\\d{4})"}'::jsonb
             ),
             (
               'Jerusalem Post Iran News',

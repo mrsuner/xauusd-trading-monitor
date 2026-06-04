@@ -13,6 +13,7 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `telegram-collector` | [telegram-collector.md](./telegram-collector.md) | 已建立 |
 | `rss-collector` | [rss-collector.md](./rss-collector.md) | 已建立 |
 | `normalizer-classifier` | [normalizer-classifier.md](./normalizer-classifier.md) | 已建立 |
+| `event-clustering` | [event-clustering.md](./event-clustering.md) | semantic dedupe / claim clustering 設計草案，尚未實作 |
 | `event-router` | [event-router.md](./event-router.md) | 已建立 / runtime 已實作 |
 | `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作，後續收斂為 delivery worker |
 | `telegram-channel-publisher` | [telegram-channel-publisher.md](./telegram-channel-publisher.md) | 公共 Telegram Channel 出口 / runtime 已實作並完成真實發送驗證 |

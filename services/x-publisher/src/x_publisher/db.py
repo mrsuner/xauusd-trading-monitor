@@ -118,6 +118,7 @@ class Database:
         worker_id: str,
         lock_timeout_seconds: int,
         max_attempts: int,
+        min_generated_at: datetime | None,
     ) -> PublicOutboxItem | None:
         async with self.conn.cursor() as cur:
             await cur.execute(
@@ -128,6 +129,10 @@ class Database:
                   where approved_for_public = true
                     and publish_status_x in ('pending', 'retry')
                     and retry_count_x < %(max_attempts)s
+                    and (
+                      %(min_generated_at)s::timestamptz is null
+                      or generated_at >= %(min_generated_at)s
+                    )
                     and (next_retry_x_at is null or next_retry_x_at <= now())
                     and (
                       locked_at_x is null
@@ -164,6 +169,7 @@ class Database:
                     "worker_id": worker_id,
                     "lock_timeout_seconds": lock_timeout_seconds,
                     "max_attempts": max_attempts,
+                    "min_generated_at": min_generated_at,
                 },
             )
             row = await cur.fetchone()

@@ -55,15 +55,22 @@ def parse_datetime(value: Any) -> datetime | None:
     if isinstance(value, (tuple, list)) and len(value) >= 6:
         return datetime(*value[:6], tzinfo=UTC)
     if isinstance(value, str):
+        normalized = normalize_text(value)
         try:
-            parsed = parsedate_to_datetime(value)
+            parsed = parsedate_to_datetime(normalized)
             return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
         except (TypeError, ValueError, IndexError):
             try:
-                parsed_iso = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                parsed_iso = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
                 return parsed_iso if parsed_iso.tzinfo else parsed_iso.replace(tzinfo=UTC)
             except ValueError:
-                return None
+                pass
+        for date_format in ("%B %d, %Y", "%b %d, %Y"):
+            try:
+                return datetime.strptime(normalized, date_format).replace(tzinfo=UTC)
+            except ValueError:
+                continue
+        return None
     return None
 
 
@@ -164,6 +171,18 @@ def first_attr(node: Any, selector: str | None, attr: str) -> str | None:
     return str(value) if value else None
 
 
+def configured_text(node: Any, *, selector: str | None, attr: str | None = None, pattern: str | None = None) -> str:
+    if attr:
+        value = first_attr(node, selector, attr) or ""
+    else:
+        value = first_text(node, selector)
+    if pattern:
+        match = re.search(pattern, value)
+        if match:
+            return normalize_text(match.group(1) if match.groups() else match.group(0))
+    return normalize_text(value)
+
+
 def parse_html_items(source: PollingSource, body: bytes) -> list[dict[str, Any]]:
     config = source.source_config
     list_selector = config.get("list_selector")
@@ -176,7 +195,12 @@ def parse_html_items(source: PollingSource, body: bytes) -> list[dict[str, Any]]
         title = first_text(node, config.get("title_selector"))
         href = first_attr(node, config.get("url_selector") or config.get("title_selector"), "href")
         url = urljoin(source.handle_or_url, href) if href else None
-        published_text = first_text(node, config.get("published_selector"))
+        published_text = configured_text(
+            node,
+            selector=config.get("published_selector"),
+            attr=config.get("published_attr"),
+            pattern=config.get("published_regex"),
+        )
         published_at = parse_datetime(published_text)
         external_id = url or f"{title}:{published_text}"
 

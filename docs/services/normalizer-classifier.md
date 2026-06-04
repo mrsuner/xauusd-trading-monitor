@@ -134,6 +134,8 @@ dedupe / near-dedupe
 
 Layer 1 不參與優先級、相關度、claim direction 或 severity 判斷。Layer 2 不使用 Layer 1 的翻譯結果作為 evidence，避免低成本翻譯模型的錯譯影響事件判斷。
 
+跨來源語義去重與 claim clustering 不在目前 runtime 中實作。後續設計見 [event-clustering / semantic dedupe 設計草案](./event-clustering.md)，目標是在 `event-router` 之前將不同來源對同一事件的 claim 合併為 canonical event，避免重複廣播。
+
 ## 8. 預處理規則
 
 文字清洗：

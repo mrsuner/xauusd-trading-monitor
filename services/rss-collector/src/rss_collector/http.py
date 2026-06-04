@@ -16,7 +16,7 @@ class FetchResult:
 
 
 def request_headers(source: PollingSource, user_agent: str) -> dict[str, str]:
-    headers = {"User-Agent": user_agent}
+    headers = {"User-Agent": str(source.source_config.get("user_agent") or user_agent)}
     if source.etag:
         headers["If-None-Match"] = source.etag
     if source.last_modified:

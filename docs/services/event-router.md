@@ -10,6 +10,8 @@
 - 應該送到哪些 route？
 - 每個 route 的 payload、priority、初始狀態與跳過原因是什麼？
 
+跨來源語義合併不屬於 `event-router`。若多個來源報導同一事件，應先由 `event-clustering` 合併成 canonical event，再交給 `event-router` 決定是否廣播。設計見 [event-clustering / semantic dedupe 設計草案](./event-clustering.md)。
+
 目標資料流：
 
 ```text

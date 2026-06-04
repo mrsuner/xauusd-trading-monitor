@@ -80,13 +80,13 @@ timezone_hint
 | Priority | Source | Source Group | Mode | 用途 |
 | --- | --- | --- | --- | --- |
 | P0 | Fed RSS | `us_fed` | RSS | Fed 政策、講話與聲明 |
-| P0 | CENTCOM Press Releases | `us_military` | RSS / HTML | 中東軍事官方消息 |
+| P0 | CENTCOM Press Releases | `us_military` | RSS | 中東軍事官方消息；使用官方 DNN RSS endpoint，避免 press release HTML 頁面 403 |
 | P0 | State Department RSS | `us_diplomacy` | RSS | 談判、制裁、外交聲明 |
 | P0 | Tasnim RSS | `iran_irgc_adjacent` | RSS | 伊朗強硬派 / IRGC-adjacent 風向 |
-| P0 | SepahNews RSS | `iran_irgc_official` | RSS | IRGC 官方消息 |
+| P0 | SepahNews | `iran_irgc_official` | HTML | IRGC 官方消息；目前需依部署網路解析 `sepahnews.ir` 後再補 selector |
 | P1 | Mehr RSS | `iran_conservative` | RSS | 保守派 / 半官方風向 |
-| P1 | Press TV RSS / page | `iran_external_media` | RSS / HTML | 伊朗英文對外敘事 |
-| P1 | Treasury Press Releases | `us_sanctions` | RSS / HTML | 財政與制裁相關消息 |
+| P1 | Press TV Iran RSS | `iran_external_media` | RSS | 伊朗英文對外敘事 |
+| P1 | Treasury Press Releases | `us_sanctions` | HTML | 財政與制裁相關消息 |
 | P2 | OFAC Recent Actions | `us_sanctions` | HTML polling | 制裁更新 |
 | P2 | Jerusalem Post Iran / Middle East | `israel_media` | RSS | 以色列媒體視角 |
 
@@ -176,7 +176,7 @@ V1 支援：
 - 不做 JavaScript rendering。
 - 不做深度全文爬取。
 
-OFAC Recent Actions 屬於 HTML polling 來源，因為它不應被假設為穩定 RSS feed。
+OFAC Recent Actions 屬於 HTML polling 來源，因為 OFAC 已退休 RSS feed。Treasury Press Releases 也使用 HTML polling；State Department 與 Press TV 使用其官方 RSS feed。
 
 ## 11. 錯誤處理
 

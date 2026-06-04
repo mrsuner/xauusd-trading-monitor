@@ -75,6 +75,7 @@ class XPublisher:
                 worker_id=self.worker_id,
                 lock_timeout_seconds=self.settings.lock_timeout_seconds,
                 max_attempts=self.settings.max_attempts,
+                min_generated_at=self.settings.min_generated_at,
             )
             if not item:
                 break

@@ -25,6 +25,7 @@ class Thresholds(Protocol):
     public_telegram_threshold: int
     public_website_threshold: int
     public_x_threshold: int
+    public_x_a_relevance_threshold: int
 
 
 AGGREGATOR_GROUPS = {"osint_aggregator", "market_squawk"}
@@ -214,7 +215,10 @@ def public_x_route(event: EventContext, settings: Thresholds, score: int) -> Rou
         return skipped(event, route_key, score, "route_disabled")
     if not has_public_source_url(event):
         return skipped(event, route_key, score, "missing_public_source_url")
-    if not (event.severity == "S" or (event.severity == "A" and event.relevance_score >= 90)):
+    if not (
+        event.severity == "S"
+        or (event.severity == "A" and event.relevance_score >= settings.public_x_a_relevance_threshold)
+    ):
         return skipped(event, route_key, score, "below_public_severity_policy")
     if score < settings.public_x_threshold:
         return skipped(event, route_key, score, "below_route_score_threshold")

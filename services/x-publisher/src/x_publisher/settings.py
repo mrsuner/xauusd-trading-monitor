@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,6 +33,7 @@ class Settings(BaseSettings):
     provider_timeout_seconds: float = Field(default=10.0, alias="X_PUBLISHER_PROVIDER_TIMEOUT_SECONDS")
     lock_timeout_seconds: int = Field(default=300, alias="X_PUBLISHER_LOCK_TIMEOUT_SECONDS")
     require_source_link: bool = Field(default=True, alias="X_PUBLISHER_REQUIRE_SOURCE_LINK")
+    min_generated_at: datetime | None = Field(default=None, alias="X_PUBLISHER_MIN_GENERATED_AT")
 
     @field_validator("api_key", "api_secret", "access_token", "access_token_secret", "bearer_token")
     @classmethod

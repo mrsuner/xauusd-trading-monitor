@@ -125,3 +125,60 @@ def test_parse_html_items() -> None:
     assert items[0]["title"] == "OFAC sanctions update"
     assert items[0]["url"] == "https://example.com/recent-actions/test"
     assert str(items[0]["dedupe_key"]).startswith("html:")
+
+
+def test_parse_html_items_can_read_published_datetime_attribute() -> None:
+    html_source = source(
+        "html_polling",
+        {
+            "list_selector": ".item",
+            "title_selector": "a",
+            "url_selector": "a",
+            "published_selector": "time",
+            "published_attr": "datetime",
+        },
+    )
+    body = b"""
+    <html>
+      <body>
+        <div class="item">
+          <time datetime="2026-06-03T14:15:00Z">June 3, 2026</time>
+          <a href="/news/press-releases/test">Treasury update</a>
+        </div>
+      </body>
+    </html>
+    """
+
+    items = parse_html_items(html_source, body)
+
+    assert items[0]["published_at"] is not None
+    assert items[0]["published_at"].year == 2026
+    assert items[0]["published_at"].hour == 14
+
+
+def test_parse_html_items_can_extract_published_text_with_regex() -> None:
+    html_source = source(
+        "html_polling",
+        {
+            "list_selector": ".item",
+            "title_selector": "a",
+            "url_selector": "a",
+            "published_selector": ".meta",
+            "published_regex": r"^([A-Za-z]+ \d{2}, \d{4})",
+        },
+    )
+    body = b"""
+    <html>
+      <body>
+        <div class="item">
+          <a href="/recent-actions/test">OFAC sanctions update</a>
+          <div class="meta">June 02, 2026 - Sanctions List Updates</div>
+        </div>
+      </body>
+    </html>
+    """
+
+    items = parse_html_items(html_source, body)
+
+    assert items[0]["published_at"] is not None
+    assert items[0]["published_at"].day == 2

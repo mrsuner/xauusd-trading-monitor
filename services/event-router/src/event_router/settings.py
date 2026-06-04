@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     public_telegram_threshold: int = Field(default=65, alias="PUBLIC_TELEGRAM_ROUTE_SCORE_THRESHOLD")
     public_website_threshold: int = Field(default=50, alias="PUBLIC_WEBSITE_ROUTE_SCORE_THRESHOLD")
     public_x_threshold: int = Field(default=85, alias="PUBLIC_X_ROUTE_SCORE_THRESHOLD")
+    public_x_a_relevance_threshold: int = Field(default=90, alias="PUBLIC_X_A_RELEVANCE_THRESHOLD")
 
     @field_validator(
         "event_lookback_minutes",
@@ -41,6 +42,7 @@ class Settings(BaseSettings):
         "public_telegram_threshold",
         "public_website_threshold",
         "public_x_threshold",
+        "public_x_a_relevance_threshold",
     )
     @classmethod
     def validate_non_negative_int(cls, value: int) -> int:

@@ -33,3 +33,7 @@ build/
 .DS_Store
 .idea/
 .vscode/
+
+.stfolder
+.stignore
+.stversions/

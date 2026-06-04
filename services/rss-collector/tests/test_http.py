@@ -24,3 +24,21 @@ def test_request_headers_use_conditional_fetch_metadata() -> None:
     assert headers["User-Agent"] == "TestAgent/1.0"
     assert headers["If-None-Match"] == '"abc"'
     assert headers["If-Modified-Since"] == "Sat, 30 May 2026 10:15:00 GMT"
+
+
+def test_request_headers_allow_source_user_agent_override() -> None:
+    source = PollingSource(
+        id=uuid4(),
+        name="Feed",
+        handle_or_url="https://example.com/feed.xml",
+        source_type="rss",
+        source_group="us_fed",
+        official_level="official",
+        language="en",
+        priority="P0",
+        source_config={"user_agent": "Mozilla/5.0"},
+    )
+
+    headers = request_headers(source, "TestAgent/1.0")
+
+    assert headers["User-Agent"] == "Mozilla/5.0"

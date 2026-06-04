@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from .message import contains_url
 from .models import ProviderResult
 from .oauth import build_oauth1_header
 from .security import sanitize_provider_response, sanitize_text
@@ -17,6 +18,9 @@ class XProvider:
         self._client = client
 
     async def send(self, post: str) -> ProviderResult:
+        if contains_url(post):
+            return ProviderResult(success=False, error_message="post_contains_url", is_transient=False)
+
         if not self._has_oauth1_config:
             return ProviderResult(success=False, error_message="missing_x_oauth1_config", is_transient=False)
 

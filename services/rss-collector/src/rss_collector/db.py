@@ -249,8 +249,14 @@ class Database:
                   status = excluded.status,
                   last_polled_at = coalesce(excluded.last_polled_at, source_health.last_polled_at),
                   last_success_at = coalesce(excluded.last_success_at, source_health.last_success_at),
-                  last_error_at = coalesce(excluded.last_error_at, source_health.last_error_at),
-                  last_error_message = coalesce(excluded.last_error_message, source_health.last_error_message),
+                  last_error_at = case
+                    when excluded.status = 'healthy' then null
+                    else coalesce(excluded.last_error_at, source_health.last_error_at)
+                  end,
+                  last_error_message = case
+                    when excluded.status = 'healthy' then null
+                    else coalesce(excluded.last_error_message, source_health.last_error_message)
+                  end,
                   metadata = coalesce(excluded.metadata, source_health.metadata),
                   updated_at = now()
                 """,

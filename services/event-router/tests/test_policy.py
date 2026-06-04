@@ -142,3 +142,18 @@ def test_public_website_title_falls_back_when_raw_title_is_full_text() -> None:
     assert public_website.public_outbox is not None
     assert public_website.public_outbox.public_title_zh == "IRAN_NUCLEAR"
     assert public_website.public_outbox.public_title_en is None
+
+
+def test_public_x_uses_configured_a_relevance_threshold() -> None:
+    event = make_event(severity="A", relevance_score=85)
+
+    default_results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_X_ROUTE=True))
+    relaxed_results = route_results(
+        event,
+        RoutePolicyRuntime(),
+        make_settings(ENABLE_PUBLIC_X_ROUTE=True, PUBLIC_X_A_RELEVANCE_THRESHOLD=85),
+    )
+
+    assert by_route(default_results, "public.x").queued is False
+    assert by_route(default_results, "public.x").reason == "below_public_severity_policy"
+    assert by_route(relaxed_results, "public.x").queued is True

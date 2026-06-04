@@ -51,6 +51,23 @@ async def test_provider_requires_oauth1_credentials() -> None:
 
 
 @pytest.mark.asyncio
+async def test_provider_refuses_url_posts_before_request() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(201, json={"data": {"id": "123"}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await XProvider(settings=make_settings(), client=client).send("hello https://example.com")
+
+    assert result.success is False
+    assert result.is_transient is False
+    assert result.error_message == "post_contains_url"
+    assert requests == []
+
+
+@pytest.mark.asyncio
 async def test_provider_classifies_rate_limit_as_transient() -> None:
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(429, headers={"retry-after": "60"}, json={"title": "Too Many Requests"})

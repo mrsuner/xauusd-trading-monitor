@@ -33,8 +33,8 @@ X post
 - 讀取核心 PostgreSQL 的 `public_outbox`。
 - 只處理 `approved_for_public = true` 的 public-safe event。
 - 將 `public_outbox` payload 包裝成適合 X API 的短文。
-- 支援中文優先，英文可選。
-- 支援 source attribution，優先附一個 canonical source link。
+- 只發布中文 public copy；不 fallback 英文 title / summary。
+- 支援 source attribution，使用 canonical source name；不在 X post 內附 URL，以避免觸發更高的 URL write pricing。
 - 支援 dedupe，避免同一事件重複發文。
 - 支援 retry / backoff / rate limit。
 - 記錄 X provider response、post id、sent time、status 與 error。
@@ -182,14 +182,13 @@ X V1 應採用一則短文，不做 thread。
 市場先交易樂觀預期，但伊朗安全系統尚未確認，反轉風險升高。
 
 Source: Tasnim
-https://...
 ```
 
 格式原則：
 
-- 中文優先。
+- 只使用中文 public copy。
 - 280 字以內。
-- 若加入 URL 會消耗固定長度，formatter 必須預留空間。
+- 不包含 URL。X API pay-per-use pricing 將 `Content: Create` 與 `Content: Create (with URL)` 分開計價，X post 應只保留 source name attribution。
 - 不包含交易建議。
 - 不寫「買入」、「賣出」、「做多」、「做空」。
 - 不發布完整原文。
@@ -218,12 +217,12 @@ X formatter 必須 deterministic，不應依賴模型在發布時即時改寫。
 1. 優先使用 `public_title_zh`。
 2. 加入一行簡短 `public_summary_zh`。
 3. 加入 source name。
-4. 加入 canonical URL。
+4. 不加入 canonical URL；URL 僅用於 eligibility 檢查與內部 audit。
 5. 若超長，依序裁剪：
    - topic tags。
    - source label。
    - summary。
-   - title，最後保留 URL。
+   - title，最後保留 source label。
 
 字數限制應保守設定：
 
@@ -344,7 +343,9 @@ X 是公開擴散平台，風險高於 Telegram Channel。服務不得發布：
 Unit tests：
 
 - formatter 長度控制。
-- URL / hashtag 裁剪。
+- 中文-only public copy，不 fallback `public_title_en` / `public_summary_en`。
+- hashtag 裁剪。
+- URL stripping，確保 title / summary / source label / source link 都不會讓 post 文字包含 `http://` 或 `https://`。
 - source attribution。
 - severity / confirmation label。
 - duplicate detection。
@@ -362,7 +363,7 @@ Manual test：
 
 - 使用測試 X account。
 - 先 dry-run 生成 10 則 fixture。
-- 人工確認文字無交易指令、無原文搬運、source link 正確。
+- 人工確認文字無交易指令、無原文搬運、source attribution 正確，且 X post 不含 URL。
 - 小量實發 1-3 則低風險事件。
 
 ## 15. 驗收標準
@@ -370,6 +371,7 @@ Manual test：
 - 只發布 `approved_for_public = true` 的資料。
 - 同一 public event 不會重複發布到 X。
 - post 不超過 `X_POST_MAX_CHARS`。
+- post 不包含 URL，避免觸發 X `Content: Create (with URL)` pricing。
 - post 不包含私人資料、完整原文或交易指令。
 - 發布失敗可 retry，永久失敗可查 `last_error_x`。
 - dry-run 可安全用於 production 首次部署。

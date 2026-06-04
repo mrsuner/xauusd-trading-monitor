@@ -4,6 +4,8 @@ import re
 
 from .models import PublicOutboxItem, SourceLink
 
+URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+
 SEVERITY_LABELS = {
     "S": "[S]",
     "A": "[A]",
@@ -20,6 +22,12 @@ TOPIC_HASHTAGS = {
     "geopolitics": "#Geopolitics",
     "oil": "#Oil",
     "israel": "#Israel",
+}
+
+CONFIRMATION_LABELS = {
+    "unconfirmed": "未確認",
+    "partially_confirmed": "部分確認",
+    "contradicted": "相互矛盾",
 }
 
 TRADE_ADVICE_PATTERNS = (
@@ -39,7 +47,7 @@ TRADE_ADVICE_PATTERNS = (
 def compact_text(value: str | None, *, limit: int) -> str:
     if not value:
         return ""
-    text = " ".join(value.strip().split())
+    text = " ".join(URL_RE.sub("", value).strip().split())
     if len(text) <= limit:
         return text
     return f"{text[: max(0, limit - 1)].rstrip()}…"
@@ -48,15 +56,13 @@ def compact_text(value: str | None, *, limit: int) -> str:
 def title_for(item: PublicOutboxItem) -> str:
     return (
         item.public_title_zh
-        or item.public_title_en
         or first_sentence(item.public_summary_zh)
-        or first_sentence(item.public_summary_en)
-        or "Public event update"
+        or "公開事件更新"
     )
 
 
 def summary_for(item: PublicOutboxItem) -> str:
-    return item.public_summary_zh or item.public_summary_en or ""
+    return item.public_summary_zh or ""
 
 
 def first_sentence(value: str | None) -> str | None:
@@ -75,6 +81,10 @@ def valid_public_url(value: str | None) -> bool:
     if not value:
         return False
     return value.startswith("https://") or value.startswith("http://")
+
+
+def contains_url(value: str) -> bool:
+    return URL_RE.search(value) is not None
 
 
 def canonical_source_link(item: PublicOutboxItem) -> SourceLink | None:
@@ -115,20 +125,17 @@ def build_post(item: PublicOutboxItem, *, limit: int) -> str:
     confirmation = item.confirmation_state or "unconfirmed"
     source_link = canonical_source_link(item)
     source_name = compact_text(source_link.label, limit=32) if source_link else None
-    url = source_link.url if source_link else None
     hashtags = render_hashtags(item.topic_tags)
 
     lines = [f"{severity} {title}"]
     if summary and summary != title:
         lines.extend(["", summary])
-    if confirmation in {"unconfirmed", "partially_confirmed", "contradicted"}:
-        lines.extend(["", f"Status: {confirmation}"])
+    if confirmation in CONFIRMATION_LABELS:
+        lines.extend(["", f"狀態：{CONFIRMATION_LABELS[confirmation]}"])
     if source_name:
-        lines.extend(["", f"Source: {source_name}"])
+        lines.extend(["", f"來源：{source_name}"])
     if hashtags:
         lines.extend(["", hashtags])
-    if url:
-        lines.extend(["", url])
 
     post = "\n".join(lines)
     if len(post) <= limit:
@@ -139,18 +146,14 @@ def build_post(item: PublicOutboxItem, *, limit: int) -> str:
     if compact_summary and compact_summary != title:
         lines.extend(["", compact_summary])
     if source_name:
-        lines.extend(["", f"Source: {source_name}"])
-    if url:
-        lines.extend(["", url])
+        lines.extend(["", f"來源：{source_name}"])
     post = "\n".join(lines)
     if len(post) <= limit:
         return post
 
     fixed_lines = []
     if source_name:
-        fixed_lines.append(f"Source: {source_name}")
-    if url:
-        fixed_lines.append(url)
+        fixed_lines.append(f"來源：{source_name}")
     fixed_tail = "\n\n".join(fixed_lines)
     reserved = len(fixed_tail) + (2 if fixed_tail else 0)
     header = f"{severity} {compact_text(title, limit=max(20, limit - reserved))}"
