@@ -1,0 +1,15 @@
+[project]
+name = "xauusd-trading-monitor"
+version = "0.1.0"
+description = "XAUUSD Event Radar monorepo"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+db = [
+  "alembic>=1.13.3,<2.0",
+  "psycopg[binary]>=3.2.3,<4.0",
+]
+
+[tool.uv]
+package = false

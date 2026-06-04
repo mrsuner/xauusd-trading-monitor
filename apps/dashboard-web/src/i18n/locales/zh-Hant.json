@@ -1,0 +1,286 @@
+{
+  "common": {
+    "brand": "XAUUSD Event Radar",
+    "tagline": "新聞維運儀表板",
+    "theme": "主題",
+    "language": "語言",
+    "close": "關閉",
+    "cancel": "取消",
+    "save": "儲存",
+    "saving": "儲存中...",
+    "edit": "編輯",
+    "enable": "啟用",
+    "disable": "停用",
+    "archive": "封存",
+    "showMore": "顯示更多",
+    "showLess": "收合",
+    "unknownError": "未知錯誤",
+    "noRows": "所選範圍內沒有資料。",
+    "keywordSearch": "關鍵字搜尋",
+    "allSources": "全部來源",
+    "allPriorities": "全部優先級",
+    "loading": "載入中",
+    "sourceType": {
+      "all": "全部來源類型",
+      "telegram": "Telegram",
+      "rss": "RSS",
+      "atom": "Atom",
+      "htmlPolling": "HTML 輪詢"
+    }
+  },
+  "nav": {
+    "overview": "總覽",
+    "timeline": "即時動態",
+    "events": "事件",
+    "sources": "來源",
+    "processing": "處理流程",
+    "alerts": "警示"
+  },
+  "layout": {
+    "openNav": "開啟導覽",
+    "closeNav": "關閉導覽",
+    "switchToDark": "切換至深色主題",
+    "switchToLight": "切換至淺色主題",
+    "switchLanguage": "切換語言"
+  },
+  "badges": {
+    "severityHint": {
+      "S": "嚴重度 S — 可能立即影響 XAUUSD 或風險定價",
+      "A": "嚴重度 A — 可能在數小時內影響交易邏輯",
+      "B": "嚴重度 B — 背景或未經證實的消息",
+      "C": "嚴重度 C — 已封存，不推播"
+    },
+    "severityFallback": "事件嚴重度",
+    "priorityHint": {
+      "P0": "優先級 P0 — 最高優先級來源",
+      "P1": "優先級 P1 — 高優先級來源",
+      "P2": "優先級 P2 — 標準來源",
+      "P3": "優先級 P3 — 低優先級來源"
+    },
+    "priorityFallback": "來源優先級層級",
+    "status": "狀態：{{value}}",
+    "officialLevel": "來源官方層級：{{value}}"
+  },
+  "overview": {
+    "title": "總覽",
+    "description": "系統狀態與近期新聞層活動。",
+    "apiHealth": "API 健康狀態",
+    "stat": {
+      "activeSources": "啟用中來源",
+      "rawItems1h": "原始項目 1h",
+      "rawItems24h": "原始項目 24h",
+      "events24h": "事件 24h",
+      "highImpact": "S/A 事件 24h",
+      "failedProcessing": "處理失敗",
+      "failedAlerts": "警示失敗",
+      "events1h": "事件 1h"
+    }
+  },
+  "events": {
+    "title": "事件",
+    "description": "由 normalizer-classifier 建立的高相關度事件。",
+    "all": "全部",
+    "col": {
+      "time": "時間",
+      "severity": "嚴重度",
+      "type": "類型",
+      "title": "標題",
+      "source": "來源",
+      "score": "分數",
+      "confidence": "信心度"
+    },
+    "empty": "所選範圍內沒有事件。"
+  },
+  "alerts": {
+    "title": "警示",
+    "description": "Telegram 與 Pushover 發送追蹤。",
+    "col": {
+      "created": "建立時間",
+      "channel": "通道",
+      "priority": "優先級",
+      "status": "狀態",
+      "event": "事件",
+      "sent": "發送時間"
+    },
+    "empty": "沒有警示紀錄。"
+  },
+  "timeline": {
+    "title": "即時動態",
+    "description": "來自 Telegram、RSS 與官方頁面的近期原始項目。",
+    "fullTranslation": "全文翻譯",
+    "originalContent": "原始內容",
+    "filterReason": "降權原因",
+    "viewEvent": "事件",
+    "empty": "所選範圍內沒有原始項目。",
+    "meta": {
+      "official": "官方",
+      "officialTip": "來源官方層級",
+      "priority": "優先級",
+      "priorityTip": "來源優先級層級（P0 最高）",
+      "group": "群組",
+      "groupTip": "來源群組",
+      "translation": "翻譯",
+      "translationTip": "翻譯流程狀態",
+      "classification": "判斷",
+      "classificationTip": "Layer 2 分類流程狀態",
+      "relevance": "相關度",
+      "relevanceTip": "單則消息由 Layer 2 產生的內容相關度，不等同於來源優先級",
+      "event": "事件",
+      "eventTip": "這則消息已形成標準事件",
+      "category": "分類",
+      "categoryTip": "Layer 1 內容分類，只用於 Timeline 過濾"
+    },
+    "relevance": {
+      "hasEvent": "已成事件",
+      "filtered": "已過濾",
+      "pending": "待判斷",
+      "high": "高相關",
+      "medium": "中相關",
+      "low": "低相關"
+    },
+    "filter": {
+      "allCategories": "全部分類",
+      "allTopics": "全部主題",
+      "allActors": "全部角色",
+      "allRelevance": "全部相關度",
+      "relevantOnly": "只看相關",
+      "filteredOnly": "只看已過濾",
+      "hasEvent": "只看事件",
+      "pendingClassification": "待判斷",
+      "anyScore": "不限分數",
+      "minScore": "至少 {{score}}"
+    }
+  },
+  "eventDetail": {
+    "meta": {
+      "severity": "嚴重度",
+      "relevance": "相關度",
+      "confidence": "信心度",
+      "detected": "偵測時間",
+      "official": "官方"
+    },
+    "section": {
+      "rawItems": "原始項目",
+      "claims": "主張",
+      "alerts": "警示"
+    },
+    "noClaims": "未擷取到主張。",
+    "noAlerts": "沒有警示紀錄。",
+    "chineseFullText": "中文全文翻譯",
+    "englishFullText": "英文全文翻譯",
+    "translation": "翻譯"
+  },
+  "sources": {
+    "title": "來源",
+    "description": "來源註冊表、收集器健康狀態、評分與警示政策管理。",
+    "addSource": "新增來源",
+    "editSource": "編輯來源",
+    "modalSubtitle": "列舉欄位使用下拉選單，以維持來源註冊表一致性。",
+    "filter": {
+      "allSourceTypes": "全部來源類型",
+      "allSourceGroups": "全部來源群組",
+      "allPriorities": "全部優先級",
+      "allEnabled": "全部啟用狀態",
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "allArchive": "全部封存狀態",
+      "activeRegistry": "使用中註冊表",
+      "archived": "已封存"
+    },
+    "loading": "載入來源中...",
+    "count": "{{count}} 個來源",
+    "empty": "找不到來源。",
+    "section": {
+      "identity": "識別資訊",
+      "scoring": "評分",
+      "translation": "翻譯",
+      "alertPolicy": "警示政策"
+    },
+    "field": {
+      "name": "名稱",
+      "handleOrUrl": "帳號或網址",
+      "sourceType": "來源類型",
+      "sourceGroup": "來源群組",
+      "officialLevel": "官方層級",
+      "language": "語言",
+      "priority": "優先級",
+      "stance": "立場",
+      "reliabilityScore": "可靠度分數",
+      "latencyScore": "延遲分數",
+      "alertWeight": "警示權重",
+      "requiresConfirmation": "需要確認",
+      "policy": "政策",
+      "maxChars": "最大字元數",
+      "alwaysFullTranslate": "一律全文翻譯",
+      "telegramAlerts": "Telegram 警示",
+      "telegramMinSeverity": "Telegram 最低嚴重度",
+      "pushoverAlerts": "Pushover 警示",
+      "pushoverMinSeverity": "Pushover 最低嚴重度",
+      "rateLimit": "每小時頻率上限",
+      "cooldownMinutes": "冷卻分鐘數",
+      "enabled": "啟用"
+    },
+    "card": {
+      "reliability": "可靠度",
+      "latency": "延遲",
+      "rawItems24h": "原始項目 24h",
+      "events24h": "事件 24h",
+      "lastItem": "最後項目",
+      "languageFallback": "語言：-",
+      "off": "關閉",
+      "weight": "權重 {{value}}",
+      "lastSuccess": "最後成功 {{time}}"
+    },
+    "archiveConfirm": "封存 {{name}}？歷史資料列仍會保留關聯，但收集器將忽略它。"
+  },
+  "processing": {
+    "title": "處理流程",
+    "description": "翻譯摘要層與分類推理層的 AI 流程監控。",
+    "stat": {
+      "aiCalls": "AI 呼叫 / 24h",
+      "failed": "失敗 {{count}}",
+      "tokens": "Token / 24h",
+      "tokensInOut": "輸入 {{in}} / 輸出 {{out}}",
+      "estCost": "預估成本 / 24h",
+      "costBasis": "依據設定的模型定價",
+      "topModel": "主要模型",
+      "noCalls": "無呼叫",
+      "tokensCount": "{{count}} 個 token"
+    },
+    "byLayer": {
+      "title": "各層 AI 用量",
+      "calls": "呼叫 {{count}} / 失敗 {{failed}}",
+      "tokensCost": "token {{tokens}} / 成本 {{cost}}",
+      "avgLatency": "平均延遲 {{ms}}ms"
+    },
+    "filter": {
+      "allL1": "全部 L1 狀態",
+      "allL2": "全部 L2 狀態",
+      "allL2Stages": "全部 L2 階段",
+      "allRelevance": "全部相關度",
+      "relevant": "相關",
+      "notRelevant": "不相關"
+    },
+    "showing": "顯示 {{total}} 筆流程項目中的 {{shown}} 筆。",
+    "empty": "找不到處理流程項目。",
+    "layer1Title": "第 1 層 翻譯摘要",
+    "layer2Title": "第 2 層 分類推理",
+    "field": {
+      "model": "模型",
+      "updated": "更新時間",
+      "aiCalls": "AI 呼叫",
+      "tokens": "token",
+      "tokensInOut": "（輸入 {{in}} / 輸出 {{out}}）",
+      "cost": "成本",
+      "inputChars": "輸入字元",
+      "stage": "階段",
+      "relevance": "相關度",
+      "score": "分數",
+      "reason": "原因"
+    },
+    "relevance": {
+      "yes": "是",
+      "no": "否"
+    }
+  }
+}

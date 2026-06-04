@@ -4,7 +4,7 @@
 
 本專案採用 monorepo 結構。V1 會包含多個 Python 後端服務、共用 Python package、Alembic migration、HomeLab production infra，以及文件。
 
-目前只建立目錄骨架，不放服務程式碼。
+目前已逐步補上服務程式碼與前端 app。目錄仍維持每個 service / app 可獨立 build、測試與部署的 monorepo 邊界。
 
 ## 2. 根目錄
 
@@ -27,7 +27,7 @@ xauusd-trading-monitor/
 - `src/<package_name>/`
 - `tests/`
 
-目前 V1 services：
+目前與後續已規劃 services：
 
 ```text
 services/
@@ -43,8 +43,28 @@ services/
     src/normalizer_classifier/
     tests/
 
+  event-router/
+    src/event_router/
+    tests/
+
   alert-dispatcher/
     src/alert_dispatcher/
+    tests/
+
+  telegram-channel-publisher/
+    src/telegram_channel_publisher/
+    tests/
+
+  x-publisher/
+    src/x_publisher/
+    tests/
+
+  public-syncer/
+    src/public_syncer/
+    tests/
+
+  public-api/
+    src/public_api/
     tests/
 
   dashboard-api/
@@ -66,15 +86,43 @@ services/
 
 負責預處理、模型路由、相關度判斷、事件建立與結果回寫。
 
-### 3.4 alert-dispatcher
+### 3.4 event-router
 
-負責 Telegram Bot / Pushover 通知發送與 `alerts` delivery tracking。
+負責讀取 `events`，集中決定事件應送往哪些出口，並寫入 `alerts`、`public_outbox` 與 `event_route_decisions`。
 
-### 3.5 dashboard-api
+### 3.5 alert-dispatcher
+
+負責 claim `alerts`，發送私人 Telegram Bot / Pushover 通知，並寫回 delivery tracking。
+
+### 3.6 telegram-channel-publisher
+
+後續公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到公共 Telegram Channel。
+
+### 3.7 x-publisher
+
+公共出口服務，負責讀取 `public_outbox`，將 public-safe event 發布到 X。
+
+### 3.8 public-syncer
+
+HomeLab 公共網站同步服務，負責讀取 `public_outbox` 並透過 outbound HTTPS 把 public-safe payload 推送到 VPS `public-api`。
+
+### 3.9 public-api
+
+VPS 公共 API，負責接收 `public-syncer` ingest、寫入 public database，並提供 public website read API。
+
+### 3.10 dashboard-api
 
 V1 可選的 read-only debug API，供後續 Dashboard Web 與人工排障使用。
 
-### 3.6 db-migrate
+### 3.11 dashboard-web
+
+V1 可選的前端操作台，供人工查看 timeline、events、sources、processing 與 alerts。
+
+### 3.12 public-web
+
+Cloudflare Pages 公共網站前端，負責展示 public-safe event stream，不包含內部 debug 與管理功能。
+
+### 3.13 db-migrate
 
 負責打包 Alembic migration，Docker Compose boot 時執行：
 
@@ -127,9 +175,12 @@ Database 設計詳見：
 ```text
 apps/
   dashboard-web/
+  public-web/
 ```
 
-`dashboard-web` 是後續前端應用位置。V1 暫緩或只做極簡 UI。
+`dashboard-web` 是 HomeLab 私人前端操作台應用位置，用於查看 timeline、events、sources、processing 與 alerts。
+
+`public-web` 是 Cloudflare Pages 公共網站前端應用位置，只展示 public-safe event stream。VPS Compose 不部署此 frontend。
 
 前端技術棧固定為：
 
@@ -143,7 +194,9 @@ apps/
 ```text
 infra/
   docker-compose.prod.yml
+  docker-compose.public-api.yml
   .env.example
+  .env.public-api.example
   README.md
   caddy/
   postgres/
@@ -151,7 +204,7 @@ infra/
   systemd/
 ```
 
-`infra` 保存生產部署相關文件。HomeLab 使用 Docker Compose 從 GHCR pull image 並啟動服務。
+`infra` 保存生產部署相關文件。HomeLab 使用 `docker-compose.prod.yml` 從 GHCR pull image 並啟動核心服務；VPS 使用 `docker-compose.public-api.yml` 啟動 public API 與 public database；public website frontend 由 Cloudflare Pages 部署。
 
 GHCR namespace：
 
@@ -167,19 +220,23 @@ ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>
 | `telegram-collector` | `ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:<tag>` |
 | `rss-collector` | `ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:<tag>` |
 | `normalizer-classifier` | `ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:<tag>` |
+| `event-router` | `ghcr.io/mrsuner/xauusd-trading-monitor/event-router:<tag>` |
 | `alert-dispatcher` | `ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:<tag>` |
+| `telegram-channel-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:<tag>` |
+| `x-publisher` | `ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:<tag>` |
+| `public-syncer` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:<tag>` |
+| `public-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/public-api:<tag>` |
 | `dashboard-api` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:<tag>` |
+| `dashboard-web` | `ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:<tag>` |
+| `public-web` | Cloudflare Pages build artifact，V1 不需要 Docker image |
 
-## 9. 暫不建立的內容
+## 9. 仍待補強的內容
 
-目前不建立：
+目前仍待補強：
 
-- service code
-- Dockerfile
-- `pyproject.toml`
-- Alembic config
-- frontend app code
-- CI workflow
+- CI workflow。
+- `public-web` Cloudflare Pages 實際部署設定。
+- `public-web` browser tests。
+- public claim group / related events。
 
-這些會在實作階段逐步加入。
-
+這些會在後續實作階段逐步加入。

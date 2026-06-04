@@ -132,6 +132,7 @@ V1 必要資料表：
 | `events` | 已判定有價值的標準事件 |
 | `event_claims` | V1 簡化 claim 保存 |
 | `alerts` | Telegram / Pushover delivery tracking |
+| `ai_model_calls` | AI API call、token usage、model route 與成本估算 |
 | `source_health` | source 與 collector health |
 | `schema_migrations` | migration 版本紀錄，若不用 Alembic 可保留 |
 
@@ -159,6 +160,17 @@ create table sources (
   reliability_score smallint not null default 50,
   latency_score smallint not null default 50,
   requires_confirmation boolean not null default true,
+  translation_policy text not null default 'full',
+  translation_priority text not null default 'normal',
+  translation_max_chars integer,
+  always_full_translate boolean not null default false,
+  telegram_alert_enabled boolean not null default true,
+  pushover_alert_enabled boolean not null default false,
+  telegram_min_severity text not null default 'B',
+  pushover_min_severity text not null default 'S',
+  alert_weight smallint not null default 50,
+  alert_rate_limit_per_hour integer,
+  alert_cooldown_minutes integer,
   enabled boolean not null default true,
   source_config jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
@@ -178,9 +190,54 @@ create table sources (
   ),
   constraint sources_latency_score_check check (
     latency_score >= 0 and latency_score <= 100
+  ),
+  constraint sources_translation_policy_check check (
+    translation_policy in ('disabled', 'summary_only', 'full')
+  ),
+  constraint sources_translation_priority_check check (
+    translation_priority in ('normal', 'high')
+  ),
+  constraint sources_translation_max_chars_check check (
+    translation_max_chars is null or translation_max_chars >= 0
+  ),
+  constraint sources_telegram_min_severity_check check (
+    telegram_min_severity in ('S', 'A', 'B', 'C')
+  ),
+  constraint sources_pushover_min_severity_check check (
+    pushover_min_severity in ('S', 'A', 'B', 'C')
+  ),
+  constraint sources_alert_weight_check check (
+    alert_weight >= 0 and alert_weight <= 100
+  ),
+  constraint sources_alert_rate_limit_per_hour_check check (
+    alert_rate_limit_per_hour is null or alert_rate_limit_per_hour >= 0
+  ),
+  constraint sources_alert_cooldown_minutes_check check (
+    alert_cooldown_minutes is null or alert_cooldown_minutes >= 0
   )
 );
 ```
+
+Translation policy 用於 deterministic translation scope，不由低成本模型判斷重要性：
+
+| 欄位 | 說明 |
+| --- | --- |
+| `translation_policy` | `disabled` / `summary_only` / `full`，V1 預設 `full` |
+| `translation_priority` | `normal` / `high`，高優先來源可使用較大的文字長度限制 |
+| `translation_max_chars` | source-level override；P0/P1 seed 預設可設為 `100000` |
+| `always_full_translate` | 指定來源永遠使用 full translation policy |
+
+Alert policy 用於 `alert-dispatcher` 的 deterministic 通知降噪：
+
+| 欄位 | 說明 |
+| --- | --- |
+| `telegram_alert_enabled` | 此 source 是否允許 Telegram 通知 |
+| `pushover_alert_enabled` | 此 source 是否允許 Pushover 通知；V1 預設 false，靠 allowlist 開啟 |
+| `telegram_min_severity` | Telegram 最低通知等級 |
+| `pushover_min_severity` | Pushover 最低通知等級 |
+| `alert_weight` | source-level 通知權重，參與 `alert_score` |
+| `alert_rate_limit_per_hour` | 單一 source 每小時最多建立 pending/sent/retry alert 的數量 |
+| `alert_cooldown_minutes` | 同一 source 兩次通知的最小間隔 |
 
 ### 6.3 source_group V1 建議值
 
@@ -273,6 +330,19 @@ create table raw_items (
   title text,
   text_raw text,
   text_clean text,
+  summary_zh text,
+  summary_en text,
+  full_translation_zh text,
+  full_translation_en text,
+  content_category text,
+  topic_tags jsonb not null default '[]'::jsonb,
+  mentioned_actors jsonb not null default '[]'::jsonb,
+  translation_status text not null default 'pending',
+  translation_model_provider text,
+  translation_model text,
+  translation_error text,
+  translation_input_chars integer,
+  translation_updated_at timestamptz,
   language text,
   url text,
   media_type text not null default 'none',
@@ -284,9 +354,37 @@ create table raw_items (
 
   constraint raw_items_media_type_check check (
     media_type in ('none', 'photo', 'video', 'document', 'webpage', 'mixed', 'unknown')
+  ),
+  constraint raw_items_translation_status_check check (
+    translation_status in ('pending', 'completed', 'completed_truncated', 'skipped', 'failed')
+  ),
+  constraint raw_items_translation_input_chars_check check (
+    translation_input_chars is null or translation_input_chars >= 0
+  ),
+  constraint raw_items_topic_tags_array_check check (
+    jsonb_typeof(topic_tags) = 'array'
+  ),
+  constraint raw_items_mentioned_actors_array_check check (
+    jsonb_typeof(mentioned_actors) = 'array'
   )
 );
 ```
+
+`summary_zh`、`summary_en`、`full_translation_zh` 與 `full_translation_en` 由 `normalizer-classifier` 的 translation-summary layer 回寫，用於 Dashboard 在 raw item 層顯示雙語摘要與全文翻譯。Layer 2 classification-reasoning 不讀這些欄位，避免低成本翻譯模型影響事件判斷。
+
+`content_category`、`topic_tags` 與 `mentioned_actors` 由 Layer 1 在翻譯摘要時同步回寫，只用於 Timeline taxonomy、filter 與搜尋。這些欄位不代表交易相關性、通知等級或事件嚴重度。
+
+`content_category` 是 controlled category key，應來自 `content_categories.key`；若模型輸出不在啟用字典內，normalizer 會回寫為 `other`。`topic_tags` 是 semi-controlled normalized tag keys，normalizer 會做 lowercase、slug normalization、alias mapping，並 upsert 到 `tags` 與 `raw_item_tags`。
+
+`translation_status`：
+
+| 狀態 | 說明 |
+| --- | --- |
+| `pending` | 尚未處理 |
+| `completed` | 已完成，未截斷 |
+| `completed_truncated` | 已完成，但只翻譯 policy 允許的截斷輸入 |
+| `skipped` | deterministic prefilter 或 source policy 跳過 |
+| `failed` | free 與 fallback route 都失敗，或 budget 用盡 |
 
 ### 7.3 Dedupe Key
 
@@ -335,9 +433,18 @@ create index raw_items_title_trgm_idx
 create index raw_items_text_clean_trgm_idx
   on raw_items using gin (text_clean gin_trgm_ops)
   where text_clean is not null;
+
+create index raw_items_content_category_idx
+  on raw_items (content_category);
+
+create index raw_items_topic_tags_gin_idx
+  on raw_items using gin (topic_tags);
+
+create index raw_items_mentioned_actors_gin_idx
+  on raw_items using gin (mentioned_actors);
 ```
 
-V1 先使用兩個簡單 trigram index。若後續需要更好的全文搜尋，可新增 `search_text` generated column 或 `tsvector` 欄位。
+V1 先使用兩個簡單 trigram index 與 taxonomy GIN index。若後續需要更好的全文搜尋，可新增 `search_text` generated column 或 `tsvector` 欄位。
 
 ### 7.5 Upsert 行為
 
@@ -353,9 +460,90 @@ V1 先使用兩個簡單 trigram index。若後續需要更好的全文搜尋，
 - 若 `edited_at` 或 `content_hash` 變更，更新 `title`、`text_raw`、`text_clean`、`edited_at`、`raw_json`、`content_hash`。
 - V1 不建立 `raw_item_versions`，後續版本再做。
 
-## 8. raw_item_processing
+## 8. Taxonomy Dictionaries
 
-### 8.1 用途
+### 8.1 content_categories
+
+`content_categories` 是 controlled category dictionary。Layer 1 必須優先從啟用的 category keys 中選擇；若都不適合，使用 `other`。
+
+```sql
+create table content_categories (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  label_zh text not null,
+  label_en text not null,
+  description text,
+  sort_order integer not null default 1000,
+  enabled boolean not null default true,
+  is_system boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+V1 system categories：
+
+```text
+diplomacy
+military
+sanctions
+fed
+energy
+market
+domestic_politics
+economy
+technology
+routine
+social
+other
+```
+
+### 8.2 tags
+
+`tags` 是 semi-controlled tag dictionary。Layer 1 可以輸出新 tags，但 normalizer 會先做 normalization 與 alias mapping，然後自動 upsert。
+
+```sql
+create table tags (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  label text not null,
+  tag_type text not null default 'topic',
+  aliases jsonb not null default '[]'::jsonb,
+  usage_count integer not null default 0,
+  enabled boolean not null default true,
+  is_system boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+Normalization 規則：
+
+- lowercase。
+- trim。
+- spaces、underscores、slash 轉為 `-`。
+- 移除多餘 punctuation。
+- alias mapping，例如 `usa` / `u.s.` / `america` -> `united-states`。
+- 限制每筆 raw item 最多 12 個 tags。
+
+### 8.3 raw_item_tags
+
+`raw_item_tags` 保存 raw item 與 tag dictionary 的正規關聯。`raw_items.topic_tags` 仍保留為 Timeline 查詢快取。
+
+```sql
+create table raw_item_tags (
+  raw_item_id uuid not null references raw_items(id) on delete cascade,
+  tag_id uuid not null references tags(id) on delete cascade,
+  source text not null default 'ai_layer_1',
+  confidence smallint,
+  created_at timestamptz not null default now(),
+  primary key (raw_item_id, tag_id)
+);
+```
+
+## 9. raw_item_processing
+
+### 9.1 用途
 
 `raw_item_processing` 是 V1 reliable processing queue，同時保存 normalizer-classifier 的處理結果。
 
@@ -646,6 +834,7 @@ create table alerts (
   locked_at timestamptz,
   provider_response_json jsonb,
   error_message text,
+  alert_score integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
@@ -657,6 +846,9 @@ create table alerts (
   ),
   constraint alerts_delivery_status_check check (
     delivery_status in ('pending', 'sent', 'failed', 'skipped', 'retry')
+  ),
+  constraint alerts_alert_score_check check (
+    alert_score is null or alert_score >= 0
   )
 );
 ```
@@ -683,15 +875,213 @@ create index alerts_channel_created_idx
   on alerts (channel, created_at desc);
 ```
 
-## 12. source_health
+## 11.5 event_route_decisions，V1+
+
+### 11.5.1 用途
+
+`event_route_decisions` 保存 `event-router` 對每個出口 route 的 queued / skipped 結果。它不是 delivery queue，而是 audit log，用於回答「為什麼這個 event 有或沒有送到某個出口」。
+
+### 11.5.2 欄位
+
+```sql
+create table event_route_decisions (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references events(id) on delete cascade,
+  route_key text not null,
+  decision_status text not null,
+  route_score integer,
+  reason text,
+  payload_table text,
+  payload_id uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+
+  constraint event_route_decisions_status_check check (
+    decision_status in ('queued', 'skipped')
+  ),
+  constraint event_route_decisions_route_score_check check (
+    route_score is null or route_score >= 0
+  )
+);
+```
+
+### 11.5.3 Indexes
+
+```sql
+create unique index event_route_decisions_event_route_uidx
+  on event_route_decisions (event_id, route_key);
+
+create index event_route_decisions_route_created_idx
+  on event_route_decisions (route_key, created_at desc);
+
+create index event_route_decisions_status_created_idx
+  on event_route_decisions (decision_status, created_at desc);
+```
+
+### 11.5.4 Route keys
+
+```text
+private.telegram
+private.pushover
+public.telegram_channel
+public.website
+public.x
+```
+
+## 11.6 public_outbox，V1+
+
+### 11.6.1 用途
+
+`public_outbox` 保存由 `event-router` 產生、已去敏、可公開、可重試的公共發布 payload。公共網站 sync、Telegram Channel publisher 與 X publisher 都應讀取這張表，而不是各自直接從 `events` 臨時組文案。
+
+### 11.6.2 欄位
+
+```sql
+create table public_outbox (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references events(id) on delete cascade,
+  public_title_zh text,
+  public_summary_zh text,
+  public_title_en text,
+  public_summary_en text,
+  public_source_links jsonb not null default '[]'::jsonb,
+  severity text not null default 'B',
+  relevance_score smallint,
+  confirmation_state text,
+  topic_tags text[] not null default '{}'::text[],
+  approved_for_public boolean not null default false,
+  publish_status_web text not null default 'pending',
+  publish_status_telegram text not null default 'pending',
+  publish_status_x text not null default 'pending',
+  retry_count_web integer not null default 0,
+  retry_count_telegram integer not null default 0,
+  retry_count_x integer not null default 0,
+  last_error_web text,
+  last_error_telegram text,
+  last_error_x text,
+  provider_response_telegram jsonb,
+  provider_response_x jsonb,
+  provider_response_web jsonb,
+  external_telegram_message_id text,
+  external_x_post_id text,
+  external_web_id text,
+  next_retry_telegram_at timestamptz,
+  next_retry_x_at timestamptz,
+  next_retry_web_at timestamptz,
+  locked_by_telegram text,
+  locked_at_telegram timestamptz,
+  locked_by_x text,
+  locked_at_x timestamptz,
+  locked_by_web text,
+  locked_at_web timestamptz,
+  generated_at timestamptz not null default now(),
+  published_web_at timestamptz,
+  published_telegram_at timestamptz,
+  published_x_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+### 11.6.3 Indexes
+
+```sql
+create unique index public_outbox_event_uidx
+  on public_outbox (event_id);
+
+create index public_outbox_telegram_claim_idx
+  on public_outbox (publish_status_telegram, next_retry_telegram_at, generated_at)
+  where approved_for_public = true;
+
+create index public_outbox_generated_idx
+  on public_outbox (generated_at desc);
+```
+
+### 11.6.4 發布邊界
+
+- `public_outbox` 只保存 public-safe payload，不保存完整 `text_raw`。
+- `approved_for_public = true` 是所有公共出口的必要條件。
+- 不同平台各自使用獨立 status、retry count、error 與 provider response，避免 Telegram Channel、X 與 public web sync 互相影響。
+- Publisher 不應讀取 raw item 原文來補寫內容；若 payload 不足，應回到 `event-router` 修正。
+
+## 12. ai_model_calls
 
 ### 12.1 用途
+
+`ai_model_calls` 保存 `normalizer-classifier` 每次 AI API 呼叫的 usage 與成本資料，用於評估運行成本、模型品質與不同 source 對 AI call 的消耗。
+
+記錄原則：
+
+- 優先使用 provider response 的 `usage.prompt_tokens`、`usage.completion_tokens`、`usage.total_tokens`。
+- 若 provider 未回傳 usage，使用 OpenAI 官方 tokenizer library `tiktoken` 估算，並在 `usage_json.estimated = true` 標記。
+- 保存 `request_hash`，不保存完整 prompt。
+- 成本先使用內建 pricing table，後續可移到 `infra/model-pricing.json`。
+
+目前 V1 pricing：
+
+| Provider / Model | Input / M token | Output / M token |
+| --- | --- | --- |
+| `openai_compatible:gpt-5.4-mini` | `$0.75` | `$4.50` |
+| `openrouter:openai/gpt-oss-20b` | `$0.029` | `$0.14` |
+| `openrouter:openai/gpt-oss-20b:free` | `$0` | `$0` |
+
+### 12.2 欄位
+
+```sql
+create table ai_model_calls (
+  id uuid primary key default gen_random_uuid(),
+  raw_item_id uuid references raw_items(id) on delete set null,
+  event_id uuid references events(id) on delete set null,
+  source_id uuid references sources(id) on delete set null,
+  service_name text not null,
+  ai_layer text not null,
+  route_name text not null,
+  provider text not null,
+  model_name text not null,
+  request_kind text not null,
+  input_tokens integer,
+  output_tokens integer,
+  total_tokens integer,
+  estimated_cost_usd numeric(12, 6),
+  latency_ms integer,
+  success boolean not null,
+  error_type text,
+  error_message text,
+  response_format text,
+  usage_json jsonb not null default '{}'::jsonb,
+  request_hash text,
+  created_at timestamptz not null default now()
+);
+```
+
+### 12.3 Indexes
+
+```sql
+create index ai_model_calls_created_idx
+  on ai_model_calls (created_at desc);
+
+create index ai_model_calls_model_idx
+  on ai_model_calls (provider, model_name, created_at desc);
+
+create index ai_model_calls_source_idx
+  on ai_model_calls (source_id, created_at desc);
+
+create index ai_model_calls_layer_idx
+  on ai_model_calls (ai_layer, created_at desc);
+
+create index ai_model_calls_raw_item_idx
+  on ai_model_calls (raw_item_id, created_at desc);
+```
+
+## 13. source_health
+
+### 13.1 用途
 
 `source_health` 保存 collector 對每個 source 的運行狀態，供 Dashboard API 與人工排障使用。
 
 同一個 source 可能被不同 service 使用，因此 unique key 應包含 `service_name`。
 
-### 12.2 欄位
+### 13.2 欄位
 
 ```sql
 create table source_health (
@@ -723,7 +1113,7 @@ create table source_health (
 );
 ```
 
-### 12.3 Indexes
+### 13.3 Indexes
 
 ```sql
 create unique index source_health_source_service_uidx
@@ -736,7 +1126,7 @@ create index source_health_service_idx
   on source_health (service_name, updated_at desc);
 ```
 
-## 13. schema_migrations
+## 14. schema_migrations
 
 若使用 Alembic，Alembic 會管理版本表。若不用 Alembic，可使用簡單表：
 
@@ -749,9 +1139,9 @@ create table schema_migrations (
 
 V1 建議使用 Alembic，因為 Python 後端服務為主。incremental migration 與 Docker Compose boot-time migration job 詳見 [Database Migration 策略](./database-migrations.md)。
 
-## 14. Triggers 與 NOTIFY
+## 15. Triggers 與 NOTIFY
 
-### 14.1 updated_at trigger
+### 15.1 updated_at trigger
 
 所有有 `updated_at` 的表建議共用：
 
@@ -775,7 +1165,7 @@ for each row execute function set_updated_at();
 
 其他表同理。
 
-### 14.2 raw item processing task trigger
+### 15.2 raw item processing task trigger
 
 V1 建議在 `raw_items` insert 後自動建立 processing row：
 
@@ -801,9 +1191,9 @@ after insert on raw_items
 for each row execute function enqueue_raw_item_processing();
 ```
 
-### 14.3 event created notify
+### 15.3 event created notify
 
-`events` insert 後通知 `alert-dispatcher`：
+`events` insert 後通知 `event-router`：
 
 ```sql
 create or replace function notify_event_created()
@@ -823,9 +1213,9 @@ after insert on events
 for each row execute function notify_event_created();
 ```
 
-## 15. Worker 狀態流
+## 16. Worker 狀態流
 
-### 15.1 raw_item_processing
+### 16.1 raw_item_processing
 
 ```text
 pending
@@ -847,7 +1237,7 @@ running / retry
 failed
 ```
 
-### 15.2 alerts
+### 16.2 alerts
 
 ```text
 pending
@@ -869,11 +1259,11 @@ pending
 skipped
 ```
 
-## 16. Dashboard API 查詢支援
+## 17. Dashboard API 查詢支援
 
 V1 Dashboard API 需要以下查詢高效：
 
-### 16.1 Live Timeline
+### 17.1 Live Timeline
 
 ```sql
 select *
@@ -888,7 +1278,7 @@ limit 50;
 events_detected_idx
 ```
 
-### 16.2 High Impact Events
+### 17.2 High Impact Events
 
 ```sql
 select *
@@ -904,7 +1294,7 @@ limit 50;
 events_severity_detected_idx
 ```
 
-### 16.3 Source Health
+### 17.3 Source Health
 
 ```sql
 select *
@@ -919,7 +1309,7 @@ order by updated_at desc;
 source_health_service_idx
 ```
 
-### 16.4 Processing Debug
+### 17.4 Processing Debug
 
 ```sql
 select *
@@ -934,7 +1324,7 @@ order by created_at desc;
 raw_item_processing_claim_idx
 ```
 
-## 17. V1 Seed Data
+## 18. V1 Seed Data
 
 V1 建議準備 seed migration 或 seed script 寫入 sources。
 
@@ -984,11 +1374,11 @@ Seed data 應包含：
 - `requires_confirmation`
 - `source_config`
 
-## 18. 後續版本 Schema
+## 19. 後續版本 Schema
 
 以下不進 V1 migration。
 
-### 18.1 market_snapshots，V3
+### 19.1 market_snapshots，V3
 
 用途：保存 XAUUSD 與關聯市場行情。
 
@@ -1006,7 +1396,7 @@ source
 created_at
 ```
 
-### 18.2 market_move_reviews，V3
+### 19.2 market_move_reviews，V3
 
 用途：行情先動後反查新聞。
 
@@ -1023,7 +1413,7 @@ summary_zh
 created_at
 ```
 
-### 18.3 event_raw_items，V2 / V3
+### 19.3 event_raw_items，V2 / V3
 
 用途：完整支援多 raw items 合併成同一 event。
 
@@ -1034,7 +1424,7 @@ relation_type
 created_at
 ```
 
-### 18.4 raw_item_versions，V2+
+### 19.4 raw_item_versions，V2+
 
 用途：保存 Telegram edited message 或 RSS item 更新前後版本。
 
@@ -1048,7 +1438,7 @@ raw_json
 created_at
 ```
 
-### 18.5 claim_groups，V2
+### 19.5 claim_groups，V2
 
 用途：完整口徑衝突識別。
 
@@ -1062,7 +1452,7 @@ created_at
 updated_at
 ```
 
-## 19. Migration 順序
+## 20. Migration 順序
 
 建議 migration 順序：
 
@@ -1078,7 +1468,7 @@ updated_at
 10. triggers：`updated_at`、`enqueue_raw_item_processing`、`notify_event_created`。
 11. seed sources。
 
-## 20. 開放問題
+## 21. 開放問題
 
 以下細節可在實作 migration 前最後確認：
 

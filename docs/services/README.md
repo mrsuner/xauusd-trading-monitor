@@ -13,9 +13,15 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `telegram-collector` | [telegram-collector.md](./telegram-collector.md) | 已建立 |
 | `rss-collector` | [rss-collector.md](./rss-collector.md) | 已建立 |
 | `normalizer-classifier` | [normalizer-classifier.md](./normalizer-classifier.md) | 已建立 |
-| `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 |
-| `dashboard-api` | [dashboard-api.md](./dashboard-api.md) | V1 可選 / 已建立 |
-| `dashboard-web` | `dashboard-web.md` | V1 暫緩或極簡 |
+| `event-router` | [event-router.md](./event-router.md) | 已建立 / runtime 已實作 |
+| `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作，後續收斂為 delivery worker |
+| `telegram-channel-publisher` | [telegram-channel-publisher.md](./telegram-channel-publisher.md) | 公共 Telegram Channel 出口 / runtime 已實作並完成真實發送驗證 |
+| `x-publisher` | [x-publisher.md](./x-publisher.md) | X 出口 / runtime skeleton 已實作，因 X API 發文需付費暫不啟用 |
+| `public-syncer` | [public-syncer.md](./public-syncer.md) | HomeLab → VPS public API 同步 / runtime 已實作 |
+| `public-api` | [public-api.md](./public-api.md) | VPS public API / runtime 與獨立 migration 已實作 |
+| `public-web` | [public-web.md](./public-web.md) | Cloudflare Pages public website / 第一版 frontend 已實作 |
+| `dashboard-api` | [dashboard-api.md](./dashboard-api.md) | HomeLab dashboard API / read + source management 第一版已實作 |
+| `dashboard-web` | [dashboard-web.md](./dashboard-web.md) | HomeLab dashboard UI / timeline、processing、sources 第一版已實作 |
 | `mt5-collector` | `mt5-collector.md` | V1 暫緩 |
 
 ## 技術棧基準

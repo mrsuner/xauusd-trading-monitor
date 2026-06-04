@@ -1,0 +1,35 @@
+[project]
+name = "normalizer-classifier"
+version = "0.1.0"
+description = "Normalizer and event classifier for XAUUSD Event Radar"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx>=0.28.0,<1.0",
+  "psycopg[binary]>=3.2.3,<4.0",
+  "psycopg-pool>=3.2.3,<4.0",
+  "pydantic>=2.10.0,<3.0",
+  "pydantic-settings>=2.6.0,<3.0",
+  "rapidfuzz>=3.10.0,<4.0",
+  "tiktoken>=0.9.0,<1.0",
+]
+
+[project.scripts]
+normalizer-classifier = "normalizer_classifier.__main__:main"
+
+[build-system]
+requires = ["setuptools>=69.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0,<9.0",
+  "pytest-asyncio>=0.24.0,<1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

@@ -1,6 +1,6 @@
 # XAUUSD Event Radar MVP Overview
 
-> V1 實作範圍已收斂為新聞消息層：Telegram / RSS / 官方頁面採集、原始入庫、預處理、模型相關度判斷與通知。`mt5-collector`、`market_snapshots` 與行情異動反查屬於後續版本。最新範圍定義請見 [最終目標與 V1 實作範圍](./final-target-and-v1-scope.md)。
+> V1 實作範圍已收斂為新聞消息層：Telegram / RSS / 官方頁面採集、原始入庫、預處理、模型相關度判斷與通知。`mt5-collector`、`market_snapshots` 與行情異動反查屬於後續版本。最新範圍定義請見 [最終目標與 V1 實作範圍](./final-target-and-v1-scope.md)。首次 HomeLab 上線後的降噪、AI 成本統計與 source 管理規劃請見 [Production Feedback Roadmap](./production-feedback-roadmap.md)。
 
 ## 1. 專案定位
 
@@ -13,6 +13,8 @@ XAUUSD Event Radar MVP 是一個面向黃金交易情境的事件雷達系統。
 - 當前市場波動是否可能是在交易單一來源的樂觀或恐慌敘事？
 
 V1 應聚焦於「消息採集、來源分層、預處理、相關度判斷與通知」，而不是擴張成全球新聞終端。行情反查屬於後續版本。
+
+目前系統首先服務個人工作台與個人通知。後續公共出口的方向不是 SaaS 多租戶化，而是把已處理、已去敏、可公開的高價值事件同步到 VPS 承載的公共網站，並由 HomeLab 端的 publisher 發布到 Telegram Channel 與 X。詳細部署邊界請見 [Public Website 架構規劃](./public-website-architecture.md) 與 [部署與使用方式](./deployment.md) 的「公共出口部署方向」。
 
 ## 2. 核心價值
 
@@ -109,11 +111,11 @@ MVP 應圍繞以下閉環，而不是擴張成綜合新聞系統：
 MVP 的主資料流如下：
 
 ```text
-Telegram / RSS / Official Pages / MT5
+Telegram / RSS / Official Pages
   ↓
 Collectors
   ↓
-raw_items / market_snapshots
+raw_items
   ↓
 PostgreSQL LISTEN/NOTIFY
   ↓
@@ -121,9 +123,15 @@ normalizer-classifier
   ↓
 events / event_claims
   ↓
-alert-dispatcher
-  ↓
-Telegram / Pushover / Dashboard
+event-router
+  ├── alerts
+  │     ↓
+  │   alert-dispatcher
+  │     ↓
+  │   private Telegram / Pushover
+  └── public_outbox
+        ↓
+      telegram-channel-publisher / x-publisher / public-syncer
 ```
 
 關鍵原則：
@@ -132,12 +140,14 @@ Telegram / Pushover / Dashboard
 - `raw_items` 保存所有原始採集資料。
 - `events` 保存規則與 AI 處理後的標準事件。
 - `event_claims` 保存不同來源對同一事件的說法，用於衝突識別。
+- `event-router` 負責出口路由判斷，寫入私人通知 queue 與公共發布 outbox。
+- `alert-dispatcher` 與各 publisher 只負責 delivery，不再判斷事件應送往哪裡。
 - `NOTIFY` 只傳 ID，不傳完整消息內容。
 - Redis 與 RabbitMQ 暫不作為 MVP 的可靠事件總線。
 
 ## 6. 服務拆分
 
-第一版建議拆成 5 個主要服務。
+第一版新聞消息層建議拆成下列主要服務。
 
 ### 6.1 telegram-collector
 
@@ -187,15 +197,34 @@ source_priority_score
 = preliminary_severity
 ```
 
-### 6.4 alert-dispatcher
+### 6.4 event-router
 
 職責：
 
-- 監聽新事件。
-- 根據 severity 與 channel policy 發送 Telegram / Pushover。
+- 讀取 `events`、`event_claims`、`sources` 與 primary `raw_items`。
+- 計算 route score。
+- 判斷事件應進入哪些 route。
+- 寫入 `alerts`、`public_outbox` 與 `event_route_decisions`。
+- 保持私人通知與公共出口的 route policy 可審計。
+
+關鍵原則：
+
+- 決定 `what / where / why`。
+- 不呼叫 Telegram / Pushover / X API。
+- 不再次呼叫 AI 針對 publisher 改寫內容。
+- 不輸出交易指令。
+
+### 6.5 alert-dispatcher
+
+職責：
+
+- claim `alerts` 中的 pending / retry 私人通知。
+- 根據 `alerts.message` 與 `alerts.priority` 發送 Telegram / Pushover。
 - 記錄推送狀態到 `alerts`。
 
-推送策略：
+事件是否應送往 Telegram / Pushover 由 `event-router` 決定；`alert-dispatcher` 只負責 API delivery、retry 與 provider response。
+
+私人通知策略：
 
 | Severity | Telegram | Pushover |
 | --- | --- | --- |
@@ -204,7 +233,18 @@ source_priority_score
 | B | yes | no |
 | C | no | no |
 
-### 6.5 dashboard-api / dashboard-web
+### 6.6 telegram-channel-publisher / x-publisher / public-syncer
+
+職責：
+
+- claim `public_outbox` 或後續 public delivery queue。
+- 依平台 API 進行 deterministic formatting。
+- 發送到 Telegram Channel、X 或 VPS public API。
+- 寫回 delivery state。
+
+Publisher 不判斷事件價值、不讀 raw item 原文補內容、不呼叫 AI。
+
+### 6.7 dashboard-api / dashboard-web
 
 職責：
 

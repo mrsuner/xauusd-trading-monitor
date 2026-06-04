@@ -2,27 +2,49 @@
 
 ## 1. 服務定位
 
-`dashboard-api` 是 V1 可選的最小查詢 API，負責讓使用者或後續 Dashboard Web 查看系統狀態、來源健康、原始消息、處理結果、事件與通知紀錄。
+`dashboard-api` 是 HomeLab 私人工作台 API，負責讓 `dashboard-web` 查看系統狀態、來源健康、原始消息、處理結果、事件、通知紀錄與 AI usage，並提供受 token 保護的 source registry 管理能力。
 
-V1 不要求完整前端，但建議先建立 API 邊界，方便 debug 與後續 Dashboard Web 開發。
+它只服務內部 Dashboard，不承擔公共網站 API；公共網站使用獨立的 `public-api`。
 
 ## 2. V1 目標
 
-- 提供 read-only API 查詢 V1 核心資料。
+- 提供 API 查詢 V1 核心資料。
 - 支援 source health 檢查。
 - 支援 raw items 查詢。
 - 支援 processing status 查詢。
 - 支援 events 查詢。
 - 支援 alerts 查詢。
+- 支援 AI model usage 統計。
+- 支援 taxonomy categories / tags 查詢。
+- 支援 source create / edit / enable / disable / archive。
 - 提供基本 health endpoint。
+
+## 2.1 實作狀態
+
+目前已建立 `services/dashboard-api` 第一版 runtime：
+
+- FastAPI app factory。
+- PostgreSQL connection pool。
+- API token middleware。
+- CORS 設定。
+- read-only list / detail endpoints。
+- source create / update / enable / disable / archive endpoints。
+- raw item taxonomy filters 與 taxonomy dictionary endpoints。
+- AI usage stats endpoint。
+- pagination helper。
+- Dockerfile。
+- `make dev` 本機啟動整合。
+
+V1 已不再是純 read-only API。`dashboard-api` 仍以 HomeLab 私人工作台為邊界，但已包含受 `DASHBOARD_API_TOKEN` 保護的 source management 寫入能力。
 
 ## 3. 非目標
 
 V1 不包含：
 
-- 完整 dashboard web UI。
+- public website API；公共網站使用獨立 `public-api`。
+- source test / source backfill action；這兩項留在下一輪 source management Todo。
+- collector registry auto-reload；source 變更後 collector 是否即時生效仍需補強。
 - 使用者登入與多租戶。
-- source 編輯 UI。
 - alert preference UI。
 - market chart。
 - 行情事件疊加。
@@ -33,8 +55,8 @@ V1 不包含：
 | 類別 | 選型 | 說明 |
 | --- | --- | --- |
 | Language | Python 3.12+ | V1 主語言 |
-| Web framework | FastAPI | read-only API |
-| Database | PostgreSQL 16+ | 查詢核心資料 |
+| Web framework | FastAPI | HomeLab Dashboard API |
+| Database | PostgreSQL 16+ | 查詢核心資料並管理 source registry |
 | DB driver | psycopg 3 / asyncpg | async preferred |
 | Schema | pydantic | response schema |
 | Config | pydantic-settings | env 管理 |
@@ -62,7 +84,7 @@ Go 備選：`chi` / `fiber` + `pgx`。
 
 ## 6. API 範圍
 
-V1 endpoints 建議：
+V1 endpoints：
 
 ```text
 GET /health
@@ -75,14 +97,35 @@ GET /processing
 GET /events
 GET /events/{event_id}
 GET /alerts
+GET /stats/overview
+GET /stats/ai-usage
+POST /sources
+PATCH /sources/{source_id}
+POST /sources/{source_id}/enable
+POST /sources/{source_id}/disable
+POST /sources/{source_id}/archive
 ```
 
-可選：
+後續可選：
 
 ```text
-GET /stats/overview
 GET /stats/ingestion
 ```
+
+後續可選 source operations：
+
+```text
+POST /sources/{source_id}/test
+POST /sources/{source_id}/backfill
+```
+
+用途：
+
+- 從 Dashboard 新增 Telegram channel，例如 `@fbsanalytics`。
+- 啟用或停用 source。
+- archive source，但不 hard delete，避免破壞歷史 `raw_items` / `events` 外鍵關聯。
+- 後續才加入測試 source 是否可 resolve / fetch。
+- 觸發小範圍 backfill，確認 raw item 能入庫。
 
 ## 7. 查詢需求
 
@@ -95,12 +138,15 @@ source_type
 source_group
 priority
 enabled
+archived
 ```
 
 用途：
 
 - 確認 source registry。
 - 查看來源立場與官方程度。
+- 管理 source scoring、translation policy 與 alert policy。
+- 查看 `raw_items_24h`、`events_24h`、`last_raw_item_at` 等近期活躍度。
 
 ### 7.2 Source Health
 
@@ -125,7 +171,9 @@ source_type
 
 ```text
 source_id
+source_type
 source_group
+priority
 published_from
 published_to
 ingested_from
@@ -133,11 +181,60 @@ ingested_to
 q
 ```
 
+### 7.6 AI Usage
+
+`GET /stats/ai-usage` 支援：
+
+```text
+hours=24
+```
+
+回傳：
+
+- totals：call count、success/failure、input/output/total token、estimated cost、average latency。
+- by_model：按 provider / model / route 分組。
+- by_layer：按 `translation_summary` / `classification_reasoning` 分組。
+- by_source：按 source 分組，用於找出最消耗 AI call 的消息源。
+
 要求：
 
 - 預設按 `published_at desc`。
 - 需要 pagination。
+- list response 需包含 `summary_zh`、`summary_en`、`full_translation_zh`、`full_translation_en`、`translation_status`，方便 timeline 顯示摘要與全文翻譯。
+- list response 需包含 `content_category`、`topic_tags`、`mentioned_actors`，方便 Timeline 按 Layer 1 taxonomy 過濾與展示。
+- raw item detail / event detail 需包含 `full_translation_zh`、`full_translation_en`、`translation_model` 與 `translation_error`，方便閱讀與 debug。
 - 大欄位如 `raw_json` 可在 list response 中省略，detail endpoint 再回傳。
+
+支援 filter：
+
+```text
+source_id
+source_type
+source_group
+priority
+content_category
+topic_tag
+actor
+q
+include_empty_text
+```
+
+新增 filter option endpoint：
+
+```text
+GET /raw-items/filters
+```
+
+回傳目前資料庫中可用的 `content_categories`、`topic_tags` 與 `mentioned_actors`，供 Dashboard 補充 actor dropdown 與 debug。
+
+正式 taxonomy dropdown 來源：
+
+```text
+GET /taxonomy/categories
+GET /taxonomy/tags
+```
+
+`/taxonomy/categories` 讀取 controlled `content_categories` dictionary，回傳 `key`、`label_zh`、`label_en`、`description`、`sort_order`。`/taxonomy/tags` 讀取 semi-controlled `tags` dictionary，回傳 normalized `key`、`label`、`tag_type`、`aliases`、`usage_count`。
 
 ### 7.4 Processing
 
@@ -221,23 +318,34 @@ V1 如果只部署在 HomeLab 內網，可先使用簡單 API token。
 
 要求：
 
-- read-only DB user，除 health endpoint 外不寫資料。
+- DB user 應採最小權限：允許讀取 Dashboard 所需資料表，並只允許對 `sources` / source policy 相關欄位執行必要寫入。
+- `GET /health` 不需要 token。
+- 其他 endpoints 若設定 `API_TOKEN`，需使用 `Authorization: Bearer <token>` 或 `X-API-Token: <token>`。
 - 不暴露 secrets。
 - 不在 API 回傳 Telegram session path。
 - `raw_json` detail endpoint 需避免回傳敏感 auth 資訊。
 - 若透過 Tailscale / reverse proxy 對外，必須加 token。
 
-## 10. 設定項
+## 10. Runtime 設定
+
+必要 env：
 
 ```text
-APP_ENV=development
-SERVICE_NAME=dashboard-api
-DATABASE_URL=postgresql://...
-API_TOKEN=...
+DATABASE_URL=postgresql://xauusd:password@postgres:5432/xauusd_event_radar
+API_TOKEN=change-me
 CORS_ORIGINS=http://localhost:5173
 DEFAULT_PAGE_SIZE=50
 MAX_PAGE_SIZE=200
+HOST=0.0.0.0
+PORT=8080
 LOG_LEVEL=INFO
+```
+
+本機開發：
+
+```text
+make dev
+curl http://localhost:8080/health
 ```
 
 ## 11. Observability
@@ -271,14 +379,14 @@ Logs：
 - test database query。
 - list/detail endpoints。
 - filter combinations。
-- read-only DB behavior。
+- source create / update / enable / disable / archive behavior。
 
 ## 13. 驗收標準
 
 - `/health` 可回傳服務狀態。
 - 可查 sources、source health、raw items、processing、events、alerts。
+- 可從 Dashboard API 新增、修改、停用與 archive source；不提供 hard delete。
 - list endpoints 支援 pagination。
 - detail endpoints 可查看 debug 所需內容。
-- API 不修改核心資料。
+- mutation endpoints 僅修改 source registry 與 source policy，不直接改寫歷史 raw/event 資料。
 - response 可直接被 TanStack Query 消費。
-
