@@ -463,7 +463,7 @@ VITE_PUBLIC_API_PROXY_TARGET=http://localhost:8080 npm run dev
 
 ```text
 cd apps/public-web
-VITE_PUBLIC_API_BASE_URL=https://api.news.thetickbase.com npm run dev
+VITE_PUBLIC_API_BASE_URL=https://news-api.thetickbase.com npm run dev
 ```
 
 ### 13.2 Cloudflare Pages
@@ -475,14 +475,14 @@ Root directory: apps/public-web
 Build command: npm ci && npm run build
 Build output directory: dist
 Environment variables:
-  VITE_PUBLIC_API_BASE_URL=https://api.news.thetickbase.com
+  VITE_PUBLIC_API_BASE_URL=https://news-api.thetickbase.com
 ```
 
 若需要 runtime override，可上傳 `public/env.js` 類似：
 
 ```js
 window.__TICKBASE_NEWS_CONFIG__ = {
-  PUBLIC_API_BASE_URL: "https://api.news.thetickbase.com",
+  PUBLIC_API_BASE_URL: "https://news-api.thetickbase.com",
   PUBLIC_WEB_DEMO: false
 };
 ```

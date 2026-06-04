@@ -4,7 +4,7 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
-from psycopg import Connection
+from sqlalchemy import create_engine
 
 config = context.config
 
@@ -18,11 +18,14 @@ def database_url() -> str:
     url = os.environ.get("PUBLIC_DATABASE_URL") or os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError("PUBLIC_DATABASE_URL or DATABASE_URL is required")
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
     return url
 
 
 def run_migrations_online() -> None:
-    with Connection.connect(database_url()) as connection:
+    engine = create_engine(database_url())
+    with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()

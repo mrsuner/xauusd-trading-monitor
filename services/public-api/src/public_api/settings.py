@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     ingest_max_body_bytes: int = Field(default=262_144, alias="PUBLIC_INGEST_MAX_BODY_BYTES")
     ingest_timestamp_skew_seconds: int = Field(default=300, alias="PUBLIC_INGEST_TIMESTAMP_SKEW_SECONDS")
     max_summary_chars: int = Field(default=4000, alias="PUBLIC_INGEST_MAX_SUMMARY_CHARS")
-    max_title_chars: int = Field(default=300, alias="PUBLIC_INGEST_MAX_TITLE_CHARS")
+    max_title_chars: int = Field(default=500, alias="PUBLIC_INGEST_MAX_TITLE_CHARS")
 
     cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     default_page_size: int = Field(default=20, alias="DEFAULT_PAGE_SIZE")

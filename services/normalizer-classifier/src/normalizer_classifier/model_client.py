@@ -565,6 +565,8 @@ def system_prompt() -> str:
         "Do not predict market direction. "
         "Do not describe the event as a gold catalyst or imply whether gold should rise or fall. "
         "Use Traditional Chinese for summary_zh. "
+        "summary_zh must be concise, no more than 280 Chinese characters, and must not copy the full source text. "
+        "summary_en must be concise, no more than 400 English characters, and must not copy the full source text. "
         "Decide whether the item is relevant to gold through safe_haven, real_rate, inflation, dollar, "
         "liquidity, oil, sanctions, geopolitics, or Fed expectations. "
         "The JSON schema is: "
@@ -586,8 +588,10 @@ def auxiliary_text_system_prompt() -> str:
         "Do not decide whether a message is important, relevant, urgent, official, or market moving. "
         "You may classify the item's content taxonomy for timeline filtering only. "
         "Only follow translation_scope. "
-        "summary_zh must be a concise Traditional Chinese news summary. "
-        "summary_en must be a concise English news summary. "
+        "summary_zh must be a concise Traditional Chinese news summary, no more than 280 Chinese characters, "
+        "and must not copy the full source text. "
+        "summary_en must be a concise English news summary, no more than 400 English characters, "
+        "and must not copy the full source text. "
         "If full_translation_required is true, full_translation_zh and full_translation_en must contain faithful "
         "full-text translations of the supplied text. If the original text is already English, full_translation_en "
         "may equal the supplied cleaned text. If the original text is already Chinese, full_translation_zh may equal "
@@ -627,8 +631,8 @@ def classification_json_schema_response_format() -> dict[str, Any]:
                         "enum": ["confirm", "deny", "warn", "escalate", "deescalate", "neutral", "unknown"],
                     },
                     "claim_text": {"type": ["string", "null"]},
-                    "summary_zh": {"type": "string"},
-                    "summary_en": {"type": ["string", "null"]},
+                    "summary_zh": {"type": "string", "maxLength": 280},
+                    "summary_en": {"type": ["string", "null"], "maxLength": 400},
                     "actors": {"type": "array", "items": {"type": "string"}},
                     "xauusd_impact_channel": {"type": "array", "items": {"type": "string"}},
                     "requires_confirmation": {"type": "boolean"},
@@ -672,8 +676,8 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "summary_zh": {"type": "string"},
-                    "summary_en": {"type": "string"},
+                    "summary_zh": {"type": "string", "maxLength": 280},
+                    "summary_en": {"type": "string", "maxLength": 400},
                     "full_translation_zh": {"type": ["string", "null"]},
                     "full_translation_en": {"type": ["string", "null"]},
                     "content_category": {

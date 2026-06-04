@@ -4,6 +4,8 @@ from typing import Any
 
 from .models import PublicOutboxItem
 
+MAX_PUBLIC_TITLE_CHARS = 500
+
 
 def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
     return {
@@ -15,9 +17,9 @@ def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
         "severity": item.severity,
         "relevance_score": item.relevance_score,
         "confirmation_state": item.confirmation_state,
-        "public_title_zh": item.public_title_zh,
+        "public_title_zh": clamp_text(item.public_title_zh, max_chars=MAX_PUBLIC_TITLE_CHARS),
         "public_summary_zh": item.public_summary_zh,
-        "public_title_en": item.public_title_en,
+        "public_title_en": clamp_text(item.public_title_en, max_chars=MAX_PUBLIC_TITLE_CHARS),
         "public_summary_en": item.public_summary_en,
         "public_source_links": sanitize_source_links(item.public_source_links),
         "topic_tags": item.topic_tags,
@@ -32,6 +34,15 @@ def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
 
 def idempotency_key_for(item: PublicOutboxItem) -> str:
     return f"event:{item.event_id}:v1"
+
+
+def clamp_text(value: str | None, *, max_chars: int) -> str | None:
+    if value is None:
+        return None
+    text = " ".join(value.split())
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1].rstrip() + "…"
 
 
 def sanitize_source_links(links: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from public_syncer.models import PublicOutboxItem
-from public_syncer.payload import build_payload, idempotency_key_for, sanitize_source_links
+from public_syncer.payload import build_payload, clamp_text, idempotency_key_for, sanitize_source_links
 
 
 def make_item() -> PublicOutboxItem:
@@ -51,3 +51,14 @@ def test_sanitize_source_links_filters_non_http_urls() -> None:
     assert sanitize_source_links([{"url": "ftp://example.com/file"}, {"url": "http://example.com"}]) == [
         {"url": "http://example.com", "source_name": None, "label": None}
     ]
+
+
+def test_clamp_text_normalizes_and_truncates_long_titles() -> None:
+    text = "  alpha   " + ("x" * 400)
+
+    clamped = clamp_text(text, max_chars=300)
+
+    assert clamped is not None
+    assert len(clamped) == 300
+    assert clamped.startswith("alpha ")
+    assert clamped.endswith("…")

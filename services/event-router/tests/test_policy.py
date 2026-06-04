@@ -128,3 +128,17 @@ def test_public_channel_requires_public_url() -> None:
 
     assert by_route(results, "public.telegram_channel").queued is False
     assert by_route(results, "public.telegram_channel").reason == "missing_public_source_url"
+
+
+def test_public_website_title_falls_back_when_raw_title_is_full_text() -> None:
+    event = make_event(severity="A", relevance_score=90)
+    event.title = None
+    event.raw_item.title = " ".join(["long-source-post"] * 80)
+
+    results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is True
+    assert public_website.public_outbox is not None
+    assert public_website.public_outbox.public_title_zh == "IRAN_NUCLEAR"
+    assert public_website.public_outbox.public_title_en is None

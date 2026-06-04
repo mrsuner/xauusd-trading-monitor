@@ -3,7 +3,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Protocol
 
-from .message import build_public_outbox_summary, build_pushover_message, build_pushover_title, build_telegram_message
+from .message import (
+    build_public_outbox_summary,
+    build_pushover_message,
+    build_pushover_title,
+    build_telegram_message,
+    compact_text,
+)
 from .models import AlertChannelStats, AlertDecision, EventContext, PublicOutboxDraft, RoutePolicyRuntime, RouteResult
 
 
@@ -22,6 +28,7 @@ class Thresholds(Protocol):
 
 
 AGGREGATOR_GROUPS = {"osint_aggregator", "market_squawk"}
+MAX_PUBLIC_TITLE_CHARS = 180
 SEVERITY_ORDER = {"S": 4, "A": 3, "B": 2, "C": 1}
 SEVERITY_SCORE = {"S": 50, "A": 35, "B": 15, "C": 0}
 PRIORITY_SCORE = {"P0": 20, "P1": 12, "P2": 4, "P3": 0}
@@ -287,11 +294,13 @@ def build_public_outbox_draft(
     links: list[dict[str, str | None]] = []
     if event.raw_item.url:
         links.append({"source_name": event.source.name, "url": event.raw_item.url})
+    public_title_zh = public_outbox_title(event)
+    public_title_en = public_outbox_raw_title(event)
     return PublicOutboxDraft(
         event_id=event.id,
-        public_title_zh=event.title or event.raw_item.title or event.event_type,
+        public_title_zh=public_title_zh,
         public_summary_zh=build_public_outbox_summary(event),
-        public_title_en=event.raw_item.title if event.raw_item.title and event.raw_item.title != event.title else None,
+        public_title_en=public_title_en if public_title_en and public_title_en != public_title_zh else None,
         public_summary_en=event.summary_en or event.raw_item.summary_en,
         public_source_links=links,
         severity=event.severity,
@@ -303,6 +312,27 @@ def build_public_outbox_draft(
         publish_status_telegram=publish_status_telegram,
         publish_status_x=publish_status_x,
     )
+
+
+def public_outbox_title(event: EventContext) -> str:
+    for candidate in (event.title, event.raw_item.title):
+        title = public_outbox_raw_title_from_value(candidate)
+        if title:
+            return title
+    return compact_text(event.event_type, limit=MAX_PUBLIC_TITLE_CHARS)
+
+
+def public_outbox_raw_title(event: EventContext) -> str | None:
+    return public_outbox_raw_title_from_value(event.raw_item.title)
+
+
+def public_outbox_raw_title_from_value(value: str | None) -> str | None:
+    if not value:
+        return None
+    title = " ".join(value.split())
+    if not title or len(title) > MAX_PUBLIC_TITLE_CHARS:
+        return None
+    return compact_text(title, limit=MAX_PUBLIC_TITLE_CHARS)
 
 
 def skipped(event: EventContext, route_key: str, score: int, reason: str) -> RouteResult:
