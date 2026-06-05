@@ -23,12 +23,20 @@ function fullDateFormatter(lang: Language) {
   });
 }
 
-export function eventTitle(event: PublicEvent, t: Dictionary = dictionaries.en): string {
-  return event.title || event.public_title_en || event.public_title_zh || t.format.untitled;
+export function eventTitle(event: PublicEvent, t: Dictionary = dictionaries.en, lang: Language = "en"): string {
+  const localizedTitle =
+    lang === "zh-Hant"
+      ? event.public_title_zh || event.public_title_en
+      : event.public_title_en || event.public_title_zh;
+  return event.title || localizedTitle || t.format.untitled;
 }
 
-export function eventSummary(event: PublicEvent, t: Dictionary = dictionaries.en): string {
-  return event.summary || event.public_summary_en || event.public_summary_zh || t.format.noSummary;
+export function eventSummary(event: PublicEvent, t: Dictionary = dictionaries.en, lang: Language = "en"): string {
+  const localizedSummary =
+    lang === "zh-Hant"
+      ? event.public_summary_zh || event.public_summary_en
+      : event.public_summary_en || event.public_summary_zh;
+  return event.summary || localizedSummary || t.format.noSummary;
 }
 
 export function eventTimestamp(event: PublicEvent): string | null {

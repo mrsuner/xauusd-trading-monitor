@@ -23,11 +23,11 @@ export function EventCard({ event }: { event: PublicEvent }) {
 
       <Link to={to(`/events/${event.id}`)} className="mt-4 block">
         <h2 className="text-lg font-semibold leading-7 text-base-content hover:text-primary">
-          {eventTitle(event, t)}
+          {eventTitle(event, t, lang)}
         </h2>
       </Link>
 
-      <p className="mt-2 text-sm leading-6 text-base-content/70">{eventSummary(event, t)}</p>
+      <p className="mt-2 text-sm leading-6 text-base-content/70">{eventSummary(event, t, lang)}</p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="badge badge-outline badge-sm font-mono">{displayCategory(event.content_category, t)}</span>

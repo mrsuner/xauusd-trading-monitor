@@ -66,8 +66,8 @@ export function EventDetailPage() {
     <>
       <PageHeader
         eyebrow={t.detail.eyebrow}
-        title={eventTitle(event, t)}
-        body={eventSummary(event, t)}
+        title={eventTitle(event, t, lang)}
+        body={eventSummary(event, t, lang)}
         aside={
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
@@ -92,7 +92,7 @@ export function EventDetailPage() {
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         <article className="rounded-box border border-base-300 bg-base-200/40 p-5">
           <h2 className="text-lg font-semibold">{t.detail.summaryTitle}</h2>
-          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event, t)}</p>
+          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event, t, lang)}</p>
           <p className="mt-5 text-xs leading-5 text-base-content/50">
             {t.detail.boundary}
           </p>
