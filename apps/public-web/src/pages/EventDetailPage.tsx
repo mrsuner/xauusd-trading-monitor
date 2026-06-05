@@ -12,13 +12,16 @@ import {
   formatFullTime,
   relevanceBand
 } from "../components/format";
+import { useLanguage, useLocalizedPath } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
 
 export function EventDetailPage() {
   const { eventId } = useParams();
+  const lang = useLanguage();
+  const to = useLocalizedPath();
   const query = useQuery({
-    queryKey: ["public-event", eventId],
-    queryFn: () => getEvent(eventId ?? ""),
+    queryKey: ["public-event", eventId, lang],
+    queryFn: () => getEvent(eventId ?? "", lang),
     enabled: Boolean(eventId)
   });
 
@@ -121,7 +124,7 @@ export function EventDetailPage() {
             <h3 className="text-sm font-semibold">Tags & Actors</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {event.topic_tags.map((tag) => (
-                <Link key={tag} to={`/tags/${encodeURIComponent(tag)}`} className="badge badge-ghost font-mono">
+                <Link key={tag} to={to(`/tags/${encodeURIComponent(tag)}`)} className="badge badge-ghost font-mono">
                   #{tag}
                 </Link>
               ))}

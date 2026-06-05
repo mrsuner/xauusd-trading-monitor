@@ -2,6 +2,7 @@ import { demoCategories, demoEvents, demoStats, demoTags } from "./demoData";
 import type {
   EventFilters,
   HealthResponse,
+  Language,
   OverviewStats,
   PageResponse,
   PublicCategory,
@@ -29,15 +30,15 @@ export async function listEvents(filters: EventFilters = {}): Promise<PageRespon
   return request<PageResponse<PublicEvent>>("/events", filters);
 }
 
-export async function getEvent(id: string): Promise<PublicEvent> {
+export async function getEvent(id: string, lang?: Language): Promise<PublicEvent> {
   if (useDemoData) {
     const event = demoEvents.find((item) => item.id === id);
     if (!event) {
       throw new Error("Event not found");
     }
-    return event;
+    return localizeDemoEvent(event, lang);
   }
-  return request<PublicEvent>(`/events/${encodeURIComponent(id)}`);
+  return request<PublicEvent>(`/events/${encodeURIComponent(id)}`, { lang });
 }
 
 export async function listTags(): Promise<PublicTag[]> {
@@ -120,5 +121,34 @@ function demoListEvents(filters: EventFilters): PageResponse<PublicEvent> {
   }
   const total = items.length;
   const offset = (page - 1) * pageSize;
-  return { items: items.slice(offset, offset + pageSize), page, page_size: pageSize, total };
+  return {
+    items: items.slice(offset, offset + pageSize).map((item) => localizeDemoEvent(item, filters.lang)),
+    page,
+    page_size: pageSize,
+    total
+  };
+}
+
+function localizeDemoEvent(event: PublicEvent, lang: Language = "en"): PublicEvent {
+  const requested = lang === "zh-Hant" ? "zh-Hant" : "en";
+  const hasEnglish = Boolean(event.public_title_en || event.public_summary_en);
+  const hasChinese = Boolean(event.public_title_zh || event.public_summary_zh);
+  const selectedLanguage =
+    requested === "zh-Hant" && hasChinese ? "zh-Hant" : requested === "en" && hasEnglish ? "en" : hasChinese ? "zh-Hant" : "en";
+  const title =
+    selectedLanguage === "zh-Hant"
+      ? event.public_title_zh || event.public_title_en
+      : event.public_title_en || event.public_title_zh;
+  const summary =
+    selectedLanguage === "zh-Hant"
+      ? event.public_summary_zh || event.public_summary_en
+      : event.public_summary_en || event.public_summary_zh;
+
+  return {
+    ...event,
+    title,
+    summary,
+    language: selectedLanguage,
+    available_languages: [hasEnglish ? "en" : null, hasChinese ? "zh-Hant" : null].filter(Boolean) as Language[]
+  };
 }

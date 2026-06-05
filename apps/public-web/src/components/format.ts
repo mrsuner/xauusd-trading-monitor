@@ -19,11 +19,11 @@ const fullDateFormatter = new Intl.DateTimeFormat("zh-Hant", {
 });
 
 export function eventTitle(event: PublicEvent): string {
-  return event.public_title_zh || event.public_title_en || "Untitled public event";
+  return event.title || event.public_title_en || event.public_title_zh || "Untitled public event";
 }
 
 export function eventSummary(event: PublicEvent): string {
-  return event.public_summary_zh || event.public_summary_en || "此事件尚無公開摘要。";
+  return event.summary || event.public_summary_en || event.public_summary_zh || "No public summary is available.";
 }
 
 export function eventTimestamp(event: PublicEvent): string | null {

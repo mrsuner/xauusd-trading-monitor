@@ -12,6 +12,11 @@ export const demoEvents: PublicEvent[] = [
     severity: "S",
     relevance_score: 94,
     confirmation_state: "confirmed",
+    title: "Fed rhetoric turns more hawkish",
+    summary:
+      "Fed-linked remarks emphasized persistent inflation and policy restraint, which may affect rate-cut expectations and XAUUSD sensitivity.",
+    language: "en",
+    available_languages: ["en", "zh-Hant"],
     public_title_zh: "Fed 官員口徑突然轉鷹，金價風險重新定價",
     public_summary_zh:
       "公開事件流顯示，Fed 相關口徑集中提到通膨韌性與政策限制性，市場對降息路徑的定價可能受到壓力。此摘要僅描述事件與可能傳導路徑，不構成交易建議。",
@@ -37,6 +42,11 @@ export const demoEvents: PublicEvent[] = [
     severity: "A",
     relevance_score: 87,
     confirmation_state: "partially_confirmed",
+    title: "Iran hardline-adjacent source pushes back on deal narrative",
+    summary:
+      "Iran hardline-adjacent messaging diverged from optimistic US framing. Further confirmation is needed from official Iranian channels.",
+    language: "en",
+    available_languages: ["en", "zh-Hant"],
     public_title_zh: "伊朗強硬派媒體否認談判讓步敘事",
     public_summary_zh:
       "公開來源出現與美方樂觀敘事不一致的伊朗強硬派口徑。事件仍需等待政府、最高領袖系統或安全系統進一步確認。",
@@ -63,6 +73,11 @@ export const demoEvents: PublicEvent[] = [
     severity: "B",
     relevance_score: 61,
     confirmation_state: "unconfirmed",
+    title: "Trump-related source mentions Iran talks",
+    summary:
+      "A single Trump-related source mentioned progress on Iran talks, without matching confirmation from official diplomatic channels.",
+    language: "en",
+    available_languages: ["en", "zh-Hant"],
     public_title_zh: "Trump 相關來源提及伊朗談判進展",
     public_summary_zh:
       "單一來源提及談判進展，但尚未看到伊朗官方或美國外交系統同步確認。此類訊息適合列入觀察清單。",

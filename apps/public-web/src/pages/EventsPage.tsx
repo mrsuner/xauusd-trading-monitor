@@ -8,12 +8,15 @@ import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { EventCard } from "../components/EventCard";
 import { PageHeader } from "../components/PageHeader";
 import { StatsStrip } from "../components/StatsStrip";
+import { useLanguage, useLocalizedPath } from "../i18n";
 
 const pageSize = 20;
 
 export function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const lang = useLanguage();
+  const to = useLocalizedPath();
 
   const filters = useMemo<EventFilters>(
     () => ({
@@ -22,10 +25,11 @@ export function EventsPage() {
       tag: searchParams.get("tag") ?? undefined,
       category: searchParams.get("category") ?? undefined,
       q: searchParams.get("q") ?? undefined,
+      lang,
       page: Number(searchParams.get("page") ?? "1"),
       page_size: pageSize
     }),
-    [searchParams]
+    [lang, searchParams]
   );
 
   const eventsQuery = useQuery({
@@ -189,7 +193,7 @@ export function EventsPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <Link className="btn join-item btn-sm btn-ghost" to="/events">
+              <Link className="btn join-item btn-sm btn-ghost" to={to("/events")}>
                 Reset
               </Link>
               <button

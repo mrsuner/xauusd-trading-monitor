@@ -4,13 +4,15 @@ import { listEvents } from "../api/client";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { EventCard } from "../components/EventCard";
 import { PageHeader } from "../components/PageHeader";
+import { useLanguage } from "../i18n";
 
 export function TagPage() {
   const { tag } = useParams();
+  const lang = useLanguage();
   const decodedTag = tag ? decodeURIComponent(tag) : "";
   const query = useQuery({
-    queryKey: ["public-events-tag", decodedTag],
-    queryFn: () => listEvents({ tag: decodedTag, page_size: 20 }),
+    queryKey: ["public-events-tag", decodedTag, lang],
+    queryFn: () => listEvents({ tag: decodedTag, lang, page_size: 20 }),
     enabled: Boolean(decodedTag)
   });
 

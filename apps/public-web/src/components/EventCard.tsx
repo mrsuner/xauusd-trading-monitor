@@ -1,10 +1,12 @@
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { PublicEvent } from "../api/types";
+import { useLocalizedPath } from "../i18n";
 import { ConfirmationBadge, SeverityBadge } from "./Badges";
 import { displayCategory, eventSummary, eventTimestamp, eventTitle, formatTime, relevanceBand } from "./format";
 
 export function EventCard({ event }: { event: PublicEvent }) {
+  const to = useLocalizedPath();
   const relevance = relevanceBand(event.relevance_score);
   const timestamp = eventTimestamp(event);
 
@@ -17,7 +19,7 @@ export function EventCard({ event }: { event: PublicEvent }) {
         <span className="font-mono">{formatTime(timestamp)}</span>
       </div>
 
-      <Link to={`/events/${event.id}`} className="mt-4 block">
+      <Link to={to(`/events/${event.id}`)} className="mt-4 block">
         <h2 className="text-lg font-semibold leading-7 text-base-content hover:text-primary">
           {eventTitle(event)}
         </h2>
@@ -28,7 +30,7 @@ export function EventCard({ event }: { event: PublicEvent }) {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="badge badge-outline badge-sm font-mono">{displayCategory(event.content_category)}</span>
         {event.topic_tags.slice(0, 6).map((tag) => (
-          <Link key={tag} to={`/tags/${encodeURIComponent(tag)}`} className="badge badge-ghost badge-sm font-mono">
+          <Link key={tag} to={to(`/tags/${encodeURIComponent(tag)}`)} className="badge badge-ghost badge-sm font-mono">
             #{tag}
           </Link>
         ))}

@@ -1,4 +1,5 @@
 export type Severity = "S" | "A" | "B" | "C";
+export type Language = "en" | "zh-Hant";
 
 export type ConfirmationState =
   | "unconfirmed"
@@ -23,6 +24,10 @@ export interface PublicEvent {
   severity: Severity;
   relevance_score: number | null;
   confirmation_state: ConfirmationState | null;
+  title: string | null;
+  summary: string | null;
+  language: Language;
+  available_languages: Language[];
   public_title_zh: string | null;
   public_summary_zh: string | null;
   public_title_en: string | null;
@@ -70,6 +75,7 @@ export interface EventFilters {
   tag?: string;
   category?: string;
   q?: string;
+  lang?: Language;
   page?: number;
   page_size?: number;
 }
