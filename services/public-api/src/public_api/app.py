@@ -163,6 +163,7 @@ def create_app() -> FastAPI:
         tag: str | None = None,
         category: str | None = None,
         q: str | None = None,
+        lang: str | None = None,
         from_time: Annotated[str | None, Query(alias="from")] = None,
         to_time: Annotated[str | None, Query(alias="to")] = None,
         page: Annotated[int, Query(ge=1)] = 1,
@@ -171,6 +172,7 @@ def create_app() -> FastAPI:
         return await repository.list_events(
             page=page,
             page_size=page_size or default_page_size,
+            lang=lang,
             severity=severity,
             confirmation_state=confirmation_state,
             tag=tag,
@@ -181,8 +183,12 @@ def create_app() -> FastAPI:
         )
 
     @app.get("/events/{public_event_id}")
-    async def get_event(public_event_id: UUID, repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
-        event = await repository.get_event(public_event_id)
+    async def get_event(
+        public_event_id: UUID,
+        repository: PublicRepository = Depends(repo),
+        lang: str | None = None,
+    ) -> dict[str, Any]:
+        event = await repository.get_event(public_event_id, lang=lang)
         if not event:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
         return event

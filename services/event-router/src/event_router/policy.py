@@ -299,12 +299,12 @@ def build_public_outbox_draft(
     if event.raw_item.url:
         links.append({"source_name": event.source.name, "url": event.raw_item.url})
     public_title_zh = public_outbox_title(event)
-    public_title_en = public_outbox_raw_title(event)
+    public_title_en = public_outbox_title_en(event)
     return PublicOutboxDraft(
         event_id=event.id,
         public_title_zh=public_title_zh,
         public_summary_zh=build_public_outbox_summary(event),
-        public_title_en=public_title_en if public_title_en and public_title_en != public_title_zh else None,
+        public_title_en=public_title_en,
         public_summary_en=event.summary_en or event.raw_item.summary_en,
         public_source_links=links,
         severity=event.severity,
@@ -330,6 +330,14 @@ def public_outbox_raw_title(event: EventContext) -> str | None:
     return public_outbox_raw_title_from_value(event.raw_item.title)
 
 
+def public_outbox_title_en(event: EventContext) -> str | None:
+    for candidate in (event.title, event.raw_item.title):
+        title = public_outbox_raw_title_from_value(candidate)
+        if title and is_likely_english_public_title(title):
+            return title
+    return None
+
+
 def public_outbox_raw_title_from_value(value: str | None) -> str | None:
     if not value:
         return None
@@ -337,6 +345,14 @@ def public_outbox_raw_title_from_value(value: str | None) -> str | None:
     if not title or len(title) > MAX_PUBLIC_TITLE_CHARS:
         return None
     return compact_text(title, limit=MAX_PUBLIC_TITLE_CHARS)
+
+
+def is_likely_english_public_title(value: str) -> bool:
+    letters = [char for char in value if char.isalpha()]
+    if not letters:
+        return False
+    ascii_letters = [char for char in letters if char.isascii()]
+    return len(ascii_letters) / len(letters) >= 0.8
 
 
 def skipped(event: EventContext, route_key: str, score: int, reason: str) -> RouteResult:

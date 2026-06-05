@@ -148,6 +148,7 @@ GET /stats/overview
 `GET /events` filters：
 
 ```text
+lang
 severity
 confirmation_state
 tag
@@ -159,11 +160,41 @@ page
 page_size
 ```
 
+`lang` 支援：
+
+- `en`
+- `zh-Hant`
+
+缺省或不支援的 `lang` 會使用 `en`。Read API 會在每筆 event 上衍生：
+
+- `title`
+- `summary`
+- `language`
+- `available_languages`
+
+Fallback 規則：
+
+- `en` 優先使用 `public_title_en/public_summary_en`，缺失時 fallback 到中文。
+- `zh-Hant` 優先使用 `public_title_zh/public_summary_zh`，缺失時 fallback 到英文。
+- 原始 `public_title_*` / `public_summary_*` 欄位在 V1 繼續保留，供前端過渡與 debug。
+
 Response 應適合 TanStack Query：
 
 ```json
 {
-  "items": [],
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Fed rhetoric turns more hawkish",
+      "summary": "Fed-linked remarks emphasized persistent inflation...",
+      "language": "en",
+      "available_languages": ["en", "zh-Hant"],
+      "public_title_zh": "...",
+      "public_summary_zh": "...",
+      "public_title_en": "...",
+      "public_summary_en": "..."
+    }
+  ],
   "page": 1,
   "page_size": 20,
   "total": 100

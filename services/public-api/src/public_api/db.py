@@ -15,6 +15,9 @@ from .security import body_sha256
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PUBLIC_LANGUAGE = "en"
+PUBLIC_LANGUAGES = {"en", "zh-Hant"}
+
 
 def _positive_int_env(name: str, default: int) -> int:
     raw = os.getenv(name)
@@ -289,6 +292,7 @@ class PublicRepository:
         *,
         page: int,
         page_size: int,
+        lang: str | None = None,
         severity: str | None = None,
         confirmation_state: str | None = None,
         tag: str | None = None,
@@ -342,9 +346,14 @@ class PublicRepository:
             )
             rows = await cur.fetchall()
         await self.db.conn.commit()
-        return {"items": [_json_ready(row) for row in rows], "page": page, "page_size": limit, "total": int(total_row["total"])}
+        return {
+            "items": [shape_public_event(row, lang=lang) for row in rows],
+            "page": page,
+            "page_size": limit,
+            "total": int(total_row["total"]),
+        }
 
-    async def get_event(self, public_event_id: UUID) -> dict[str, Any] | None:
+    async def get_event(self, public_event_id: UUID, *, lang: str | None = None) -> dict[str, Any] | None:
         async with self.db.conn.cursor() as cur:
             await cur.execute(
                 """
@@ -375,7 +384,7 @@ class PublicRepository:
             )
             row = await cur.fetchone()
         await self.db.conn.commit()
-        return _json_ready(row) if row else None
+        return shape_public_event(row, lang=lang) if row else None
 
     async def list_tags(self) -> list[dict[str, Any]]:
         async with self.db.conn.cursor() as cur:
@@ -465,3 +474,50 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
 
 def _json_ready(row: dict[str, Any]) -> dict[str, Any]:
     return dict(row)
+
+
+def normalize_public_language(lang: str | None) -> str:
+    return lang if lang in PUBLIC_LANGUAGES else DEFAULT_PUBLIC_LANGUAGE
+
+
+def shape_public_event(row: dict[str, Any], *, lang: str | None = None) -> dict[str, Any]:
+    data = _json_ready(row)
+    requested_lang = normalize_public_language(lang)
+    selected_lang = _selected_language(data, requested_lang)
+    data["title"] = _localized_value(data, field="title", lang=selected_lang)
+    data["summary"] = _localized_value(data, field="summary", lang=selected_lang)
+    data["language"] = selected_lang
+    data["available_languages"] = _available_languages(data)
+    return data
+
+
+def _selected_language(row: dict[str, Any], requested_lang: str) -> str:
+    if _has_public_content(row, requested_lang):
+        return requested_lang
+    fallback_lang = "zh-Hant" if requested_lang == "en" else "en"
+    if _has_public_content(row, fallback_lang):
+        return fallback_lang
+    return requested_lang
+
+
+def _available_languages(row: dict[str, Any]) -> list[str]:
+    return [lang for lang in ("en", "zh-Hant") if _has_public_content(row, lang)]
+
+
+def _has_public_content(row: dict[str, Any], lang: str) -> bool:
+    suffix = _language_suffix(lang)
+    return bool(row.get(f"public_title_{suffix}") or row.get(f"public_summary_{suffix}"))
+
+
+def _localized_value(row: dict[str, Any], *, field: str, lang: str) -> str | None:
+    suffix = _language_suffix(lang)
+    value = row.get(f"public_{field}_{suffix}")
+    if value:
+        return str(value)
+    fallback_suffix = "zh" if suffix == "en" else "en"
+    fallback = row.get(f"public_{field}_{fallback_suffix}")
+    return str(fallback) if fallback else None
+
+
+def _language_suffix(lang: str) -> str:
+    return "zh" if lang == "zh-Hant" else "en"

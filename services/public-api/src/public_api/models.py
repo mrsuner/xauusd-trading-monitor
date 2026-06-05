@@ -93,6 +93,10 @@ class PublicEventListItem(BaseModel):
     severity: str
     relevance_score: int | None
     confirmation_state: str | None
+    title: str | None
+    summary: str | None
+    language: str
+    available_languages: list[str]
     public_title_zh: str | None
     public_summary_zh: str | None
     public_title_en: str | None

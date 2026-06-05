@@ -18,6 +18,8 @@ def make_event(
     *,
     severity: str,
     relevance_score: int,
+    title: str | None = None,
+    summary_en: str | None = None,
     source_group: str = "iran_government",
     official_level: str = "official",
     priority: str = "P0",
@@ -37,7 +39,9 @@ def make_event(
         relevance_score=relevance_score,
         confidence=80,
         confirmation_state=confirmation_state,
+        title=title,
         summary_zh="測試事件摘要。",
+        summary_en=summary_en,
         requires_confirmation=requires_confirmation,
         source_group=source_group,
         source=SourceContext(
@@ -141,6 +145,38 @@ def test_public_website_title_falls_back_when_raw_title_is_full_text() -> None:
     assert public_website.queued is True
     assert public_website.public_outbox is not None
     assert public_website.public_outbox.public_title_zh == "IRAN_NUCLEAR"
+    assert public_website.public_outbox.public_title_en is None
+
+
+def test_public_outbox_preserves_english_public_content() -> None:
+    event = make_event(
+        severity="A",
+        relevance_score=90,
+        title="Fed rhetoric turns more hawkish",
+        summary_en="Fed-linked remarks emphasized persistent inflation and policy restraint.",
+    )
+
+    results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is True
+    assert public_website.public_outbox is not None
+    assert public_website.public_outbox.public_title_en == "Fed rhetoric turns more hawkish"
+    assert public_website.public_outbox.public_summary_en == (
+        "Fed-linked remarks emphasized persistent inflation and policy restraint."
+    )
+
+
+def test_public_outbox_does_not_copy_chinese_title_into_english_field() -> None:
+    event = make_event(severity="A", relevance_score=90, title="伊朗談判出現新進展")
+    event.raw_item.title = "伊朗官方媒體提及談判進展"
+
+    results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is True
+    assert public_website.public_outbox is not None
+    assert public_website.public_outbox.public_title_zh == "伊朗談判出現新進展"
     assert public_website.public_outbox.public_title_en is None
 
 

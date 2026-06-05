@@ -40,11 +40,28 @@ def test_build_payload_is_public_safe() -> None:
 
     assert payload["schema_version"] == "public_event.v1"
     assert payload["upstream_event_id"] == str(item.event_id)
+    assert payload["public_title_zh"] == "標題"
     assert payload["public_summary_zh"] == "摘要"
+    assert payload["public_title_en"] == "Title"
+    assert payload["public_summary_en"] == "Summary"
     assert payload["public_source_links"] == [
         {"url": "https://example.com/news", "source_name": "Example", "label": "Example"}
     ]
     assert payload["route_metadata"]["public_outbox_id"] == str(item.id)
+    assert "available_languages" not in payload
+
+
+def test_build_payload_preserves_missing_language_fields() -> None:
+    item = make_item()
+    item.public_title_zh = None
+    item.public_summary_zh = None
+
+    payload = build_payload(item)
+
+    assert payload["public_title_zh"] is None
+    assert payload["public_summary_zh"] is None
+    assert payload["public_title_en"] == "Title"
+    assert payload["public_summary_en"] == "Summary"
 
 
 def test_sanitize_source_links_filters_non_http_urls() -> None:
