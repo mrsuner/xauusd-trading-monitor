@@ -17,6 +17,9 @@ For code-related content, including code, identifiers, comments, commit messages
 
 - When the user asks to keep a project memo, project memory, project recap, full recap, or session recap for this project, save it under:
   `/Users/lukesun/Documents/Obsidian Vault/5️⃣ Projects/tickbase/radar`
+- Use the following folder for routine project development and maintenance logs:
+  `/Users/lukesun/Documents/Obsidian Vault/5️⃣ Projects/tickbase/devlogs`
+- When creating new development notes, deployment logs, maintenance logs, or implementation progress documents for this project, prefer the `devlogs` folder unless the user explicitly asks for a different project memo location.
 - This project memo path is separate from the daily log recap rule in the global `AGENTS.md`.
 - Continue to use the daily log file specified by the global `AGENTS.md` for routine daily log recaps.
 
