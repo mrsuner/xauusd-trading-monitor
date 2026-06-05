@@ -110,33 +110,33 @@ export function EventsPage() {
               className="select select-bordered w-full"
               value={filters.severity ?? ""}
               onChange={(event) => updateFilter("severity", event.target.value)}
-              aria-label="Severity"
+              aria-label={t.events.ariaSeverity}
             >
               <option value="">{t.events.allSeverity}</option>
-              <option value="S">S</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
+              <option value="S">{t.events.severityOptions.S}</option>
+              <option value="A">{t.events.severityOptions.A}</option>
+              <option value="B">{t.events.severityOptions.B}</option>
+              <option value="C">{t.events.severityOptions.C}</option>
             </select>
 
             <select
               className="select select-bordered w-full"
               value={filters.confirmation_state ?? ""}
               onChange={(event) => updateFilter("confirmation_state", event.target.value)}
-              aria-label="Confirmation state"
+              aria-label={t.events.ariaConfirmation}
             >
               <option value="">{t.events.allConfirmation}</option>
-              <option value="confirmed">{t.badges.confirmation.confirmed}</option>
-              <option value="partially_confirmed">{t.badges.confirmation.partially_confirmed}</option>
-              <option value="unconfirmed">{t.badges.confirmation.unconfirmed}</option>
-              <option value="contradicted">{t.badges.confirmation.contradicted}</option>
+              <option value="confirmed">{t.events.confirmationOptions.confirmed}</option>
+              <option value="partially_confirmed">{t.events.confirmationOptions.partially_confirmed}</option>
+              <option value="unconfirmed">{t.events.confirmationOptions.unconfirmed}</option>
+              <option value="contradicted">{t.events.confirmationOptions.contradicted}</option>
             </select>
 
             <select
               className="select select-bordered w-full"
               value={filters.category ?? ""}
               onChange={(event) => updateFilter("category", event.target.value)}
-              aria-label="Category"
+              aria-label={t.events.ariaCategory}
             >
               <option value="">{t.events.allCategories}</option>
               {(categoriesQuery.data ?? []).map((item) => (
@@ -150,7 +150,7 @@ export function EventsPage() {
               className="select select-bordered w-full"
               value={filters.tag ?? ""}
               onChange={(event) => updateFilter("tag", event.target.value)}
-              aria-label="Tag"
+              aria-label={t.events.ariaTag}
             >
               <option value="">{t.events.allTags}</option>
               {(tagsQuery.data ?? []).map((item) => (

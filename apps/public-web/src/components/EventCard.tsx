@@ -3,7 +3,16 @@ import { Link } from "react-router-dom";
 import type { PublicEvent } from "../api/types";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { ConfirmationBadge, SeverityBadge } from "./Badges";
-import { displayCategory, eventSummary, eventTimestamp, eventTitle, formatTime, relevanceBand } from "./format";
+import {
+  displayCategory,
+  eventSummary,
+  eventTimestamp,
+  eventTitle,
+  formatTime,
+  relevanceBand,
+  sourceBackground,
+  sourceLabel
+} from "./format";
 
 export function EventCard({ event }: { event: PublicEvent }) {
   const lang = useLanguage();
@@ -46,9 +55,11 @@ export function EventCard({ event }: { event: PublicEvent }) {
               href={source.url}
               target="_blank"
               rel="noreferrer"
+              title={sourceBackground(source, t)}
+              aria-label={`${sourceLabel(source, t)}: ${sourceBackground(source, t)}`}
               className="inline-flex items-center gap-1 text-base-content/60 hover:text-primary"
             >
-              {source.source_name || source.label || t.detail.source}
+              {sourceLabel(source, t)}
               <ExternalLink className="h-3 w-3" />
             </a>
           ))}

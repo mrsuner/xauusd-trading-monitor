@@ -10,7 +10,9 @@ import {
   eventTimestamp,
   eventTitle,
   formatFullTime,
-  relevanceBand
+  relevanceBand,
+  sourceBackground,
+  sourceLabel
 } from "../components/format";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
@@ -111,9 +113,11 @@ export function EventDetailPage() {
                   href={source.url}
                   target="_blank"
                   rel="noreferrer"
+                  title={sourceBackground(source, t)}
+                  aria-label={`${sourceLabel(source, t)}: ${sourceBackground(source, t)}`}
                   className="inline-flex items-center justify-between gap-3 rounded-field border border-base-300 px-3 py-2 text-base-content/70 hover:border-primary/50 hover:text-primary"
                 >
-                  <span>{source.source_name || source.label || t.detail.source}</span>
+                  <span>{sourceLabel(source, t)}</span>
                   <ExternalLink className="h-4 w-4" />
                 </a>
               ))}

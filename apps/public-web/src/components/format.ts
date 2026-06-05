@@ -1,4 +1,4 @@
-import type { Language, PublicEvent } from "../api/types";
+import type { Language, PublicEvent, PublicSourceLink } from "../api/types";
 import { dictionaries, type Dictionary } from "../i18n";
 
 function dateFormatter(lang: Language) {
@@ -75,4 +75,26 @@ export function displayCategory(category: string | null, t: Dictionary = diction
     return t.format.uncategorized;
   }
   return category.replaceAll("_", " ");
+}
+
+export function sourceLabel(source: PublicSourceLink, t: Dictionary = dictionaries.en): string {
+  return source.source_name || source.label || t.detail.source;
+}
+
+export function sourceBackground(source: PublicSourceLink, t: Dictionary = dictionaries.en): string {
+  const backgrounds: Record<string, string> = t.sources.backgrounds;
+  const label = sourceLabel(source, t);
+  const exactMatch = backgrounds[label];
+  if (exactMatch) {
+    return exactMatch;
+  }
+  const normalizedLabel = label.toLowerCase();
+  const aliasMatch = Object.entries(backgrounds).find(([sourceName]) => {
+    const normalizedSourceName = sourceName.toLowerCase();
+    return (
+      normalizedSourceName.length > 3 &&
+      (normalizedLabel.includes(normalizedSourceName) || normalizedSourceName.includes(normalizedLabel))
+    );
+  });
+  return aliasMatch?.[1] ?? t.sources.fallback;
 }

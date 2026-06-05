@@ -42,6 +42,22 @@ const en = {
     allConfirmation: "All confirmation",
     allCategories: "All categories",
     allTags: "All tags",
+    ariaSeverity: "Severity",
+    ariaConfirmation: "Confirmation state",
+    ariaCategory: "Category",
+    ariaTag: "Tag",
+    severityOptions: {
+      S: "S - highest public priority",
+      A: "A - high public priority",
+      B: "B - watch",
+      C: "C - context"
+    },
+    confirmationOptions: {
+      confirmed: "confirmed",
+      partially_confirmed: "partially confirmed",
+      unconfirmed: "unconfirmed",
+      contradicted: "contradicted"
+    } satisfies Record<ConfirmationState, string>,
     emptyTitle: "No public events match these filters",
     emptyBody: "Adjust severity, category, tag, or search text. The public website only shows approved public-safe events.",
     pageStatus: (current: number, totalPages: number, total: number) =>
@@ -91,9 +107,19 @@ const en = {
           "Severity reflects relative importance in the system rules and model workflow. S and A events deserve higher reading priority, but they do not imply trade direction or guarantee gold-price impact."
       },
       {
+        title: "Severity Levels",
+        body:
+          "S marks top-priority events with direct market-moving potential or major policy/geopolitical implications. A marks important events that deserve timely review. B marks watch items with useful but lower-priority signal value. C marks context items that help explain the narrative background."
+      },
+      {
         title: "Confirmation State",
         body:
           "confirmed, partially confirmed, unconfirmed, and contradicted describe the degree of source confirmation. Unconfirmed events should be treated as watch items, not factual conclusions."
+      },
+      {
+        title: "Source Background",
+        body:
+          "Source labels may include short background notes. These notes describe the public role or common editorial context of a source; they are not endorsements, credibility scores, or a substitute for reading the linked source."
       },
       {
         title: "Data Boundary",
@@ -127,12 +153,58 @@ const en = {
   },
   badges: {
     unknown: "unknown",
+    severityDescriptions: {
+      S: "Top-priority public event. Usually direct policy, geopolitical, market-structure, or high-impact gold/macro relevance.",
+      A: "Important public event. Worth timely review, but with less immediate priority than S.",
+      B: "Watch item. Useful signal or narrative movement, but lower confidence or lower market priority.",
+      C: "Context item. Background information that helps explain the broader public narrative."
+    },
     confirmation: {
       confirmed: "confirmed",
       partially_confirmed: "partially confirmed",
       unconfirmed: "unconfirmed",
       contradicted: "contradicted"
+    } satisfies Record<ConfirmationState, string>,
+    confirmationDescriptions: {
+      confirmed: "Supported by official or multiple high-quality public sources.",
+      partially_confirmed: "Some supporting evidence exists, but key details still need stronger confirmation.",
+      unconfirmed: "Single-source, early, or insufficiently corroborated. Treat as a watch item.",
+      contradicted: "Public sources conflict or later reporting disputes the claim."
     } satisfies Record<ConfirmationState, string>
+  },
+  sources: {
+    fallback:
+      "Public source link. Consider the source role, publication context, and whether other sources confirm the claim.",
+    backgrounds: {
+      "Federal Reserve":
+        "Official US central bank source. Highest authority for Fed decisions, speeches, minutes, and policy communications.",
+      "White House":
+        "Official US executive branch source. Useful for administration positions, but political framing should be expected.",
+      "Reuters":
+        "Global wire service with institutional market readership. Often fast and broadly syndicated; still compare with primary sources for policy claims.",
+      "AP":
+        "Global wire service focused on broad news coverage. Useful for baseline reporting and cross-checking developing stories.",
+      "Bloomberg":
+        "Financial news service with strong market focus. Useful for market reaction and policy reporting; some content may rely on unnamed sources.",
+      "Tasnim":
+        "Iranian outlet commonly associated with conservative or IRGC-adjacent perspectives. Useful for Iranian hardline framing, not a neutral official statement.",
+      "Press TV":
+        "Iranian state-funded international broadcaster. Useful for official or state-aligned Iranian framing, especially in external-facing English coverage.",
+      "IRNA":
+        "Iran's state news agency. Useful for official Iranian government messaging and formal state framing.",
+      "Mehr News":
+        "Iranian semi-official news agency. Useful for domestic Iranian political and policy framing, but should be cross-checked on sensitive claims.",
+      "US State Department":
+        "Official US foreign-policy source. High authority for US diplomatic positions, sanctions notices, and official statements.",
+      "IDF Official":
+        "Official Israel Defense Forces source. High authority for IDF statements and operational claims, but represents a military actor's position.",
+      "Khamenei English":
+        "Official English-language channel for Iran's Supreme Leader. Useful for formal leadership messaging and ideological framing.",
+      "Trump Truth Social":
+        "Trump-aligned direct political messaging source. Useful for primary statements from Trump, but factual claims need independent confirmation.",
+      "TrumpsTruth":
+        "Trump-aligned social/media feed. Useful for direct political messaging, but claims need independent confirmation."
+    } satisfies Record<string, string>
   },
   format: {
     untitled: "Untitled public event",
@@ -179,6 +251,22 @@ const zhHant: typeof en = {
     allConfirmation: "全部確認狀態",
     allCategories: "全部分類",
     allTags: "全部標籤",
+    ariaSeverity: "分級",
+    ariaConfirmation: "確認狀態",
+    ariaCategory: "分類",
+    ariaTag: "標籤",
+    severityOptions: {
+      S: "S - 最高公開優先級",
+      A: "A - 高公開優先級",
+      B: "B - 觀察",
+      C: "C - 背景"
+    },
+    confirmationOptions: {
+      confirmed: "已確認",
+      partially_confirmed: "部分確認",
+      unconfirmed: "未確認",
+      contradicted: "有相反口徑"
+    },
     emptyTitle: "沒有符合條件的公開事件",
     emptyBody: "請調整 severity、category、tag 或搜尋字串。公開網站只顯示已核准同步的 public-safe events。",
     pageStatus: (current: number, totalPages: number, total: number) =>
@@ -226,9 +314,19 @@ const zhHant: typeof en = {
           "Severity 反映事件在系統規則與模型流程中的相對重要性。S 與 A 表示更值得優先查看，但不表示任何交易方向，也不代表結果一定會影響金價。"
       },
       {
+        title: "分級說明",
+        body:
+          "S 代表最高優先級，通常是具直接市場影響潛力，或涉及重大政策、地緣政治、金融市場結構的事件。A 代表重要事件，值得及時查看。B 是觀察項，具有敘事或訊號價值，但優先級或確認度較低。C 是背景項，用來補足公開敘事的上下文。"
+      },
+      {
         title: "確認狀態",
         body:
           "confirmed、partially confirmed、unconfirmed 與 contradicted 用於標示來源之間的確認程度。未確認事件應被視為待觀察，而不是事實結論。"
+      },
+      {
+        title: "來源背景",
+        body:
+          "來源標籤可能附帶簡短背景說明。這些說明用來描述來源的公開角色或常見編輯脈絡，不代表本站背書、可信度評分，也不能替代閱讀原始連結。"
       },
       {
         title: "資料邊界",
@@ -262,11 +360,42 @@ const zhHant: typeof en = {
   },
   badges: {
     unknown: "unknown",
+    severityDescriptions: {
+      S: "最高優先級公開事件，通常具有直接政策、地緣、金融市場結構或黃金/宏觀高影響相關性。",
+      A: "重要公開事件，值得及時查看，但即時優先級低於 S。",
+      B: "觀察項，具備訊號或敘事變化價值，但信心或市場優先級較低。",
+      C: "背景項，用來補足更大的公開敘事脈絡。"
+    },
     confirmation: {
-      confirmed: "confirmed",
-      partially_confirmed: "partially confirmed",
-      unconfirmed: "unconfirmed",
-      contradicted: "contradicted"
+      confirmed: "已確認",
+      partially_confirmed: "部分確認",
+      unconfirmed: "未確認",
+      contradicted: "有相反口徑"
+    },
+    confirmationDescriptions: {
+      confirmed: "已有官方來源或多個高品質公開來源支持。",
+      partially_confirmed: "已有部分支持證據，但關鍵細節仍需要更強確認。",
+      unconfirmed: "單一來源、早期消息或佐證不足，應作為觀察項處理。",
+      contradicted: "公開來源之間出現衝突，或後續報導否定原始說法。"
+    }
+  },
+  sources: {
+    fallback: "公開來源連結。請同時考慮來源角色、發布脈絡，以及是否有其他來源確認該說法。",
+    backgrounds: {
+      "Federal Reserve": "美國中央銀行官方來源。對 Fed 決議、演說、會議紀要與政策溝通具最高權威性。",
+      "White House": "美國行政部門官方來源。適合確認政府立場，但通常帶有行政部門的政治表述框架。",
+      "Reuters": "全球通訊社，金融與機構讀者使用度高。速度快、被廣泛引用；政策類說法仍建議對照 primary source。",
+      "AP": "全球通訊社，偏向廣泛新聞覆蓋。適合做基準報導與發展中事件的交叉確認。",
+      "Bloomberg": "金融新聞服務，市場導向強。適合觀察市場反應與政策報導；部分內容可能依賴匿名消息源。",
+      "Tasnim": "伊朗媒體，常被視為保守派或 IRGC-adjacent 口徑。適合觀察伊朗強硬派敘事，不等同中立官方聲明。",
+      "Press TV": "伊朗國家資助的國際廣播媒體。適合觀察伊朗官方或 state-aligned 的對外英文敘事。",
+      "IRNA": "伊朗國家通訊社。適合確認伊朗政府正式訊息與國家層級表述。",
+      "Mehr News": "伊朗半官方通訊社。適合觀察伊朗國內政治與政策敘事；敏感主張仍需交叉確認。",
+      "US State Department": "美國外交政策官方來源。對美國外交立場、制裁公告與正式聲明具高權威性。",
+      "IDF Official": "以色列國防軍官方來源。對 IDF 聲明與軍事行動主張具高權威性，但代表軍事行為者立場。",
+      "Khamenei English": "伊朗最高領袖官方英文頻道。適合觀察正式領導層訊息與意識形態表述。",
+      "Trump Truth Social": "Trump-aligned 的直接政治訊息來源。適合追蹤 Trump 的 primary statement，但事實主張需要獨立確認。",
+      "TrumpsTruth": "Trump-aligned 社群/媒體 feed。適合觀察直接政治訊息，但具體主張需要獨立來源確認。"
     }
   },
   format: {
