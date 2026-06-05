@@ -12,12 +12,13 @@ import {
   formatFullTime,
   relevanceBand
 } from "../components/format";
-import { useLanguage, useLocalizedPath } from "../i18n";
+import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
 
 export function EventDetailPage() {
   const { eventId } = useParams();
   const lang = useLanguage();
+  const t = useI18n();
   const to = useLocalizedPath();
   const query = useQuery({
     queryKey: ["public-event", eventId, lang],
@@ -28,7 +29,7 @@ export function EventDetailPage() {
   if (!eventId) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <EmptyState title="Event id is missing" body="請回到事件列表重新開啟公開事件。" />
+        <EmptyState title={t.detail.missingIdTitle} body={t.detail.missingIdBody} />
       </section>
     );
   }
@@ -36,7 +37,7 @@ export function EventDetailPage() {
   if (query.isLoading) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <LoadingState label="Loading event detail..." />
+        <LoadingState label={t.detail.loading} />
       </section>
     );
   }
@@ -53,20 +54,20 @@ export function EventDetailPage() {
   if (!event) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <EmptyState title="Event not found" body="這筆公開事件不存在，或已被隱藏。" />
+        <EmptyState title={t.detail.notFoundTitle} body={t.detail.notFoundBody} />
       </section>
     );
   }
 
-  const relevance = relevanceBand(event.relevance_score);
+  const relevance = relevanceBand(event.relevance_score, t);
   const timestamp = eventTimestamp(event);
 
   return (
     <>
       <PageHeader
-        eyebrow="Public event detail"
-        title={eventTitle(event)}
-        body={eventSummary(event)}
+        eyebrow={t.detail.eyebrow}
+        title={eventTitle(event, t)}
+        body={eventSummary(event, t)}
         aside={
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
@@ -76,12 +77,12 @@ export function EventDetailPage() {
             </div>
             <div className="mt-4 space-y-2 text-sm text-base-content/65">
               <p>
-                <span className="font-semibold text-base-content">Event time:</span>{" "}
-                {formatFullTime(timestamp)}
+                <span className="font-semibold text-base-content">{t.detail.eventTime}</span>{" "}
+                {formatFullTime(timestamp, lang, t)}
               </p>
               <p>
-                <span className="font-semibold text-base-content">Category:</span>{" "}
-                {displayCategory(event.content_category)}
+                <span className="font-semibold text-base-content">{t.detail.category}</span>{" "}
+                {displayCategory(event.content_category, t)}
               </p>
             </div>
           </div>
@@ -90,20 +91,19 @@ export function EventDetailPage() {
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         <article className="rounded-box border border-base-300 bg-base-200/40 p-5">
-          <h2 className="text-lg font-semibold">Public Summary</h2>
-          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event)}</p>
+          <h2 className="text-lg font-semibold">{t.detail.summaryTitle}</h2>
+          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event, t)}</p>
           <p className="mt-5 text-xs leading-5 text-base-content/50">
-            This page only includes public-safe summaries and source attribution. It does not include
-            raw item text, private delivery state, prompts, or model usage data.
+            {t.detail.boundary}
           </p>
         </article>
 
         <aside className="space-y-4">
           <section className="rounded-box border border-base-300 bg-base-200/40 p-4">
-            <h3 className="text-sm font-semibold">Sources</h3>
+            <h3 className="text-sm font-semibold">{t.detail.sources}</h3>
             <div className="mt-3 grid gap-2 text-sm">
               {event.public_source_links.length === 0 && (
-                <p className="text-base-content/60">No public source links available.</p>
+                <p className="text-base-content/60">{t.detail.noSources}</p>
               )}
               {event.public_source_links.map((source) => (
                 <a
@@ -113,7 +113,7 @@ export function EventDetailPage() {
                   rel="noreferrer"
                   className="inline-flex items-center justify-between gap-3 rounded-field border border-base-300 px-3 py-2 text-base-content/70 hover:border-primary/50 hover:text-primary"
                 >
-                  <span>{source.source_name || source.label || "Source"}</span>
+                  <span>{source.source_name || source.label || t.detail.source}</span>
                   <ExternalLink className="h-4 w-4" />
                 </a>
               ))}
@@ -121,7 +121,7 @@ export function EventDetailPage() {
           </section>
 
           <section className="rounded-box border border-base-300 bg-base-200/40 p-4">
-            <h3 className="text-sm font-semibold">Tags & Actors</h3>
+            <h3 className="text-sm font-semibold">{t.detail.tagsActors}</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {event.topic_tags.map((tag) => (
                 <Link key={tag} to={to(`/tags/${encodeURIComponent(tag)}`)} className="badge badge-ghost font-mono">

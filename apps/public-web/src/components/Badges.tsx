@@ -1,4 +1,5 @@
 import type { ConfirmationState, Severity } from "../api/types";
+import { useI18n } from "../i18n";
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   const className =
@@ -14,8 +15,9 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
 }
 
 export function ConfirmationBadge({ state }: { state: ConfirmationState | null }) {
+  const t = useI18n();
   if (!state) {
-    return <span className="badge badge-ghost badge-sm">unknown</span>;
+    return <span className="badge badge-ghost badge-sm">{t.badges.unknown}</span>;
   }
 
   const className =
@@ -27,5 +29,5 @@ export function ConfirmationBadge({ state }: { state: ConfirmationState | null }
           ? "badge-error"
           : "badge-ghost";
 
-  return <span className={`badge badge-sm ${className}`}>{state.replaceAll("_", " ")}</span>;
+  return <span className={`badge badge-sm ${className}`}>{t.badges.confirmation[state]}</span>;
 }

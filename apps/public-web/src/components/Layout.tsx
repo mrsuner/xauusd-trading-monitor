@@ -5,31 +5,32 @@ import {
   localizedPath,
   stripLanguagePrefix,
   supportedLanguages,
+  useI18n,
   useLanguage,
   useLocalizedPath
 } from "../i18n";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
-const navLinks = [
-  { path: "/events", label: "Latest" },
-  { path: "/events", search: "?severity=S", label: "High Impact" },
-  { path: "/tags/iran", label: "Tags" },
-  { path: "/about", label: "About" },
-  { path: "/status", label: "Status" }
-];
-
 export function Layout() {
   const location = useLocation();
   const lang = useLanguage();
+  const t = useI18n();
   const to = useLocalizedPath();
   const currentPath = stripLanguagePrefix(location.pathname);
+  const navLinks = [
+    { path: "/events", label: t.nav.latest },
+    { path: "/events", search: "?severity=S", label: t.nav.highImpact },
+    { path: "/tags/iran", label: t.nav.tags },
+    { path: "/about", label: t.nav.about },
+    { path: "/status", label: t.nav.status }
+  ];
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
       <header className="sticky top-0 z-50 border-b border-base-300/60 bg-base-100/80 backdrop-blur-md">
         <nav className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <NavLink to={to("/events")} className="shrink-0" aria-label="TickBase News home">
+          <NavLink to={to("/events")} className="shrink-0" aria-label={t.nav.tickbaseHome}>
             <Logo />
           </NavLink>
           <ul className="ml-6 hidden items-center gap-1 md:flex">
@@ -72,7 +73,7 @@ export function Layout() {
                   </li>
                 ))}
                 <li className="menu-title">
-                  <span>Language</span>
+                  <span>{t.nav.language}</span>
                 </li>
                 {supportedLanguages.map((language) => (
                   <li key={language}>
@@ -130,7 +131,7 @@ function LanguageSwitcher() {
           to={localizedPath(language, currentPath, location.search)}
           className={`btn join-item btn-xs ${language === lang ? "btn-primary" : "btn-ghost"}`}
           aria-current={language === lang ? "page" : undefined}
-          title={`Language: ${languageLabels[language]}`}
+          title={`${languageLabels[language]}`}
         >
           <Languages className="h-3.5 w-3.5" />
           {languageLabels[language]}
@@ -142,6 +143,7 @@ function LanguageSwitcher() {
 
 function Footer() {
   const to = useLocalizedPath();
+  const t = useI18n();
 
   return (
     <footer className="border-t border-base-300/60 bg-base-200/60">
@@ -149,29 +151,27 @@ function Footer() {
         <div className="max-w-md">
           <Logo />
           <p className="mt-4 text-sm leading-6 text-base-content/60">
-            Public event radar for market-moving macro, gold, geopolitics, energy, and policy news.
-            Not investment advice.
+            {t.footer.summary}
           </p>
         </div>
         <div>
-          <h3 className="text-sm font-semibold">Explore</h3>
+          <h3 className="text-sm font-semibold">{t.footer.explore}</h3>
           <div className="mt-3 grid gap-2 text-sm text-base-content/60">
             <NavLink to={to("/events")} className="hover:text-primary">
-              Latest events
+              {t.footer.latestEvents}
             </NavLink>
             <NavLink to={to("/about")} className="hover:text-primary">
-              Methodology
+              {t.footer.methodology}
             </NavLink>
             <NavLink to={to("/status")} className="hover:text-primary">
-              API status
+              {t.footer.apiStatus}
             </NavLink>
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-semibold">Data Boundary</h3>
+          <h3 className="text-sm font-semibold">{t.footer.dataBoundary}</h3>
           <p className="mt-3 text-sm leading-6 text-base-content/60">
-            This site only displays public-safe summaries and source attribution. Internal raw items,
-            prompts, usage cost, sessions, and private delivery states are not published.
+            {t.footer.dataBoundaryBody}
           </p>
         </div>
       </div>

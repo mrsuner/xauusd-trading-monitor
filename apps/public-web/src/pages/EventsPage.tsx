@@ -8,7 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { EventCard } from "../components/EventCard";
 import { PageHeader } from "../components/PageHeader";
 import { StatsStrip } from "../components/StatsStrip";
-import { useLanguage, useLocalizedPath } from "../i18n";
+import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 
 const pageSize = 20;
 
@@ -16,6 +16,7 @@ export function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const lang = useLanguage();
+  const t = useI18n();
   const to = useLocalizedPath();
 
   const filters = useMemo<EventFilters>(
@@ -77,14 +78,9 @@ export function EventsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Public event radar"
-        title="TickBase News"
-        body={
-          <>
-            去敏後的公開事件流，聚焦 XAUUSD、Fed、Trump、Iran、IRGC、能源與地緣風險。
-            內容用於追蹤消息與來源確認狀態，不提供交易建議。
-          </>
-        }
+        eyebrow={t.events.eyebrow}
+        title={t.events.title}
+        body={t.events.body}
         aside={<StatsStrip stats={statsQuery.data} />}
       />
 
@@ -92,7 +88,7 @@ export function EventsPage() {
         <div className="rounded-box border border-base-300 bg-base-200/40 p-4">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <SlidersHorizontal className="h-4 w-4 text-primary" />
-            Filters
+            {t.events.filters}
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-[1.1fr_repeat(4,minmax(0,0.7fr))]">
             <form onSubmit={submitSearch} className="join w-full">
@@ -100,12 +96,12 @@ export function EventsPage() {
                 <Search className="h-4 w-4 text-base-content/40" />
                 <input
                   className="min-w-0 grow"
-                  placeholder="Search public summaries"
+                  placeholder={t.events.searchPlaceholder}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </label>
-              <button className="btn btn-primary join-item" type="submit" aria-label="Search">
+              <button className="btn btn-primary join-item" type="submit" aria-label={t.events.search}>
                 <Search className="h-4 w-4" />
               </button>
             </form>
@@ -116,7 +112,7 @@ export function EventsPage() {
               onChange={(event) => updateFilter("severity", event.target.value)}
               aria-label="Severity"
             >
-              <option value="">All severity</option>
+              <option value="">{t.events.allSeverity}</option>
               <option value="S">S</option>
               <option value="A">A</option>
               <option value="B">B</option>
@@ -129,11 +125,11 @@ export function EventsPage() {
               onChange={(event) => updateFilter("confirmation_state", event.target.value)}
               aria-label="Confirmation state"
             >
-              <option value="">All confirmation</option>
-              <option value="confirmed">confirmed</option>
-              <option value="partially_confirmed">partially confirmed</option>
-              <option value="unconfirmed">unconfirmed</option>
-              <option value="contradicted">contradicted</option>
+              <option value="">{t.events.allConfirmation}</option>
+              <option value="confirmed">{t.badges.confirmation.confirmed}</option>
+              <option value="partially_confirmed">{t.badges.confirmation.partially_confirmed}</option>
+              <option value="unconfirmed">{t.badges.confirmation.unconfirmed}</option>
+              <option value="contradicted">{t.badges.confirmation.contradicted}</option>
             </select>
 
             <select
@@ -142,7 +138,7 @@ export function EventsPage() {
               onChange={(event) => updateFilter("category", event.target.value)}
               aria-label="Category"
             >
-              <option value="">All categories</option>
+              <option value="">{t.events.allCategories}</option>
               {(categoriesQuery.data ?? []).map((item) => (
                 <option key={item.category} value={item.category}>
                   {item.category} ({item.count})
@@ -156,7 +152,7 @@ export function EventsPage() {
               onChange={(event) => updateFilter("tag", event.target.value)}
               aria-label="Tag"
             >
-              <option value="">All tags</option>
+              <option value="">{t.events.allTags}</option>
               {(tagsQuery.data ?? []).map((item) => (
                 <option key={item.tag} value={item.tag}>
                   #{item.tag} ({item.count})
@@ -171,8 +167,8 @@ export function EventsPage() {
           {eventsQuery.isError && <ErrorState message={(eventsQuery.error as Error).message} />}
           {eventsQuery.data?.items.length === 0 && (
             <EmptyState
-              title="沒有符合條件的公開事件"
-              body="請調整 severity、category、tag 或搜尋字串。公開網站只顯示已核准同步的 public-safe events。"
+              title={t.events.emptyTitle}
+              body={t.events.emptyBody}
             />
           )}
           {eventsQuery.data?.items.map((event) => <EventCard key={event.id} event={event} />)}
@@ -181,7 +177,7 @@ export function EventsPage() {
         {eventsQuery.data && eventsQuery.data.total > pageSize && (
           <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
             <p className="text-sm text-base-content/60">
-              Showing page {currentPage} of {totalPages}, {eventsQuery.data.total} public events.
+              {t.events.pageStatus(currentPage, totalPages, eventsQuery.data.total)}
             </p>
             <div className="join">
               <button
@@ -189,19 +185,19 @@ export function EventsPage() {
                 disabled={currentPage <= 1}
                 onClick={() => setPage(currentPage - 1)}
                 type="button"
-                aria-label="Previous page"
+                aria-label={t.events.previousPage}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <Link className="btn join-item btn-sm btn-ghost" to={to("/events")}>
-                Reset
+                {t.events.reset}
               </Link>
               <button
                 className="btn join-item btn-sm"
                 disabled={currentPage >= totalPages}
                 onClick={() => setPage(currentPage + 1)}
                 type="button"
-                aria-label="Next page"
+                aria-label={t.events.nextPage}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

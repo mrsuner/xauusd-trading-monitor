@@ -1,13 +1,16 @@
 import { Activity, Radio, ShieldAlert } from "lucide-react";
 import type { OverviewStats } from "../api/types";
+import { useI18n, useLanguage } from "../i18n";
 import { formatTime } from "./format";
 
 export function StatsStrip({ stats }: { stats?: OverviewStats }) {
+  const lang = useLanguage();
+  const t = useI18n();
   const items = [
-    { label: "Public events", value: stats?.total_events ?? "—", icon: Activity },
-    { label: "S severity", value: stats?.s_events ?? "—", icon: ShieldAlert },
-    { label: "A severity", value: stats?.a_events ?? "—", icon: Radio },
-    { label: "Latest", value: stats?.latest_event_time ? formatTime(stats.latest_event_time) : "—", icon: Activity }
+    { label: t.stats.publicEvents, value: stats?.total_events ?? "—", icon: Activity },
+    { label: t.stats.sSeverity, value: stats?.s_events ?? "—", icon: ShieldAlert },
+    { label: t.stats.aSeverity, value: stats?.a_events ?? "—", icon: Radio },
+    { label: t.stats.latest, value: stats?.latest_event_time ? formatTime(stats.latest_event_time, lang, t) : "—", icon: Activity }
   ];
 
   return (

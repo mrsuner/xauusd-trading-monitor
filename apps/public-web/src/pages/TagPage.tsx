@@ -4,11 +4,12 @@ import { listEvents } from "../api/client";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { EventCard } from "../components/EventCard";
 import { PageHeader } from "../components/PageHeader";
-import { useLanguage } from "../i18n";
+import { useI18n, useLanguage } from "../i18n";
 
 export function TagPage() {
   const { tag } = useParams();
   const lang = useLanguage();
+  const t = useI18n();
   const decodedTag = tag ? decodeURIComponent(tag) : "";
   const query = useQuery({
     queryKey: ["public-events-tag", decodedTag, lang],
@@ -19,16 +20,16 @@ export function TagPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Topic tag"
-        title={`#${decodedTag || "unknown"}`}
-        body="依 topic tag 聚合的公開事件流。Tag 來自事件處理流程中的 public-safe taxonomy，用於檢索與分組。"
+        eyebrow={t.tag.eyebrow}
+        title={`#${decodedTag || t.tag.fallbackTitle}`}
+        body={t.tag.body}
       />
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-4">
           {query.isLoading && <LoadingState />}
           {query.isError && <ErrorState message={(query.error as Error).message} />}
           {query.data?.items.length === 0 && (
-            <EmptyState title="此 tag 尚無公開事件" body="後續同步事件時會自動出現在這裡。" />
+            <EmptyState title={t.tag.emptyTitle} body={t.tag.emptyBody} />
           )}
           {query.data?.items.map((event) => <EventCard key={event.id} event={event} />)}
         </div>
