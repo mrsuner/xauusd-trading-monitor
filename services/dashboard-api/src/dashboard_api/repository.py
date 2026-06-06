@@ -878,3 +878,95 @@ def build_alerts_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_gte("a.created_at", "created_from", filters.get("created_from"))
     builder.add_lte("a.created_at", "created_to", filters.get("created_to"))
     return builder
+
+
+def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
+    builder = QueryBuilder(
+        base_select="""
+        select
+          p.id,
+          p.event_id,
+          p.public_title_zh,
+          p.public_summary_zh,
+          p.public_title_en,
+          p.public_summary_en,
+          p.public_source_links,
+          p.severity,
+          p.relevance_score,
+          p.confirmation_state,
+          p.topic_tags,
+          p.approved_for_public,
+          p.publish_status_web,
+          p.publish_status_telegram,
+          p.publish_status_x,
+          p.retry_count_web,
+          p.retry_count_telegram,
+          p.retry_count_x,
+          p.last_error_web,
+          p.last_error_telegram,
+          p.last_error_x,
+          p.external_telegram_message_id,
+          p.external_x_post_id,
+          p.external_web_id,
+          p.next_retry_telegram_at,
+          p.next_retry_x_at,
+          p.next_retry_web_at,
+          p.generated_at,
+          p.published_web_at,
+          p.published_telegram_at,
+          p.published_x_at,
+          p.created_at,
+          p.updated_at,
+          e.title as event_title,
+          e.summary_zh as event_summary_zh,
+          e.event_type,
+          e.detected_at as event_detected_at
+        from public_outbox p
+        join events e on e.id = p.event_id
+        """,
+        base_count="select count(*) as total from public_outbox p join events e on e.id = p.event_id",
+        order_by="order by p.generated_at desc, p.created_at desc",
+    )
+    builder.add_equal("p.approved_for_public", "approved_for_public", filters.get("approved_for_public"))
+    builder.add_equal("p.severity", "severity", filters.get("severity"))
+    builder.add_gte("p.created_at", "created_from", filters.get("created_from"))
+    builder.add_lte("p.created_at", "created_to", filters.get("created_to"))
+    builder.add_search(
+        (
+            "p.public_title_zh",
+            "p.public_summary_zh",
+            "p.public_title_en",
+            "p.public_summary_en",
+            "e.title",
+            "e.summary_zh",
+            "p.topic_tags::text",
+        ),
+        "q",
+        filters.get("q"),
+    )
+
+    channel = filters.get("channel")
+    publish_status = filters.get("publish_status")
+    status_columns = {
+        "web": "p.publish_status_web",
+        "telegram": "p.publish_status_telegram",
+        "telegram_channel": "p.publish_status_telegram",
+        "x": "p.publish_status_x",
+    }
+    if channel and publish_status:
+        status_column = status_columns.get(str(channel))
+        if status_column:
+            builder.add_equal(status_column, "publish_status", publish_status)
+    elif publish_status:
+        builder.where.append(
+            """
+            (
+              p.publish_status_web = %(publish_status)s
+              or p.publish_status_telegram = %(publish_status)s
+              or p.publish_status_x = %(publish_status)s
+            )
+            """
+        )
+        builder.params["publish_status"] = publish_status
+
+    return builder

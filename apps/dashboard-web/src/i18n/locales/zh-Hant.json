@@ -34,6 +34,7 @@
     "events": "事件",
     "sources": "來源",
     "processing": "處理流程",
+    "publicOutbox": "公開佇列",
     "alerts": "警示"
   },
   "layout": {
@@ -103,6 +104,38 @@
       "sent": "發送時間"
     },
     "empty": "沒有警示紀錄。"
+  },
+  "publicOutbox": {
+    "title": "公開佇列",
+    "description": "public_outbox 歷史紀錄與 Web、Telegram Channel、X 分發狀態。",
+    "approved": "已核准",
+    "notApproved": "未核准",
+    "notPublished": "未發布",
+    "publishedAt": "{{time}} 發布",
+    "retryCount": "重試 {{count}} 次",
+    "nextRetry": "下次重試 {{time}}",
+    "externalId": "外部 ID：{{id}}",
+    "channel": {
+      "web": "Web",
+      "telegram": "Telegram",
+      "x": "X"
+    },
+    "filter": {
+      "allChannels": "全部渠道",
+      "allStatuses": "全部狀態",
+      "allApproval": "全部核准狀態",
+      "approved": "已核准",
+      "notApproved": "未核准"
+    },
+    "col": {
+      "generated": "產生時間",
+      "severity": "嚴重度",
+      "content": "公開內容",
+      "score": "分數",
+      "approved": "核准",
+      "updated": "更新時間"
+    },
+    "empty": "沒有公開佇列紀錄。"
   },
   "timeline": {
     "title": "即時動態",

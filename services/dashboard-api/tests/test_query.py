@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dashboard_api.repository import build_raw_items_query
+from dashboard_api.repository import build_public_outbox_query, build_raw_items_query
 from dashboard_api.query import QueryBuilder, clamp_page_size, offset_for
 
 
@@ -92,3 +92,38 @@ def test_raw_items_query_filters_relevance_and_event_fields() -> None:
     assert builder.params["classification_status"] == "completed"
     assert builder.params["is_relevant"] is True
     assert builder.params["min_relevance_score"] == 70
+
+
+def test_public_outbox_query_filters_status_across_channels() -> None:
+    builder = build_public_outbox_query({"publish_status": "failed"})
+
+    sql = builder.list_sql()
+
+    assert "from public_outbox p" in sql
+    assert "p.publish_status_web = %(publish_status)s" in sql
+    assert "p.publish_status_telegram = %(publish_status)s" in sql
+    assert "p.publish_status_x = %(publish_status)s" in sql
+    assert builder.params["publish_status"] == "failed"
+
+
+def test_public_outbox_query_filters_status_by_channel() -> None:
+    builder = build_public_outbox_query({"channel": "telegram", "publish_status": "sent"})
+
+    sql = builder.list_sql()
+
+    assert "p.publish_status_telegram = %(publish_status)s" in sql
+    assert "p.publish_status_web = %(publish_status)s" not in sql
+    assert "p.publish_status_x = %(publish_status)s" not in sql
+    assert builder.params["publish_status"] == "sent"
+
+
+def test_public_outbox_query_filters_public_flag_and_search() -> None:
+    builder = build_public_outbox_query({"approved_for_public": True, "q": "gold"})
+
+    sql = builder.list_sql()
+
+    assert "p.approved_for_public = %(approved_for_public)s" in sql
+    assert "p.public_title_zh ilike %(q)s" in sql
+    assert "e.title ilike %(q)s" in sql
+    assert builder.params["approved_for_public"] is True
+    assert builder.params["q"] == "%gold%"

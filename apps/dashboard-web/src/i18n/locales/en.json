@@ -34,6 +34,7 @@
     "events": "Events",
     "sources": "Sources",
     "processing": "Processing",
+    "publicOutbox": "Public Outbox",
     "alerts": "Alerts"
   },
   "layout": {
@@ -103,6 +104,38 @@
       "sent": "Sent"
     },
     "empty": "No alerts recorded."
+  },
+  "publicOutbox": {
+    "title": "Public Outbox",
+    "description": "public_outbox history and Web, Telegram Channel, X distribution status.",
+    "approved": "approved",
+    "notApproved": "not approved",
+    "notPublished": "not published",
+    "publishedAt": "published {{time}}",
+    "retryCount": "{{count}} retries",
+    "nextRetry": "next retry {{time}}",
+    "externalId": "external ID: {{id}}",
+    "channel": {
+      "web": "Web",
+      "telegram": "Telegram",
+      "x": "X"
+    },
+    "filter": {
+      "allChannels": "All channels",
+      "allStatuses": "All statuses",
+      "allApproval": "All approval states",
+      "approved": "approved",
+      "notApproved": "not approved"
+    },
+    "col": {
+      "generated": "Generated",
+      "severity": "Severity",
+      "content": "Public Content",
+      "score": "Score",
+      "approved": "Approved",
+      "updated": "Updated"
+    },
+    "empty": "No public outbox records."
   },
   "timeline": {
     "title": "Live Timeline",

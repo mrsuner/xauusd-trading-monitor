@@ -9,6 +9,7 @@ const navItems = [
   { to: "/events", labelKey: "nav.events" },
   { to: "/sources", labelKey: "nav.sources" },
   { to: "/processing", labelKey: "nav.processing" },
+  { to: "/public-outbox", labelKey: "nav.publicOutbox" },
   { to: "/alerts", labelKey: "nav.alerts" }
 ];
 

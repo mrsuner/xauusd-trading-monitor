@@ -17,6 +17,7 @@ from .repository import (
     build_events_query,
     build_processing_pipeline_query,
     build_processing_query,
+    build_public_outbox_query,
     build_raw_items_query,
     build_source_health_query,
     build_sources_query,
@@ -398,6 +399,33 @@ def create_app() -> FastAPI:
                 "priority": priority,
                 "created_from": created_from,
                 "created_to": created_to,
+            }
+        )
+        return await list_response(repository, builder, page, page_size, default_page_size)
+
+    @app.get("/public-outbox", dependencies=[Depends(require_token)])
+    async def list_public_outbox(
+        repository: DashboardRepository = Depends(repo),
+        default_page_size: int = Depends(page_size_default),
+        approved_for_public: bool | None = None,
+        channel: str | None = None,
+        publish_status: str | None = None,
+        severity: str | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
+        q: str | None = None,
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int | None, Query(ge=1)] = None,
+    ) -> dict[str, Any]:
+        builder = build_public_outbox_query(
+            {
+                "approved_for_public": approved_for_public,
+                "channel": channel,
+                "publish_status": publish_status,
+                "severity": severity,
+                "created_from": created_from,
+                "created_to": created_to,
+                "q": q,
             }
         )
         return await list_response(repository, builder, page, page_size, default_page_size)

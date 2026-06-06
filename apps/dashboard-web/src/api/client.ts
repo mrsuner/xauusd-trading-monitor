@@ -10,6 +10,7 @@ import type {
   Page,
   ProcessingItem,
   ProcessingPipelineItem,
+  PublicOutboxItem,
   RawItem,
   RawItemFilterOptions,
   Source,
@@ -93,5 +94,6 @@ export const api = {
   processingPipeline: (params?: Record<string, QueryValue>) => request<Page<ProcessingPipelineItem>>("/processing/pipeline", params),
   events: (params?: Record<string, QueryValue>) => request<Page<EventItem>>("/events", params),
   event: (eventId: string) => request<EventDetail>(`/events/${eventId}`),
-  alerts: (params?: Record<string, QueryValue>) => request<Page<AlertItem>>("/alerts", params)
+  alerts: (params?: Record<string, QueryValue>) => request<Page<AlertItem>>("/alerts", params),
+  publicOutbox: (params?: Record<string, QueryValue>) => request<Page<PublicOutboxItem>>("/public-outbox", params)
 };

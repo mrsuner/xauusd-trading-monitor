@@ -10,6 +10,7 @@ import { EventDetail } from "./pages/EventDetail";
 import { Events } from "./pages/Events";
 import { Overview } from "./pages/Overview";
 import { Processing } from "./pages/Processing";
+import { PublicOutbox } from "./pages/PublicOutbox";
 import { Sources } from "./pages/Sources";
 import { Timeline } from "./pages/Timeline";
 
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
       { path: "events/:eventId", element: <EventDetail /> },
       { path: "sources", element: <Sources /> },
       { path: "processing", element: <Processing /> },
+      { path: "public-outbox", element: <PublicOutbox /> },
       { path: "alerts", element: <Alerts /> }
     ]
   }

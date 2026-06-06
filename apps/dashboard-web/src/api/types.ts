@@ -326,3 +326,49 @@ export type AlertItem = {
   error_message?: string | null;
   created_at: string;
 };
+
+export type SourceLink = {
+  label?: string | null;
+  url?: string | null;
+  source_name?: string | null;
+};
+
+export type PublicOutboxItem = {
+  id: string;
+  event_id: string;
+  public_title_zh?: string | null;
+  public_summary_zh?: string | null;
+  public_title_en?: string | null;
+  public_summary_en?: string | null;
+  public_source_links: SourceLink[];
+  severity: string;
+  relevance_score?: number | null;
+  confirmation_state?: string | null;
+  topic_tags: string[];
+  approved_for_public: boolean;
+  publish_status_web: string;
+  publish_status_telegram: string;
+  publish_status_x: string;
+  retry_count_web: number;
+  retry_count_telegram: number;
+  retry_count_x: number;
+  last_error_web?: string | null;
+  last_error_telegram?: string | null;
+  last_error_x?: string | null;
+  external_telegram_message_id?: string | null;
+  external_x_post_id?: string | null;
+  external_web_id?: string | null;
+  next_retry_telegram_at?: string | null;
+  next_retry_x_at?: string | null;
+  next_retry_web_at?: string | null;
+  generated_at: string;
+  published_web_at?: string | null;
+  published_telegram_at?: string | null;
+  published_x_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  event_title?: string | null;
+  event_summary_zh?: string | null;
+  event_type?: string | null;
+  event_detected_at?: string | null;
+};
