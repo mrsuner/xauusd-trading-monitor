@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dashboard_api.repository import build_public_outbox_query, build_raw_items_query
+from dashboard_api.raw_item_translation_sql import RAW_ITEM_DISPLAY_LANGUAGES
+from dashboard_api.repository import build_processing_pipeline_query, build_public_outbox_query, build_raw_items_query
 from dashboard_api.query import QueryBuilder, clamp_page_size, offset_for
 
 
@@ -25,6 +26,10 @@ def test_pagination_helpers() -> None:
     assert clamp_page_size(0, 200) == 1
     assert offset_for(1, 50) == 0
     assert offset_for(3, 50) == 100
+
+
+def test_raw_item_translation_language_convention() -> None:
+    assert RAW_ITEM_DISPLAY_LANGUAGES == ("zh-Hant", "en")
 
 
 def test_raw_items_query_excludes_empty_text_by_default() -> None:
@@ -79,10 +84,28 @@ def test_raw_items_query_includes_translation_rows() -> None:
     sql = builder.list_sql()
     count_sql = builder.count_sql()
 
+    assert "raw_item_translation_" not in sql
+    assert "raw_item_translation_" not in count_sql
     assert "left join raw_item_translations tr_zh" in sql
     assert "tr_zh.language = 'zh-Hant'" in sql
     assert "left join raw_item_translations tr_en" in sql
     assert "coalesce(translations.items, '[]'::jsonb) as translations" in sql
+    assert "coalesce(tr_zh.summary, r.summary_zh) as summary_zh" in sql
+    assert "translation_search.search_text ilike %(q)s" in sql
+    assert "translation_search.search_text" in count_sql
+    assert builder.params["q"] == "%gold%"
+
+
+def test_processing_pipeline_query_uses_translation_rows_for_display_and_search() -> None:
+    builder = build_processing_pipeline_query({"q": "gold"})
+
+    sql = builder.list_sql()
+    count_sql = builder.count_sql()
+
+    assert "raw_item_translation_" not in sql
+    assert "raw_item_translation_" not in count_sql
+    assert "left join raw_item_translations tr_zh" in sql
+    assert "tr_zh.language = 'zh-Hant'" in sql
     assert "coalesce(tr_zh.summary, r.summary_zh) as summary_zh" in sql
     assert "translation_search.search_text ilike %(q)s" in sql
     assert "translation_search.search_text" in count_sql

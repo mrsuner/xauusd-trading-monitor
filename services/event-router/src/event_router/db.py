@@ -20,30 +20,13 @@ from .models import (
     RouteDecision,
     SourceContext,
 )
+from .raw_item_translation_sql import (
+    raw_item_translation_group_by_sql,
+    raw_item_translation_join_sql,
+    raw_item_translation_summary_select_sql,
+)
 
 logger = logging.getLogger(__name__)
-
-RAW_ITEM_ZH_LANGUAGE = "zh-Hant"
-RAW_ITEM_EN_LANGUAGE = "en"
-
-RAW_ITEM_TRANSLATION_SUMMARY_SELECT_SQL = f"""
-                  coalesce(tr_zh.summary, r.summary_zh) as raw_item_summary_zh,
-                  coalesce(tr_en.summary, r.summary_en) as raw_item_summary_en,
-"""
-
-RAW_ITEM_TRANSLATION_JOIN_SQL = f"""
-                left join raw_item_translations tr_zh
-                  on tr_zh.raw_item_id = r.id
-                 and tr_zh.language = '{RAW_ITEM_ZH_LANGUAGE}'
-                left join raw_item_translations tr_en
-                  on tr_en.raw_item_id = r.id
-                 and tr_en.language = '{RAW_ITEM_EN_LANGUAGE}'
-"""
-
-RAW_ITEM_TRANSLATION_GROUP_BY_SQL = """
-                  tr_zh.summary,
-                  tr_en.summary,
-"""
 
 
 def _event_context_query() -> str:
@@ -68,7 +51,7 @@ def _event_context_query() -> str:
                   r.id as raw_item_id,
                   r.title as raw_item_title,
                   r.url as raw_item_url,
-{RAW_ITEM_TRANSLATION_SUMMARY_SELECT_SQL}
+{raw_item_translation_summary_select_sql()}
                   r.text_clean as raw_item_text_clean,
                   r.text_raw as raw_item_text_raw,
                   coalesce(
@@ -84,7 +67,7 @@ def _event_context_query() -> str:
                   order by array_position(e.raw_item_ids, raw.id)
                   limit 1
                 ) r on true
-{RAW_ITEM_TRANSLATION_JOIN_SQL}
+{raw_item_translation_join_sql()}
                 left join raw_item_tags rit on rit.raw_item_id = r.id
                 left join tags t on t.id = rit.tag_id
                 where e.id = %(event_id)s
@@ -96,7 +79,7 @@ def _event_context_query() -> str:
                   r.url,
                   r.summary_zh,
                   r.summary_en,
-{RAW_ITEM_TRANSLATION_GROUP_BY_SQL}
+{raw_item_translation_group_by_sql()}
                   r.text_clean,
                   r.text_raw
                 """
