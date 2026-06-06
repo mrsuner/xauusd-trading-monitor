@@ -73,6 +73,22 @@ def test_raw_items_query_includes_relevance_and_event_fields() -> None:
     assert "(e.id is not null) as has_event" in sql
 
 
+def test_raw_items_query_includes_translation_rows() -> None:
+    builder = build_raw_items_query({"q": "gold"})
+
+    sql = builder.list_sql()
+    count_sql = builder.count_sql()
+
+    assert "left join raw_item_translations tr_zh" in sql
+    assert "tr_zh.language = 'zh-Hant'" in sql
+    assert "left join raw_item_translations tr_en" in sql
+    assert "coalesce(translations.items, '[]'::jsonb) as translations" in sql
+    assert "coalesce(tr_zh.summary, r.summary_zh) as summary_zh" in sql
+    assert "translation_search.search_text ilike %(q)s" in sql
+    assert "translation_search.search_text" in count_sql
+    assert builder.params["q"] == "%gold%"
+
+
 def test_raw_items_query_filters_relevance_and_event_fields() -> None:
     builder = build_raw_items_query(
         {

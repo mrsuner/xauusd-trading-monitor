@@ -58,6 +58,19 @@ class RawItem(BaseModel):
     dedupe_key: str
 
 
+class RawItemTranslation(BaseModel):
+    language: str
+    summary: str | None = None
+    full_translation: str | None = None
+    status: str = "pending"
+    model_provider: str | None = None
+    model: str | None = None
+    error: str | None = None
+    input_chars: int | None = None
+    updated_at: datetime | None = None
+    created_at: datetime | None = None
+
+
 class ProcessingTask(BaseModel):
     id: UUID
     raw_item: RawItem

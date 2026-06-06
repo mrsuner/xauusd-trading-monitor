@@ -347,10 +347,11 @@ class DashboardRepository:
               r.title,
               r.text_raw,
               r.text_clean,
-              r.summary_zh,
-              r.summary_en,
-              r.full_translation_zh,
-              r.full_translation_en,
+              coalesce(tr_zh.summary, r.summary_zh) as summary_zh,
+              coalesce(tr_en.summary, r.summary_en) as summary_en,
+              coalesce(tr_zh.full_translation, r.full_translation_zh) as full_translation_zh,
+              coalesce(tr_en.full_translation, r.full_translation_en) as full_translation_en,
+              coalesce(translations.items, '[]'::jsonb) as translations,
               r.translation_status,
               r.translation_model_provider,
               r.translation_model,
@@ -368,6 +369,26 @@ class DashboardRepository:
               s.priority
             from raw_items r
             join sources s on s.id = r.source_id
+            left join raw_item_translations tr_zh on tr_zh.raw_item_id = r.id and tr_zh.language = 'zh-Hant'
+            left join raw_item_translations tr_en on tr_en.raw_item_id = r.id and tr_en.language = 'en'
+            left join lateral (
+              select jsonb_agg(
+                jsonb_build_object(
+                  'language', rt.language,
+                  'summary', rt.summary,
+                  'full_translation', rt.full_translation,
+                  'status', rt.status,
+                  'model_provider', rt.model_provider,
+                  'model', rt.model,
+                  'error', rt.error,
+                  'input_chars', rt.input_chars,
+                  'updated_at', rt.updated_at
+                )
+                order by rt.language
+              ) as items
+              from raw_item_translations rt
+              where rt.raw_item_id = r.id
+            ) translations on true
             where r.id = any(%(raw_item_ids)s::uuid[])
             order by coalesce(r.published_at, r.ingested_at) desc
             """,
@@ -590,10 +611,11 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
           r.title,
           r.text_raw,
           r.text_clean,
-          r.summary_zh,
-          r.summary_en,
-          r.full_translation_zh,
-          r.full_translation_en,
+          coalesce(tr_zh.summary, r.summary_zh) as summary_zh,
+          coalesce(tr_en.summary, r.summary_en) as summary_en,
+          coalesce(tr_zh.full_translation, r.full_translation_zh) as full_translation_zh,
+          coalesce(tr_en.full_translation, r.full_translation_en) as full_translation_en,
+          coalesce(translations.items, '[]'::jsonb) as translations,
           r.content_category,
           r.topic_tags,
           r.mentioned_actors,
@@ -631,6 +653,31 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
         join sources s on s.id = r.source_id
         left join raw_item_processing p on p.raw_item_id = r.id
         left join events e on e.id = p.event_id
+        left join raw_item_translations tr_zh on tr_zh.raw_item_id = r.id and tr_zh.language = 'zh-Hant'
+        left join raw_item_translations tr_en on tr_en.raw_item_id = r.id and tr_en.language = 'en'
+        left join lateral (
+          select jsonb_agg(
+            jsonb_build_object(
+              'language', rt.language,
+              'summary', rt.summary,
+              'full_translation', rt.full_translation,
+              'status', rt.status,
+              'model_provider', rt.model_provider,
+              'model', rt.model,
+              'error', rt.error,
+              'input_chars', rt.input_chars,
+              'updated_at', rt.updated_at
+            )
+            order by rt.language
+          ) as items
+          from raw_item_translations rt
+          where rt.raw_item_id = r.id
+        ) translations on true
+        left join lateral (
+          select string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text
+          from raw_item_translations rt
+          where rt.raw_item_id = r.id
+        ) translation_search on true
         """,
         base_count="""
         select count(*) as total
@@ -638,6 +685,11 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
         join sources s on s.id = r.source_id
         left join raw_item_processing p on p.raw_item_id = r.id
         left join events e on e.id = p.event_id
+        left join lateral (
+          select string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text
+          from raw_item_translations rt
+          where rt.raw_item_id = r.id
+        ) translation_search on true
         """,
         order_by="order by coalesce(r.published_at, r.ingested_at) desc",
     )
@@ -661,6 +713,7 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
             "r.summary_en",
             "r.full_translation_zh",
             "r.full_translation_en",
+            "translation_search.search_text",
             "r.text_raw",
             "r.topic_tags::text",
             "r.mentioned_actors::text",
@@ -736,8 +789,8 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
           r.url,
           r.published_at,
           r.ingested_at,
-          r.summary_zh,
-          r.summary_en,
+          coalesce(tr_zh.summary, r.summary_zh) as summary_zh,
+          coalesce(tr_en.summary, r.summary_en) as summary_en,
           r.translation_status,
           r.translation_model_provider,
           r.translation_model,
@@ -779,6 +832,13 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
         from raw_items r
         join sources s on s.id = r.source_id
         left join raw_item_processing p on p.raw_item_id = r.id
+        left join raw_item_translations tr_zh on tr_zh.raw_item_id = r.id and tr_zh.language = 'zh-Hant'
+        left join raw_item_translations tr_en on tr_en.raw_item_id = r.id and tr_en.language = 'en'
+        left join lateral (
+          select string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text
+          from raw_item_translations rt
+          where rt.raw_item_id = r.id
+        ) translation_search on true
         left join lateral (
           select
             count(*) as call_count,
@@ -807,6 +867,11 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
         from raw_items r
         join sources s on s.id = r.source_id
         left join raw_item_processing p on p.raw_item_id = r.id
+        left join lateral (
+          select string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text
+          from raw_item_translations rt
+          where rt.raw_item_id = r.id
+        ) translation_search on true
         """,
         order_by="""
         order by greatest(
@@ -827,7 +892,7 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
     builder.add_equal("s.priority", "priority", filters.get("priority"))
     builder.add_search(
-        ("r.title", "r.text_clean", "r.summary_zh", "r.summary_en", "r.text_raw", "s.name"),
+        ("r.title", "r.text_clean", "r.summary_zh", "r.summary_en", "translation_search.search_text", "r.text_raw", "s.name"),
         "q",
         filters.get("q"),
     )

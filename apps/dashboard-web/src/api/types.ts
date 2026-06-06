@@ -130,6 +130,18 @@ export type SourceHealth = {
   updated_at: string;
 };
 
+export type RawItemTranslation = {
+  language: string;
+  summary?: string | null;
+  full_translation?: string | null;
+  status: string;
+  model_provider?: string | null;
+  model?: string | null;
+  error?: string | null;
+  input_chars?: number | null;
+  updated_at?: string | null;
+};
+
 export type RawItem = {
   id: string;
   source_id: string;
@@ -144,6 +156,7 @@ export type RawItem = {
   summary_en?: string | null;
   full_translation_zh?: string | null;
   full_translation_en?: string | null;
+  translations?: RawItemTranslation[];
   content_category?: string | null;
   topic_tags?: string[];
   mentioned_actors?: string[];

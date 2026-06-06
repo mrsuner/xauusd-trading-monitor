@@ -479,6 +479,30 @@ class Database:
                     "translation_input_chars": input_chars,
                 },
             )
+            await self._upsert_raw_item_translation(
+                cur,
+                raw_item_id=raw_item_id,
+                language="zh-Hant",
+                summary=result.summary_zh,
+                full_translation=result.full_translation_zh,
+                status=status,
+                model_provider=response.provider,
+                model=response.model,
+                error=None,
+                input_chars=input_chars,
+            )
+            await self._upsert_raw_item_translation(
+                cur,
+                raw_item_id=raw_item_id,
+                language="en",
+                summary=result.summary_en,
+                full_translation=result.full_translation_en,
+                status=status,
+                model_provider=response.provider,
+                model=response.model,
+                error=None,
+                input_chars=input_chars,
+            )
             await cur.execute("delete from raw_item_tags where raw_item_id = %(raw_item_id)s", {"raw_item_id": raw_item_id})
             tag_ids: list[Any] = []
             for tag in topic_tags:
@@ -521,6 +545,7 @@ class Database:
                 )
 
     async def update_translation_skipped(self, *, raw_item_id: Any, reason: str) -> None:
+        error = reason[:2000]
         async with self.cursor() as cur:
             await cur.execute(
                 """
@@ -531,8 +556,21 @@ class Database:
                     updated_at = now()
                 where id = %(raw_item_id)s
                 """,
-                {"raw_item_id": raw_item_id, "translation_error": reason[:2000]},
+                {"raw_item_id": raw_item_id, "translation_error": error},
             )
+            for language in ("zh-Hant", "en"):
+                await self._upsert_raw_item_translation(
+                    cur,
+                    raw_item_id=raw_item_id,
+                    language=language,
+                    summary=None,
+                    full_translation=None,
+                    status="skipped",
+                    model_provider=None,
+                    model=None,
+                    error=error,
+                    input_chars=None,
+                )
 
     async def update_translation_failed(
         self,
@@ -542,6 +580,7 @@ class Database:
         model: str | None,
         error_message: str,
     ) -> None:
+        error = error_message[:2000]
         async with self.cursor() as cur:
             await cur.execute(
                 """
@@ -558,9 +597,85 @@ class Database:
                     "raw_item_id": raw_item_id,
                     "translation_model_provider": provider,
                     "translation_model": model,
-                    "translation_error": error_message[:2000],
+                    "translation_error": error,
                 },
             )
+            for language in ("zh-Hant", "en"):
+                await self._upsert_raw_item_translation(
+                    cur,
+                    raw_item_id=raw_item_id,
+                    language=language,
+                    summary=None,
+                    full_translation=None,
+                    status="failed",
+                    model_provider=provider,
+                    model=model,
+                    error=error,
+                    input_chars=None,
+                )
+
+    async def _upsert_raw_item_translation(
+        self,
+        cur: psycopg.AsyncCursor[Any],
+        *,
+        raw_item_id: Any,
+        language: str,
+        summary: str | None,
+        full_translation: str | None,
+        status: str,
+        model_provider: str | None,
+        model: str | None,
+        error: str | None,
+        input_chars: int | None,
+    ) -> None:
+        await cur.execute(
+            """
+            insert into raw_item_translations (
+              raw_item_id,
+              language,
+              summary,
+              full_translation,
+              status,
+              model_provider,
+              model,
+              error,
+              input_chars,
+              updated_at
+            )
+            values (
+              %(raw_item_id)s,
+              %(language)s,
+              %(summary)s,
+              %(full_translation)s,
+              %(status)s,
+              %(model_provider)s,
+              %(model)s,
+              %(error)s,
+              %(input_chars)s,
+              now()
+            )
+            on conflict (raw_item_id, language) do update
+            set summary = excluded.summary,
+                full_translation = excluded.full_translation,
+                status = excluded.status,
+                model_provider = excluded.model_provider,
+                model = excluded.model,
+                error = excluded.error,
+                input_chars = excluded.input_chars,
+                updated_at = now()
+            """,
+            {
+                "raw_item_id": raw_item_id,
+                "language": language,
+                "summary": summary,
+                "full_translation": full_translation,
+                "status": status,
+                "model_provider": model_provider,
+                "model": model,
+                "error": error,
+                "input_chars": input_chars,
+            },
+        )
 
     async def mark_failed(self, *, processing_id: Any, attempt_count: int, max_attempts: int, error_message: str) -> None:
         status = "failed" if attempt_count >= max_attempts else "retry"
