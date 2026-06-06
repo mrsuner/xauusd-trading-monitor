@@ -588,14 +588,16 @@ def auxiliary_text_system_prompt() -> str:
         "Do not decide whether a message is important, relevant, urgent, official, or market moving. "
         "You may classify the item's content taxonomy for timeline filtering only. "
         "Only follow translation_scope. "
-        "summary_zh must be a concise Traditional Chinese news summary, no more than 280 Chinese characters, "
+        "Return translations as a translations array. Each translation object must contain language, summary, "
+        "and full_translation. Use BCP 47 language codes. Currently include zh-Hant and en. "
+        "The zh-Hant summary must be a concise Traditional Chinese news summary, no more than 280 Chinese characters, "
         "and must not copy the full source text. "
-        "summary_en must be a concise English news summary, no more than 400 English characters, "
+        "The en summary must be a concise English news summary, no more than 400 English characters, "
         "and must not copy the full source text. "
-        "If full_translation_required is true, full_translation_zh and full_translation_en must contain faithful "
-        "full-text translations of the supplied text. If the original text is already English, full_translation_en "
-        "may equal the supplied cleaned text. If the original text is already Chinese, full_translation_zh may equal "
-        "the supplied cleaned text. If full_translation_required is false, return null for both full_translation fields. "
+        "If full_translation_required is true, the zh-Hant and en full_translation fields must contain faithful "
+        "full-text translations of the supplied text. If the original text is already English, the en full_translation "
+        "may equal the supplied cleaned text. If the original text is already Chinese, the zh-Hant full_translation may equal "
+        "the supplied cleaned text. If full_translation_required is false, return null for full_translation in every translation. "
         "Preserve names, places, institutions, numbers, dates, quoted claims, and uncertainty. "
         "content_category must be one of the enabled taxonomy_context.content_categories keys. "
         "If no controlled category fits, use other. Use routine for ordinary schedules, ceremonies, interviews, "
@@ -607,8 +609,8 @@ def auxiliary_text_system_prompt() -> str:
         "If truncated_input is true, mention in notes that full translation is based on truncated input. "
         "Do not add facts that are not in the input. "
         "The JSON schema is: "
-        '{"summary_zh": string, "summary_en": string, "full_translation_zh": string|null, '
-        '"full_translation_en": string|null, "content_category": string|null, "topic_tags": string[], '
+        '{"translations": [{"language": string, "summary": string|null, "full_translation": string|null}], '
+        '"content_category": string|null, "topic_tags": string[], '
         '"mentioned_actors": string[], "detected_language": string|null, "notes": string|null}.'
     )
 
@@ -676,10 +678,21 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "summary_zh": {"type": "string", "maxLength": 280},
-                    "summary_en": {"type": "string", "maxLength": 400},
-                    "full_translation_zh": {"type": ["string", "null"]},
-                    "full_translation_en": {"type": ["string", "null"]},
+                    "translations": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "language": {"type": "string"},
+                                "summary": {"type": ["string", "null"]},
+                                "full_translation": {"type": ["string", "null"]},
+                            },
+                            "required": ["language", "summary", "full_translation"],
+                        },
+                    },
                     "content_category": {
                         "type": ["string", "null"],
                     },
@@ -689,10 +702,7 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                     "notes": {"type": ["string", "null"]},
                 },
                 "required": [
-                    "summary_zh",
-                    "summary_en",
-                    "full_translation_zh",
-                    "full_translation_en",
+                    "translations",
                     "content_category",
                     "topic_tags",
                     "mentioned_actors",

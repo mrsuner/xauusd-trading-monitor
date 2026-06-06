@@ -11,8 +11,9 @@ from normalizer_classifier.model_client import (
     OpenAIStyleModelClient,
     build_auxiliary_model_client,
     build_translation_model_clients,
+    auxiliary_text_json_schema_response_format,
 )
-from normalizer_classifier.models import NormalizedItem, RawItem, SourceMetadata
+from normalizer_classifier.models import AuxiliaryTextResult, NormalizedItem, RawItem, SourceMetadata
 from normalizer_classifier.settings import Settings
 
 
@@ -306,6 +307,85 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     assert response.result.content_category == "diplomacy"
     assert response.result.topic_tags == ["trump", "iran", "nuclear"]
     assert response.result.mentioned_actors == ["Trump", "Iran"]
+
+
+async def test_openai_style_model_client_parses_auxiliary_translations_array(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        content = {
+            "translations": [
+                {
+                    "language": "zh-Hant",
+                    "summary": "Trump 稱伊朗協議接近完成。",
+                    "full_translation": "Trump 表示伊朗協議已接近完成。",
+                },
+                {
+                    "language": "en",
+                    "summary": "Trump says an Iran deal is close.",
+                    "full_translation": "Trump says Iran deal is close.",
+                },
+                {
+                    "language": "ja",
+                    "summary": "トランプ氏はイラン合意が近いと述べた。",
+                    "full_translation": "トランプ氏はイラン合意が近いと述べた。",
+                },
+            ],
+            "content_category": "diplomacy",
+            "topic_tags": ["trump", "iran"],
+            "mentioned_actors": ["Trump", "Iran"],
+            "detected_language": "en",
+            "notes": None,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="translation_primary",
+        base_url="https://api.example.test/v1",
+        api_key="test-key",
+        model="translation-model",
+        timeout_seconds=5,
+        response_format="json_object",
+    )
+
+    response = await client.summarize_and_translate(raw_item, source, normalized)
+
+    assert response.result.summary_zh == "Trump 稱伊朗協議接近完成。"
+    assert response.result.summary_en == "Trump says an Iran deal is close."
+    assert response.result.full_translation_zh == "Trump 表示伊朗協議已接近完成。"
+    assert response.result.translation_for("ja") is not None
+
+
+def test_auxiliary_text_result_backfills_translations_from_legacy_fields() -> None:
+    result = AuxiliaryTextResult.model_validate(
+        {
+            "summary_zh": "中文摘要",
+            "summary_en": "English summary",
+            "full_translation_zh": "中文全文",
+            "full_translation_en": "English full text",
+        }
+    )
+
+    assert [(translation.language, translation.summary) for translation in result.translations] == [
+        ("zh-Hant", "中文摘要"),
+        ("en", "English summary"),
+    ]
+
+
+def test_auxiliary_text_json_schema_uses_translations_array() -> None:
+    schema = auxiliary_text_json_schema_response_format()["json_schema"]["schema"]
+
+    assert "translations" in schema["properties"]
+    assert "summary_zh" not in schema["properties"]
+    assert "translations" in schema["required"]
+    translation_item = schema["properties"]["translations"]["items"]
+    assert translation_item["required"] == ["language", "summary", "full_translation"]
 
 
 def test_build_auxiliary_model_client_openrouter() -> None:

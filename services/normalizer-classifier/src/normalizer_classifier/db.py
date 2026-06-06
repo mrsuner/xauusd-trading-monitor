@@ -16,6 +16,7 @@ from psycopg.types.json import Jsonb
 from .models import (
     AIModelCallUsage,
     AuxiliaryModelResponse,
+    AuxiliaryTextResult,
     ClassificationResult,
     ModelResponse,
     NormalizedItem,
@@ -27,6 +28,43 @@ from .normalization import severity_for
 from .taxonomy import CategoryOption, TagOption, TaxonomyContext, normalize_actors, normalize_category, normalize_topic_tags
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES = ("zh-Hant", "en")
+
+
+def raw_item_translation_rows_for_result(
+    result: AuxiliaryTextResult,
+    *,
+    status: str,
+    model_provider: str | None,
+    model: str | None,
+    input_chars: int | None,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def append_row(language: str, summary: str | None, full_translation: str | None) -> None:
+        if not language or language in seen:
+            return
+        seen.add(language)
+        rows.append(
+            {
+                "language": language,
+                "summary": summary,
+                "full_translation": full_translation,
+                "status": status,
+                "model_provider": model_provider,
+                "model": model,
+                "error": None,
+                "input_chars": input_chars,
+            }
+        )
+
+    append_row("zh-Hant", result.summary_zh, result.full_translation_zh)
+    append_row("en", result.summary_en, result.full_translation_en)
+    for translation in result.translations:
+        append_row(translation.language, translation.summary, translation.full_translation)
+    return rows
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -479,30 +517,14 @@ class Database:
                     "translation_input_chars": input_chars,
                 },
             )
-            await self._upsert_raw_item_translation(
-                cur,
-                raw_item_id=raw_item_id,
-                language="zh-Hant",
-                summary=result.summary_zh,
-                full_translation=result.full_translation_zh,
+            for translation_row in raw_item_translation_rows_for_result(
+                result,
                 status=status,
                 model_provider=response.provider,
                 model=response.model,
-                error=None,
                 input_chars=input_chars,
-            )
-            await self._upsert_raw_item_translation(
-                cur,
-                raw_item_id=raw_item_id,
-                language="en",
-                summary=result.summary_en,
-                full_translation=result.full_translation_en,
-                status=status,
-                model_provider=response.provider,
-                model=response.model,
-                error=None,
-                input_chars=input_chars,
-            )
+            ):
+                await self._upsert_raw_item_translation(cur, raw_item_id=raw_item_id, **translation_row)
             await cur.execute("delete from raw_item_tags where raw_item_id = %(raw_item_id)s", {"raw_item_id": raw_item_id})
             tag_ids: list[Any] = []
             for tag in topic_tags:
@@ -558,7 +580,7 @@ class Database:
                 """,
                 {"raw_item_id": raw_item_id, "translation_error": error},
             )
-            for language in ("zh-Hant", "en"):
+            for language in DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES:
                 await self._upsert_raw_item_translation(
                     cur,
                     raw_item_id=raw_item_id,
@@ -600,7 +622,7 @@ class Database:
                     "translation_error": error,
                 },
             )
-            for language in ("zh-Hant", "en"):
+            for language in DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES:
                 await self._upsert_raw_item_translation(
                     cur,
                     raw_item_id=raw_item_id,
