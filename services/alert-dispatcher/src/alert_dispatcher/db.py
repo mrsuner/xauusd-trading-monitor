@@ -15,6 +15,62 @@ from .security import sanitize_provider_response, sanitize_text
 
 logger = logging.getLogger(__name__)
 
+RAW_ITEM_ZH_LANGUAGE = "zh-Hant"
+RAW_ITEM_EN_LANGUAGE = "en"
+
+RAW_ITEM_TRANSLATION_SUMMARY_SELECT_SQL = f"""
+                  coalesce(tr_zh.summary, r.summary_zh) as raw_item_summary_zh,
+                  coalesce(tr_en.summary, r.summary_en) as raw_item_summary_en,
+"""
+
+RAW_ITEM_TRANSLATION_JOIN_SQL = f"""
+                left join raw_item_translations tr_zh
+                  on tr_zh.raw_item_id = r.id
+                 and tr_zh.language = '{RAW_ITEM_ZH_LANGUAGE}'
+                left join raw_item_translations tr_en
+                  on tr_en.raw_item_id = r.id
+                 and tr_en.language = '{RAW_ITEM_EN_LANGUAGE}'
+"""
+
+
+def _event_context_query() -> str:
+    return f"""
+                select
+                  e.*,
+                  s.id as source_context_id,
+                  s.name as source_name,
+                  s.handle_or_url,
+                  s.source_type,
+                  s.source_group as source_context_group,
+                  s.official_level,
+                  s.priority as source_priority,
+                  s.requires_confirmation as source_requires_confirmation,
+                  s.telegram_alert_enabled,
+                  s.pushover_alert_enabled,
+                  s.telegram_min_severity,
+                  s.pushover_min_severity,
+                  s.alert_weight,
+                  s.alert_rate_limit_per_hour,
+                  s.alert_cooldown_minutes,
+                  r.id as raw_item_id,
+                  r.title as raw_item_title,
+                  r.url as raw_item_url,
+{RAW_ITEM_TRANSLATION_SUMMARY_SELECT_SQL}
+                  r.text_clean as raw_item_text_clean,
+                  r.text_raw as raw_item_text_raw
+                from events e
+                left join sources s on s.id = e.source_id
+                left join lateral (
+                  select raw.*
+                  from raw_items raw
+                  where raw.id = any(e.raw_item_ids)
+                  order by array_position(e.raw_item_ids, raw.id)
+                  limit 1
+                ) r on true
+{RAW_ITEM_TRANSLATION_JOIN_SQL}
+                where e.id = %(event_id)s
+                """
+
 
 def _positive_int_env(name: str, default: int) -> int:
     raw = os.getenv(name)
@@ -108,42 +164,7 @@ class Database:
     async def get_event_context(self, *, event_id: Any) -> EventContext | None:
         async with self.conn.cursor() as cur:
             await cur.execute(
-                """
-                select
-                  e.*,
-                  s.id as source_context_id,
-                  s.name as source_name,
-                  s.handle_or_url,
-                  s.source_type,
-                  s.source_group as source_context_group,
-                  s.official_level,
-                  s.priority as source_priority,
-                  s.requires_confirmation as source_requires_confirmation,
-                  s.telegram_alert_enabled,
-                  s.pushover_alert_enabled,
-                  s.telegram_min_severity,
-                  s.pushover_min_severity,
-                  s.alert_weight,
-                  s.alert_rate_limit_per_hour,
-                  s.alert_cooldown_minutes,
-                  r.id as raw_item_id,
-                  r.title as raw_item_title,
-                  r.url as raw_item_url,
-                  r.summary_zh as raw_item_summary_zh,
-                  r.summary_en as raw_item_summary_en,
-                  r.text_clean as raw_item_text_clean,
-                  r.text_raw as raw_item_text_raw
-                from events e
-                left join sources s on s.id = e.source_id
-                left join lateral (
-                  select raw.*
-                  from raw_items raw
-                  where raw.id = any(e.raw_item_ids)
-                  order by array_position(e.raw_item_ids, raw.id)
-                  limit 1
-                ) r on true
-                where e.id = %(event_id)s
-                """,
+                _event_context_query(),
                 {"event_id": event_id},
             )
             row = await cur.fetchone()

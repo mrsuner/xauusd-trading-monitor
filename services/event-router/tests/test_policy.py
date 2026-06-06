@@ -167,6 +167,20 @@ def test_public_outbox_preserves_english_public_content() -> None:
     )
 
 
+def test_public_outbox_summary_falls_back_to_raw_item_translation_summary() -> None:
+    event = make_event(severity="A", relevance_score=90)
+    event.summary_zh = ""
+    event.summary_en = None
+    event.raw_item.summary_zh = "Raw item translation summary."
+
+    results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is True
+    assert public_website.public_outbox is not None
+    assert public_website.public_outbox.public_summary_zh == "Raw item translation summary."
+
+
 def test_public_outbox_does_not_copy_chinese_title_into_english_field() -> None:
     event = make_event(severity="A", relevance_score=90, title="伊朗談判出現新進展")
     event.raw_item.title = "伊朗官方媒體提及談判進展"
