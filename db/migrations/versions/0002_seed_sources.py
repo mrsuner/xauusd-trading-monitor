@@ -313,7 +313,7 @@ def upgrade() -> None:
               95::smallint,
               50::smallint,
               false,
-              '{"poll_interval_seconds":300,"request_timeout_seconds":15,"list_selector":".search-result.views-row","title_selector":"a[href^=\"/recent-actions/\"]","url_selector":"a[href^=\"/recent-actions/\"]","published_selector":".font-sans-2xs","published_regex":"^([A-Za-z]+ \\\\d{2}, \\\\d{4})"}'::jsonb
+              '{"poll_interval_seconds":300,"request_timeout_seconds":15,"list_selector":".search-result.views-row","title_selector":"a[href^=\\"/recent-actions/\\"]","url_selector":"a[href^=\\"/recent-actions/\\"]","published_selector":".font-sans-2xs","published_regex":"^([A-Za-z]+ \\\\d{2}, \\\\d{4})"}'::jsonb
             ),
             (
               'Jerusalem Post Iran News',

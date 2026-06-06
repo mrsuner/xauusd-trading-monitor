@@ -1,6 +1,6 @@
 """add partial raw item translation status
 
-Revision ID: 0015_raw_item_partial_translation_status
+Revision ID: 0015_partial_translation_status
 Revises: 0014_raw_item_translations
 Create Date: 2026-06-06 18:20:00.000000
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from alembic import op
 
-revision = "0015_raw_item_partial_translation_status"
+revision = "0015_partial_translation_status"
 down_revision = "0014_raw_item_translations"
 branch_labels = None
 depends_on = None
