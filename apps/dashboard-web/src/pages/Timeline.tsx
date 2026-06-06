@@ -108,7 +108,7 @@ function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClic
           <span className="rounded bg-base-200 px-2 py-0.5">{item.source_group}</span>
         </MetaField>
         <MetaField label={t("timeline.meta.translation")} tip={t("timeline.meta.translationTip")}>
-          <span className="rounded bg-base-200 px-2 py-0.5">{item.translation_status || "pending"}</span>
+          <StatusBadge value={item.translation_status || "pending"} />
         </MetaField>
         <MetaField label={t("timeline.meta.classification")} tip={t("timeline.meta.classificationTip")}>
           <StatusBadge value={item.classification_status || "pending"} />

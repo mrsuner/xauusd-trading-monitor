@@ -23,13 +23,34 @@ from .models import (
     ProcessingTask,
     RawItem,
     SourceMetadata,
-    )
+)
 from .normalization import severity_for
 from .taxonomy import CategoryOption, TagOption, TaxonomyContext, normalize_actors, normalize_category, normalize_topic_tags
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES = ("zh-Hant", "en")
+RAW_ITEM_TRANSLATION_COMPLETED_STATUSES = {"completed", "completed_truncated"}
+
+
+def aggregate_raw_item_translation_status(statuses: list[str]) -> str:
+    if not statuses:
+        return "pending"
+    if all(status == "pending" for status in statuses):
+        return "pending"
+    if all(status == "skipped" for status in statuses):
+        return "skipped"
+    if all(status == "failed" for status in statuses):
+        return "failed"
+    if all(status in RAW_ITEM_TRANSLATION_COMPLETED_STATUSES for status in statuses):
+        return "completed_truncated" if "completed_truncated" in statuses else "completed"
+    if any(status in RAW_ITEM_TRANSLATION_COMPLETED_STATUSES for status in statuses):
+        return "partial_completed"
+    if "pending" in statuses:
+        return "pending"
+    if "failed" in statuses:
+        return "failed"
+    return "skipped"
 
 
 def raw_item_translation_rows_for_result(
@@ -525,6 +546,7 @@ class Database:
                 input_chars=input_chars,
             ):
                 await self._upsert_raw_item_translation(cur, raw_item_id=raw_item_id, **translation_row)
+            await self._refresh_raw_item_translation_status(cur, raw_item_id=raw_item_id)
             await cur.execute("delete from raw_item_tags where raw_item_id = %(raw_item_id)s", {"raw_item_id": raw_item_id})
             tag_ids: list[Any] = []
             for tag in topic_tags:
@@ -593,6 +615,7 @@ class Database:
                     error=error,
                     input_chars=None,
                 )
+            await self._refresh_raw_item_translation_status(cur, raw_item_id=raw_item_id)
 
     async def update_translation_failed(
         self,
@@ -635,6 +658,7 @@ class Database:
                     error=error,
                     input_chars=None,
                 )
+            await self._refresh_raw_item_translation_status(cur, raw_item_id=raw_item_id)
 
     async def _upsert_raw_item_translation(
         self,
@@ -697,6 +721,60 @@ class Database:
                 "error": error,
                 "input_chars": input_chars,
             },
+        )
+
+    async def _refresh_raw_item_translation_status(self, cur: psycopg.AsyncCursor[Any], *, raw_item_id: Any) -> None:
+        await cur.execute(
+            """
+            with translation_stats as (
+              select
+                count(*)::integer as row_count,
+                bool_and(status = 'pending') as all_pending,
+                bool_and(status = 'skipped') as all_skipped,
+                bool_and(status = 'failed') as all_failed,
+                bool_and(status in ('completed', 'completed_truncated')) as all_completed,
+                bool_or(status in ('completed', 'completed_truncated')) as has_completed,
+                bool_or(status = 'completed_truncated') as has_truncated,
+                bool_or(status = 'pending') as has_pending,
+                bool_or(status = 'failed') as has_failed,
+                max(updated_at) as latest_updated_at,
+                string_agg(nullif(error, ''), '; ') filter (where status = 'failed') as failed_errors
+              from raw_item_translations
+              where raw_item_id = %(raw_item_id)s
+            ),
+            aggregate_status as (
+              select
+                case
+                  when row_count = 0 then 'pending'
+                  when all_pending then 'pending'
+                  when all_skipped then 'skipped'
+                  when all_failed then 'failed'
+                  when all_completed then
+                    case when has_truncated then 'completed_truncated' else 'completed' end
+                  when has_completed then 'partial_completed'
+                  when has_pending then 'pending'
+                  when has_failed then 'failed'
+                  else 'skipped'
+                end as status,
+                latest_updated_at,
+                failed_errors
+              from translation_stats
+            )
+            update raw_items
+            set translation_status = aggregate_status.status,
+                translation_error = case
+                  when aggregate_status.status in ('failed', 'partial_completed')
+                    then coalesce(aggregate_status.failed_errors, raw_items.translation_error)
+                  when aggregate_status.status in ('completed', 'completed_truncated')
+                    then null
+                  else raw_items.translation_error
+                end,
+                translation_updated_at = coalesce(aggregate_status.latest_updated_at, raw_items.translation_updated_at, now()),
+                updated_at = now()
+            from aggregate_status
+            where raw_items.id = %(raw_item_id)s
+            """,
+            {"raw_item_id": raw_item_id},
         )
 
     async def mark_failed(self, *, processing_id: Any, attempt_count: int, max_attempts: int, error_message: str) -> None:

@@ -18,7 +18,7 @@ const SOURCE_TYPES = [
 ] as const;
 
 const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
-const TRANSLATION_STATUSES = ["pending", "completed", "completed_truncated", "skipped", "failed"] as const;
+const TRANSLATION_STATUSES = ["pending", "completed", "completed_truncated", "partial_completed", "skipped", "failed"] as const;
 const CLASSIFICATION_STATUSES = ["pending", "running", "completed", "skipped", "failed", "retry"] as const;
 const CLASSIFICATION_STAGES = ["normalize", "prefilter", "classify", "event_create", "completed"] as const;
 

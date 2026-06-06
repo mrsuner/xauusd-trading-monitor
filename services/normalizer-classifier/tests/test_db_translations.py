@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from normalizer_classifier.db import DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES, raw_item_translation_rows_for_result
+from normalizer_classifier.db import (
+    DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES,
+    aggregate_raw_item_translation_status,
+    raw_item_translation_rows_for_result,
+)
 from normalizer_classifier.models import AuxiliaryTextResult
 
 
@@ -52,3 +56,20 @@ def test_raw_item_translation_rows_include_additional_languages() -> None:
     assert [row["language"] for row in rows] == ["zh-Hant", "en", "ja"]
     assert rows[2]["summary"] == "日本語要約"
     assert rows[2]["full_translation"] == "日本語全文"
+
+
+def test_aggregate_raw_item_translation_status_complete_sets() -> None:
+    assert aggregate_raw_item_translation_status([]) == "pending"
+    assert aggregate_raw_item_translation_status(["pending", "pending"]) == "pending"
+    assert aggregate_raw_item_translation_status(["completed", "completed"]) == "completed"
+    assert aggregate_raw_item_translation_status(["completed", "completed_truncated"]) == "completed_truncated"
+    assert aggregate_raw_item_translation_status(["skipped", "skipped"]) == "skipped"
+    assert aggregate_raw_item_translation_status(["failed", "failed"]) == "failed"
+
+
+def test_aggregate_raw_item_translation_status_partial_completion() -> None:
+    assert aggregate_raw_item_translation_status(["completed", "pending"]) == "partial_completed"
+    assert aggregate_raw_item_translation_status(["completed_truncated", "failed"]) == "partial_completed"
+    assert aggregate_raw_item_translation_status(["completed", "skipped"]) == "partial_completed"
+    assert aggregate_raw_item_translation_status(["failed", "pending"]) == "pending"
+    assert aggregate_raw_item_translation_status(["failed", "skipped"]) == "failed"
