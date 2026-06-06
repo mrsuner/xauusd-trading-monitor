@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from dashboard_api.raw_item_translation_sql import RAW_ITEM_DISPLAY_LANGUAGES
+from dashboard_api.raw_item_translation_sql import (
+    RAW_ITEM_DISPLAY_LANGUAGES,
+    raw_item_translation_json_lateral_sql,
+    raw_item_translation_search_lateral_sql,
+)
 from dashboard_api.repository import build_processing_pipeline_query, build_public_outbox_query, build_raw_items_query
 from dashboard_api.query import QueryBuilder, clamp_page_size, offset_for
+
+
+def compact_sql(sql: str) -> str:
+    return " ".join(sql.split())
 
 
 def test_query_builder_adds_where_and_params() -> None:
@@ -30,6 +38,25 @@ def test_pagination_helpers() -> None:
 
 def test_raw_item_translation_language_convention() -> None:
     assert RAW_ITEM_DISPLAY_LANGUAGES == ("zh-Hant", "en")
+
+
+def test_raw_item_translation_search_lateral_indexes_summary_and_full_translation() -> None:
+    sql = compact_sql(raw_item_translation_search_lateral_sql())
+
+    assert "from raw_item_translations rt" in sql
+    assert "where rt.raw_item_id = r.id" in sql
+    assert "string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text" in sql
+
+
+def test_raw_item_translation_json_lateral_returns_display_payload() -> None:
+    sql = compact_sql(raw_item_translation_json_lateral_sql())
+
+    assert "jsonb_agg(" in sql
+    assert "'language', rt.language" in sql
+    assert "'summary', rt.summary" in sql
+    assert "'full_translation', rt.full_translation" in sql
+    assert "'status', rt.status" in sql
+    assert "order by rt.language" in sql
 
 
 def test_raw_items_query_excludes_empty_text_by_default() -> None:
@@ -93,7 +120,23 @@ def test_raw_items_query_includes_translation_rows() -> None:
     assert "coalesce(tr_zh.summary, r.summary_zh) as summary_zh" in sql
     assert "translation_search.search_text ilike %(q)s" in sql
     assert "translation_search.search_text" in count_sql
+    assert "rt.summary" in sql
+    assert "rt.full_translation" in sql
+    assert "rt.summary" in count_sql
+    assert "rt.full_translation" in count_sql
     assert builder.params["q"] == "%gold%"
+
+
+def test_raw_items_query_can_search_translation_rows_when_legacy_fields_are_null() -> None:
+    builder = build_raw_items_query({"q": "gold"})
+
+    sql = compact_sql(builder.list_sql())
+    count_sql = compact_sql(builder.count_sql())
+
+    assert "translation_search.search_text ilike %(q)s" in sql
+    assert "translation_search.search_text" in count_sql
+    assert "string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text" in sql
+    assert "string_agg(concat_ws(' ', rt.summary, rt.full_translation), ' ') as search_text" in count_sql
 
 
 def test_processing_pipeline_query_uses_translation_rows_for_display_and_search() -> None:
@@ -110,6 +153,10 @@ def test_processing_pipeline_query_uses_translation_rows_for_display_and_search(
     assert "coalesce(translations.items, '[]'::jsonb) as translations" in sql
     assert "translation_search.search_text ilike %(q)s" in sql
     assert "translation_search.search_text" in count_sql
+    assert "rt.summary" in sql
+    assert "rt.full_translation" in sql
+    assert "rt.summary" in count_sql
+    assert "rt.full_translation" in count_sql
     assert builder.params["q"] == "%gold%"
 
 
