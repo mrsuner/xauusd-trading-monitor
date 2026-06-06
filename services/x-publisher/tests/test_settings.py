@@ -27,3 +27,25 @@ def test_settings_parse_min_generated_at() -> None:
 
     assert settings.min_generated_at is not None
     assert settings.min_generated_at.isoformat() == "2026-06-03T15:05:00+00:00"
+
+
+def test_settings_parse_semantic_dedupe_model_config() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://x:y@localhost/db",
+        X_SEMANTIC_DEDUPE_ENABLED="true",
+        X_SEMANTIC_DEDUPE_MODEL_BASE_URL="https://model.test/v1/",
+        X_SEMANTIC_DEDUPE_MODEL_API_KEY="change-me",
+        TRANSLATION_MODEL_API_KEY="translation-key",
+        TRANSLATION_PRIMARY_MODEL_NAME="translation-model",
+    )
+
+    assert settings.semantic_dedupe_enabled is True
+    assert settings.semantic_dedupe_model_base_url == "https://model.test/v1"
+    assert settings.semantic_dedupe_model_api_key is None
+    assert settings.translation_model_api_key == "translation-key"
+    assert settings.translation_primary_model_name == "translation-model"
+
+
+def test_settings_validate_semantic_dedupe_threshold() -> None:
+    with pytest.raises(ValidationError):
+        Settings(DATABASE_URL="postgresql://x:y@localhost/db", X_SEMANTIC_DEDUPE_THRESHOLD=101)

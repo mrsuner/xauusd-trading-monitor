@@ -12,6 +12,7 @@ from .message import build_post, canonical_source_link, contains_trade_advice, s
 from .models import PublicOutboxItem
 from .providers import XProvider
 from .security import sanitize_text
+from .semantic_dedupe import SemanticDedupeClient
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,9 @@ class XPublisher:
         timeout = httpx.Timeout(self.settings.provider_timeout_seconds)
         async with httpx.AsyncClient(timeout=timeout) as client:
             provider = XProvider(settings=self.settings, client=client)
+            semantic_dedupe = SemanticDedupeClient(settings=self.settings, client=client)
             logger.info(
-                "x_publisher_started dry_run=%s oauth1_configured=%s",
+                "x_publisher_started dry_run=%s oauth1_configured=%s semantic_dedupe_enabled=%s",
                 self.settings.dry_run,
                 bool(
                     self.settings.api_key
@@ -44,15 +46,21 @@ class XPublisher:
                     and self.settings.access_token
                     and self.settings.access_token_secret
                 ),
+                self.settings.semantic_dedupe_enabled,
             )
             try:
                 while True:
-                    await self.run_once(provider=provider)
+                    await self.run_once(provider=provider, semantic_dedupe=semantic_dedupe)
                     await asyncio.sleep(self.settings.poll_interval_seconds)
             finally:
                 await self.db.close()
 
-    async def run_once(self, *, provider: XProvider | None = None) -> int:
+    async def run_once(
+        self,
+        *,
+        provider: XProvider | None = None,
+        semantic_dedupe: SemanticDedupeClient | None = None,
+    ) -> int:
         if not self.settings.enabled:
             logger.info("x_publisher_disabled_once")
             return 0
@@ -60,7 +68,10 @@ class XPublisher:
         if provider is None:
             timeout = httpx.Timeout(self.settings.provider_timeout_seconds)
             async with httpx.AsyncClient(timeout=timeout) as client:
-                return await self.run_once(provider=XProvider(settings=self.settings, client=client))
+                return await self.run_once(
+                    provider=XProvider(settings=self.settings, client=client),
+                    semantic_dedupe=SemanticDedupeClient(settings=self.settings, client=client),
+                )
 
         delivered = 0
         for _ in range(self.settings.batch_size):
@@ -79,11 +90,16 @@ class XPublisher:
             )
             if not item:
                 break
-            await self._publish_item(item, provider)
+            await self._publish_item(item, provider, semantic_dedupe)
             delivered += 1
         return delivered
 
-    async def _publish_item(self, item: PublicOutboxItem, provider: XProvider) -> None:
+    async def _publish_item(
+        self,
+        item: PublicOutboxItem,
+        provider: XProvider,
+        semantic_dedupe: SemanticDedupeClient | None,
+    ) -> None:
         skip_reason = self._skip_reason(item)
         if skip_reason:
             await self.db.mark_skipped(item_id=item.id, reason=skip_reason)
@@ -99,6 +115,35 @@ class XPublisher:
             )
             logger.warning("x_public_item_skipped_trade_advice item_id=%s", item.id)
             return
+
+        if semantic_dedupe and self.settings.semantic_dedupe_enabled:
+            candidates = await self.db.recent_sent_x_items(
+                item=item,
+                window_minutes=self.settings.semantic_dedupe_window_minutes,
+                limit=self.settings.semantic_dedupe_candidate_limit,
+            )
+            dedupe_result = await semantic_dedupe.compare(item, candidates)
+            if dedupe_result and dedupe_result.is_duplicate:
+                await self.db.mark_skipped(
+                    item_id=item.id,
+                    reason="semantic_duplicate_x",
+                    provider_response={
+                        "semantic_duplicate": True,
+                        "matched_item_id": dedupe_result.matched_item_id,
+                        "similarity_score": dedupe_result.similarity_score,
+                        "reason": dedupe_result.reason,
+                        "model": dedupe_result.model,
+                    },
+                )
+                logger.info(
+                    "x_item_semantic_duplicate_skipped item_id=%s event_id=%s matched_item_id=%s similarity_score=%s model=%s",
+                    item.id,
+                    item.event_id,
+                    dedupe_result.matched_item_id,
+                    dedupe_result.similarity_score,
+                    dedupe_result.model,
+                )
+                return
 
         if self.settings.dry_run:
             logger.info("dry_run_skip_x_item item_id=%s event_id=%s", item.id, item.event_id)

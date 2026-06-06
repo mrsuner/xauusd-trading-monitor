@@ -178,6 +178,57 @@ class Database:
             return None
         return PublicOutboxItem.model_validate(row)
 
+    async def recent_sent_x_items(
+        self,
+        *,
+        item: PublicOutboxItem,
+        window_minutes: int,
+        limit: int,
+    ) -> list[PublicOutboxItem]:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select
+                  p.id,
+                  p.event_id,
+                  p.public_title_zh,
+                  p.public_summary_zh,
+                  p.public_title_en,
+                  p.public_summary_en,
+                  p.public_source_links,
+                  p.severity,
+                  p.relevance_score,
+                  p.confirmation_state,
+                  p.topic_tags,
+                  p.retry_count_x,
+                  p.generated_at
+                from public_outbox p
+                where p.id <> %(item_id)s
+                  and p.approved_for_public = true
+                  and p.publish_status_x = 'sent'
+                  and p.published_x_at is not null
+                  and p.published_x_at >= now() - (%(window_minutes)s * interval '1 minute')
+                  and (
+                    p.severity = %(severity)s
+                    or p.topic_tags && %(topic_tags)s::text[]
+                    or p.confirmation_state = %(confirmation_state)s
+                  )
+                order by p.published_x_at desc
+                limit %(limit)s
+                """,
+                {
+                    "item_id": item.id,
+                    "window_minutes": window_minutes,
+                    "limit": limit,
+                    "severity": item.severity,
+                    "topic_tags": item.topic_tags,
+                    "confirmation_state": item.confirmation_state,
+                },
+            )
+            rows = await cur.fetchall()
+        await self.conn.commit()
+        return [PublicOutboxItem.model_validate(row) for row in rows]
+
     async def mark_sent(self, *, item_id: Any, provider_response: dict[str, Any]) -> None:
         post_id = _x_post_id(provider_response)
         async with self.conn.cursor() as cur:
