@@ -7,6 +7,7 @@ import { OfficialBadge, PriorityBadge, StatusBadge } from "../components/Badges"
 import { ErrorPanel } from "../components/DataState";
 import { formatTime, Score } from "../components/Format";
 import { PageHeader } from "../components/Layout";
+import { rawItemSummary } from "../utils/rawItemTranslations";
 
 const SOURCE_TYPES = [
   { labelKey: "common.sourceType.all", value: "" },
@@ -110,7 +111,7 @@ function UsageRow({
 }
 
 export function Processing() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [q, setQ] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [sourceId, setSourceId] = useState("");
@@ -315,7 +316,7 @@ export function Processing() {
           </div>
         ) : null}
         {query.data?.items.map((item) => {
-          const title = item.title || item.summary_zh || item.summary_en || item.raw_item_id;
+          const title = item.title || rawItemSummary(item, i18n.language) || item.raw_item_id;
           const classificationModel = modelLabel(item.classification_model_provider, item.classification_model_name);
           const translationModel = modelLabel(item.translation_model_provider, item.translation_model);
 

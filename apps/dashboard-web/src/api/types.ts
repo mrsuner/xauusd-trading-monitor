@@ -253,6 +253,7 @@ export type ProcessingPipelineItem = {
   ingested_at: string;
   summary_zh?: string | null;
   summary_en?: string | null;
+  translations?: RawItemTranslation[];
   translation_status: string;
   translation_model_provider?: string | null;
   translation_model?: string | null;

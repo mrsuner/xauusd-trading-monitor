@@ -8,6 +8,7 @@ import { OfficialBadge, PriorityBadge, StatusBadge } from "../components/Badges"
 import { ErrorPanel } from "../components/DataState";
 import { formatTime, Score } from "../components/Format";
 import { PageHeader } from "../components/Layout";
+import { rawItemDisplaySummary, rawItemFullTranslation, rawItemOriginalContent } from "../utils/rawItemTranslations";
 
 /** Heuristic: only offer collapse when content is long enough to be clamped. */
 function isCollapsible(text: string): boolean {
@@ -75,9 +76,9 @@ function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClic
   const { i18n, t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
-  const summary = item.summary_zh || item.summary_en || item.text_clean || item.text_raw || "-";
-  const fullTranslation = item.full_translation_zh || item.full_translation_en;
-  const originalContent = item.text_clean || item.text_raw || "-";
+  const summary = rawItemDisplaySummary(item, i18n.language);
+  const fullTranslation = rawItemFullTranslation(item, i18n.language);
+  const originalContent = rawItemOriginalContent(item) || "-";
   const title = item.title || item.source_name;
   const contentLabel = fullTranslation ? t("timeline.fullTranslation") : t("timeline.originalContent");
   const contentText = fullTranslation || originalContent;

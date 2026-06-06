@@ -749,6 +749,7 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
           r.published_at,
           r.ingested_at,
 {raw_item_translation_summary_select_sql()}
+          coalesce(translations.items, '[]'::jsonb) as translations,
           r.translation_status,
           r.translation_model_provider,
           r.translation_model,
@@ -791,6 +792,7 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
         join sources s on s.id = r.source_id
         left join raw_item_processing p on p.raw_item_id = r.id
 {raw_item_translation_join_sql()}
+{raw_item_translation_json_lateral_sql()}
 {raw_item_translation_search_lateral_sql()}
         left join lateral (
           select
