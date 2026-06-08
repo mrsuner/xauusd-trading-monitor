@@ -325,6 +325,14 @@ class Database:
 
     async def upsert_public_outbox(self, draft: PublicOutboxDraft) -> Any | None:
         payload = draft.model_dump(mode="python")
+        translations = [
+            {
+                **translation,
+                "public_outbox_id": None,
+            }
+            for translation in payload.pop("translations", [])
+            if translation.get("language") and (translation.get("title") or translation.get("summary"))
+        ]
         payload["public_source_links"] = Jsonb(payload["public_source_links"])
         async with self.conn.cursor() as cur:
             await cur.execute(
@@ -400,6 +408,33 @@ class Database:
                 payload,
             )
             row = await cur.fetchone()
+            if row and translations:
+                for translation in translations:
+                    translation["public_outbox_id"] = row["id"]
+                await cur.executemany(
+                    """
+                    insert into public_outbox_translations (
+                      public_outbox_id,
+                      language,
+                      title,
+                      summary,
+                      status
+                    )
+                    values (
+                      %(public_outbox_id)s,
+                      %(language)s,
+                      %(title)s,
+                      %(summary)s,
+                      %(status)s
+                    )
+                    on conflict (public_outbox_id, language) do update
+                    set title = excluded.title,
+                        summary = excluded.summary,
+                        status = excluded.status,
+                        updated_at = now()
+                    """,
+                    translations,
+                )
         await self.conn.commit()
         return row["id"] if row else None
 

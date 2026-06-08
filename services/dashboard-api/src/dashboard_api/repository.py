@@ -5,6 +5,10 @@ from typing import Any
 from uuid import UUID
 
 from .db import Database
+from .public_outbox_translation_sql import (
+    public_outbox_translation_json_lateral_sql,
+    public_outbox_translation_search_lateral_sql,
+)
 from .query import QueryBuilder, clamp_page_size, offset_for
 from .raw_item_translation_sql import (
     raw_item_translation_full_translation_select_sql,
@@ -898,7 +902,7 @@ def build_alerts_query(filters: dict[str, Any]) -> QueryBuilder:
 
 def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
     builder = QueryBuilder(
-        base_select="""
+        base_select=f"""
         select
           p.id,
           p.event_id,
@@ -906,6 +910,7 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
           p.public_summary_zh,
           p.public_title_en,
           p.public_summary_en,
+          coalesce(translations.items, '[]'::jsonb) as translations,
           p.public_source_links,
           p.severity,
           p.relevance_score,
@@ -939,8 +944,15 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
           e.detected_at as event_detected_at
         from public_outbox p
         join events e on e.id = p.event_id
+{public_outbox_translation_json_lateral_sql(indent="        ")}
+{public_outbox_translation_search_lateral_sql(indent="        ")}
         """,
-        base_count="select count(*) as total from public_outbox p join events e on e.id = p.event_id",
+        base_count=f"""
+        select count(*) as total
+        from public_outbox p
+        join events e on e.id = p.event_id
+{public_outbox_translation_search_lateral_sql(indent="        ")}
+        """,
         order_by="order by p.generated_at desc, p.created_at desc",
     )
     builder.add_equal("p.approved_for_public", "approved_for_public", filters.get("approved_for_public"))
@@ -953,6 +965,7 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
             "p.public_summary_zh",
             "p.public_title_en",
             "p.public_summary_en",
+            "translation_search.search_text",
             "e.title",
             "e.summary_zh",
             "p.topic_tags::text",

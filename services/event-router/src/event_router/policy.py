@@ -10,7 +10,15 @@ from .message import (
     build_telegram_message,
     compact_text,
 )
-from .models import AlertChannelStats, AlertDecision, EventContext, PublicOutboxDraft, RoutePolicyRuntime, RouteResult
+from .models import (
+    AlertChannelStats,
+    AlertDecision,
+    EventContext,
+    PublicOutboxDraft,
+    PublicOutboxTranslation,
+    RoutePolicyRuntime,
+    RouteResult,
+)
 
 
 class Thresholds(Protocol):
@@ -30,6 +38,8 @@ class Thresholds(Protocol):
 
 AGGREGATOR_GROUPS = {"osint_aggregator", "market_squawk"}
 MAX_PUBLIC_TITLE_CHARS = 180
+PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
+PUBLIC_LANGUAGE_EN = "en"
 SEVERITY_ORDER = {"S": 4, "A": 3, "B": 2, "C": 1}
 SEVERITY_SCORE = {"S": 50, "A": 35, "B": 15, "C": 0}
 PRIORITY_SCORE = {"P0": 20, "P1": 12, "P2": 4, "P3": 0}
@@ -299,13 +309,21 @@ def build_public_outbox_draft(
     if event.raw_item.url:
         links.append({"source_name": event.source.name, "url": event.raw_item.url})
     public_title_zh = public_outbox_title(event)
+    public_summary_zh = build_public_outbox_summary(event)
     public_title_en = public_outbox_title_en(event)
+    public_summary_en = event.summary_en or event.raw_item.summary_en
     return PublicOutboxDraft(
         event_id=event.id,
         public_title_zh=public_title_zh,
-        public_summary_zh=build_public_outbox_summary(event),
+        public_summary_zh=public_summary_zh,
         public_title_en=public_title_en,
-        public_summary_en=event.summary_en or event.raw_item.summary_en,
+        public_summary_en=public_summary_en,
+        translations=public_outbox_translations(
+            zh_title=public_title_zh,
+            zh_summary=public_summary_zh,
+            en_title=public_title_en,
+            en_summary=public_summary_en,
+        ),
         public_source_links=links,
         severity=event.severity,
         relevance_score=event.relevance_score,
@@ -316,6 +334,33 @@ def build_public_outbox_draft(
         publish_status_telegram=publish_status_telegram,
         publish_status_x=publish_status_x,
     )
+
+
+def public_outbox_translations(
+    *,
+    zh_title: str | None,
+    zh_summary: str | None,
+    en_title: str | None,
+    en_summary: str | None,
+) -> list[PublicOutboxTranslation]:
+    rows: list[PublicOutboxTranslation] = []
+    if zh_title or zh_summary:
+        rows.append(
+            PublicOutboxTranslation(
+                language=PUBLIC_LANGUAGE_ZH_HANT,
+                title=zh_title,
+                summary=zh_summary,
+            )
+        )
+    if en_title or en_summary:
+        rows.append(
+            PublicOutboxTranslation(
+                language=PUBLIC_LANGUAGE_EN,
+                title=en_title,
+                summary=en_summary,
+            )
+        )
+    return rows
 
 
 def public_outbox_title(event: EventContext) -> str:

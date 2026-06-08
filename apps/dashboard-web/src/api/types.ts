@@ -347,6 +347,14 @@ export type SourceLink = {
   source_name?: string | null;
 };
 
+export type PublicOutboxTranslation = {
+  language: string;
+  title?: string | null;
+  summary?: string | null;
+  status: string;
+  updated_at?: string | null;
+};
+
 export type PublicOutboxItem = {
   id: string;
   event_id: string;
@@ -354,6 +362,7 @@ export type PublicOutboxItem = {
   public_summary_zh?: string | null;
   public_title_en?: string | null;
   public_summary_en?: string | null;
+  translations?: PublicOutboxTranslation[];
   public_source_links: SourceLink[];
   severity: string;
   relevance_score?: number | null;

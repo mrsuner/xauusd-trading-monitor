@@ -5,6 +5,10 @@ from dashboard_api.raw_item_translation_sql import (
     raw_item_translation_json_lateral_sql,
     raw_item_translation_search_lateral_sql,
 )
+from dashboard_api.public_outbox_translation_sql import (
+    public_outbox_translation_json_lateral_sql,
+    public_outbox_translation_search_lateral_sql,
+)
 from dashboard_api.repository import build_processing_pipeline_query, build_public_outbox_query, build_raw_items_query
 from dashboard_api.query import QueryBuilder, clamp_page_size, offset_for
 
@@ -208,9 +212,30 @@ def test_public_outbox_query_filters_public_flag_and_search() -> None:
     builder = build_public_outbox_query({"approved_for_public": True, "q": "gold"})
 
     sql = builder.list_sql()
+    count_sql = builder.count_sql()
 
     assert "p.approved_for_public = %(approved_for_public)s" in sql
     assert "p.public_title_zh ilike %(q)s" in sql
+    assert "translation_search.search_text ilike %(q)s" in sql
+    assert "from public_outbox_translations pot" in sql
+    assert "from public_outbox_translations pot" in count_sql
     assert "e.title ilike %(q)s" in sql
     assert builder.params["approved_for_public"] is True
     assert builder.params["q"] == "%gold%"
+
+
+def test_public_outbox_translation_json_lateral_payload() -> None:
+    sql = public_outbox_translation_json_lateral_sql()
+
+    assert "from public_outbox_translations pot" in sql
+    assert "'language', pot.language" in sql
+    assert "'title', pot.title" in sql
+    assert "'summary', pot.summary" in sql
+    assert "'status', pot.status" in sql
+
+
+def test_public_outbox_translation_search_lateral_indexes_title_and_summary() -> None:
+    sql = public_outbox_translation_search_lateral_sql()
+
+    assert "from public_outbox_translations pot" in sql
+    assert "string_agg(concat_ws(' ', pot.title, pot.summary), ' ') as search_text" in sql

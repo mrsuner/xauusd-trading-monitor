@@ -14,13 +14,45 @@ type ChannelKey = "web" | "telegram" | "x";
 const CHANNELS: ChannelKey[] = ["web", "telegram", "x"];
 const STATUSES = ["", "pending", "sending", "sent", "retry", "failed", "skipped"] as const;
 const APPROVAL_FILTERS = ["", "true", "false"] as const;
+const ZH_HANT = "zh-Hant";
+const ENGLISH = "en";
 
-function titleFor(item: PublicOutboxItem) {
-  return item.public_title_zh || item.public_title_en || item.event_title || item.public_summary_zh || item.public_summary_en;
+function preferredLanguages(language?: string | null): string[] {
+  const preferred = language?.startsWith("zh") ? ZH_HANT : ENGLISH;
+  return [...new Set([preferred, ENGLISH, ZH_HANT])];
 }
 
-function summaryFor(item: PublicOutboxItem) {
-  return item.public_summary_zh || item.public_summary_en || item.event_summary_zh;
+function translationFor(item: PublicOutboxItem, language?: string | null) {
+  const translations = item.translations ?? [];
+  for (const preferred of preferredLanguages(language)) {
+    const translation = translations.find((candidate) => candidate.language === preferred);
+    if (translation?.title || translation?.summary) {
+      return translation;
+    }
+  }
+  return translations.find((candidate) => candidate.title || candidate.summary);
+}
+
+function legacyTitleFor(item: PublicOutboxItem, language?: string | null) {
+  return language?.startsWith("zh")
+    ? item.public_title_zh || item.public_title_en
+    : item.public_title_en || item.public_title_zh;
+}
+
+function legacySummaryFor(item: PublicOutboxItem, language?: string | null) {
+  return language?.startsWith("zh")
+    ? item.public_summary_zh || item.public_summary_en
+    : item.public_summary_en || item.public_summary_zh;
+}
+
+function titleFor(item: PublicOutboxItem, language?: string | null) {
+  const translation = translationFor(item, language);
+  return translation?.title || legacyTitleFor(item, language) || item.event_title || translation?.summary || legacySummaryFor(item, language);
+}
+
+function summaryFor(item: PublicOutboxItem, language?: string | null) {
+  const translation = translationFor(item, language);
+  return translation?.summary || legacySummaryFor(item, language) || item.event_summary_zh;
 }
 
 function channelState(item: PublicOutboxItem, channel: ChannelKey) {
@@ -72,7 +104,7 @@ function ChannelCell({ item, channel }: { item: PublicOutboxItem; channel: Chann
 }
 
 export function PublicOutbox() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [channel, setChannel] = useState("");
   const [publishStatus, setPublishStatus] = useState("");
   const [approvedForPublic, setApprovedForPublic] = useState("");
@@ -158,9 +190,9 @@ export function PublicOutbox() {
                 <td><SeverityBadge value={item.severity} /></td>
                 <td>
                   <Link className="link link-primary font-medium" to={`/events/${item.event_id}`}>
-                    <Truncate text={titleFor(item)} />
+                    <Truncate text={titleFor(item, i18n.language)} />
                   </Link>
-                  <Truncate className="text-xs text-base-content/55" text={summaryFor(item)} />
+                  <Truncate className="text-xs text-base-content/55" text={summaryFor(item, i18n.language)} />
                   <div className="mt-1 flex min-w-0 flex-wrap gap-1">
                     {item.topic_tags.slice(0, 4).map((tag) => (
                       <span key={tag} className="badge badge-outline badge-xs">{tag}</span>
