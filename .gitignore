@@ -7,6 +7,7 @@ infra/.env
 
 # Runtime data
 infra/data/
+infra/backups/
 data/
 var/
 
