@@ -16,6 +16,7 @@ SERVICES=(
   "event-router:services/event-router/Dockerfile"
   "alert-dispatcher:services/alert-dispatcher/Dockerfile"
   "telegram-channel-publisher:services/telegram-channel-publisher/Dockerfile"
+  "tickbase-anomaly-consumer:services/tickbase-anomaly-consumer/Dockerfile"
   "x-publisher:services/x-publisher/Dockerfile"
   "public-syncer:services/public-syncer/Dockerfile"
   "public-api:services/public-api/Dockerfile"

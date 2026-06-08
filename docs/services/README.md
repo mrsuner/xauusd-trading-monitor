@@ -17,6 +17,7 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `event-router` | [event-router.md](./event-router.md) | 已建立 / runtime 已實作 |
 | `alert-dispatcher` | [alert-dispatcher.md](./alert-dispatcher.md) | 已建立 / runtime 已實作，後續收斂為 delivery worker |
 | `telegram-channel-publisher` | [telegram-channel-publisher.md](./telegram-channel-publisher.md) | 公共 Telegram Channel 出口 / runtime 已實作並完成真實發送驗證 |
+| `tickbase-anomaly-consumer` | [tickbase-anomaly-consumer.md](./tickbase-anomaly-consumer.md) | tickbase 行情異常事件接入 / runtime 已實作（ingest + 自有路由），migration `0016` 與單元 / DB 整合測試已通過 |
 | `x-publisher` | [x-publisher.md](./x-publisher.md) | X 出口 / runtime skeleton 已實作，因 X API 發文需付費暫不啟用 |
 | `public-syncer` | [public-syncer.md](./public-syncer.md) | HomeLab → VPS public API 同步 / runtime 已實作 |
 | `public-api` | [public-api.md](./public-api.md) | VPS public API / runtime 與獨立 migration 已實作 |

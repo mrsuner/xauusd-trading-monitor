@@ -116,6 +116,9 @@ fi
 if grep -Eq '^X_PUBLISHER_ENABLED=true$' "$ENV_PATH"; then
   start_service "x-publisher" "services/x-publisher" x-publisher run
 fi
+if grep -Eq '^ANOMALY_CONSUMER_ENABLED=true$' "$ENV_PATH"; then
+  start_service "tickbase-anomaly-consumer" "services/tickbase-anomaly-consumer" tickbase-anomaly-consumer run
+fi
 start_service "dashboard-api" "services/dashboard-api" dashboard-api run
 
 start_web() {

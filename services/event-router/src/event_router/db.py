@@ -160,6 +160,9 @@ class Database:
                 select e.id
                 from events e
                 where e.created_at >= %(since)s
+                  -- market_anomaly events are routed by tickbase-anomaly-consumer,
+                  -- not by this news router (see docs/services/tickbase-anomaly-consumer.md).
+                  and e.event_type <> 'market_anomaly'
                   and (
                     select count(*)
                     from event_route_decisions d

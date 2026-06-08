@@ -287,6 +287,40 @@ services:
     networks:
       - xauusd
 
+  tickbase-anomaly-consumer:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/tickbase-anomaly-consumer:${IMAGE_TAG}
+    restart: unless-stopped
+    logging: *default-logging
+    profiles:
+      - anomaly-consumer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: ${APP_ENV}
+      SERVICE_NAME: tickbase-anomaly-consumer
+      DATABASE_URL: ${DATABASE_URL}
+      DB_CONNECT_MAX_ATTEMPTS: ${DB_CONNECT_MAX_ATTEMPTS:-10}
+      DB_CONNECT_INITIAL_BACKOFF_SECONDS: ${DB_CONNECT_INITIAL_BACKOFF_SECONDS:-1}
+      DB_CONNECT_MAX_BACKOFF_SECONDS: ${DB_CONNECT_MAX_BACKOFF_SECONDS:-30}
+      ANOMALY_CONSUMER_ENABLED: ${ANOMALY_CONSUMER_ENABLED:-false}
+      TICKBASE_API_BASE_URL: ${TICKBASE_API_BASE_URL:-https://api.thetickbase.com}
+      TICKBASE_API_KEY: ${TICKBASE_API_KEY:-}
+      TICKBASE_REQUEST_TIMEOUT_SECONDS: ${TICKBASE_REQUEST_TIMEOUT_SECONDS:-15}
+      ANOMALY_REST_PAGE_SIZE: ${ANOMALY_REST_PAGE_SIZE:-200}
+      ANOMALY_CONSUMER_START: ${ANOMALY_CONSUMER_START:-tail}
+      ANOMALY_SSE_RECONNECT_INITIAL_BACKOFF_SECONDS: ${ANOMALY_SSE_RECONNECT_INITIAL_BACKOFF_SECONDS:-1}
+      ANOMALY_SSE_RECONNECT_BACKOFF_SECONDS: ${ANOMALY_SSE_RECONNECT_BACKOFF_SECONDS:-30}
+      ANOMALY_SEVERITY_S_MULTIPLIER: ${ANOMALY_SEVERITY_S_MULTIPLIER:-3.0}
+      ANOMALY_SEVERITY_A_MULTIPLIER: ${ANOMALY_SEVERITY_A_MULTIPLIER:-2.0}
+      ANOMALY_SEVERITY_B_MULTIPLIER: ${ANOMALY_SEVERITY_B_MULTIPLIER:-1.5}
+      LOG_LEVEL: ${LOG_LEVEL}
+      TZ: ${TZ}
+    networks:
+      - xauusd
+
   x-publisher:
     image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/x-publisher:${IMAGE_TAG}
     restart: unless-stopped

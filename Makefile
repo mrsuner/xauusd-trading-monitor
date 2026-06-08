@@ -35,6 +35,7 @@ test:
 	@cd services/event-router && uv run --group dev pytest
 	@cd services/alert-dispatcher && uv run --group dev pytest
 	@cd services/telegram-channel-publisher && uv run --group dev pytest
+	@cd services/tickbase-anomaly-consumer && uv run --group dev pytest
 	@cd services/x-publisher && uv run --group dev pytest
 	@cd services/public-syncer && uv run --group dev pytest
 	@cd services/public-api && uv run --group dev pytest
