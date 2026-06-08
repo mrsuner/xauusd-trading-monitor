@@ -16,6 +16,25 @@ from .security_scrub import sanitize_provider_response, sanitize_text
 logger = logging.getLogger(__name__)
 
 
+def public_outbox_translations_select_sql(*, outbox_alias: str = "p", translation_alias: str = "pot", indent: str = "                  ") -> str:
+    return f"""coalesce(
+{indent}  (
+{indent}    select jsonb_agg(
+{indent}      jsonb_build_object(
+{indent}        'language', {translation_alias}.language,
+{indent}        'title', {translation_alias}.title,
+{indent}        'summary', {translation_alias}.summary,
+{indent}        'status', {translation_alias}.status
+{indent}      )
+{indent}      order by {translation_alias}.language
+{indent}    )
+{indent}    from public_outbox_translations {translation_alias}
+{indent}    where {translation_alias}.public_outbox_id = {outbox_alias}.id
+{indent}  ),
+{indent}  '[]'::jsonb
+{indent})"""
+
+
 def _positive_int_env(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or raw == "":
@@ -107,7 +126,7 @@ class Database:
     ) -> PublicOutboxItem | None:
         async with self.conn.cursor() as cur:
             await cur.execute(
-                """
+                f"""
                 with claimed as (
                   select id
                   from public_outbox
@@ -139,6 +158,7 @@ class Database:
                   p.public_summary_zh,
                   p.public_title_en,
                   p.public_summary_en,
+                  {public_outbox_translations_select_sql()} as translations,
                   p.public_source_links,
                   p.severity,
                   p.relevance_score,

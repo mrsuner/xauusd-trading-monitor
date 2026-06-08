@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from public_syncer.models import PublicOutboxItem
-from public_syncer.payload import build_payload, clamp_text, idempotency_key_for, sanitize_source_links
+from public_syncer.models import PublicOutboxItem, PublicOutboxTranslation
+from public_syncer.payload import build_payload, clamp_text, idempotency_key_for, public_translation_rows, sanitize_source_links
 
 
 def make_item() -> PublicOutboxItem:
@@ -16,6 +16,10 @@ def make_item() -> PublicOutboxItem:
         public_summary_zh="摘要",
         public_title_en="Title",
         public_summary_en="Summary",
+        translations=[
+            {"language": "en", "title": "Title from row", "summary": "Summary from row", "status": "approved"},
+            {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約", "status": "approved"},
+        ],
         public_source_links=[
             {"url": "https://example.com/news", "source_name": "Example"},
             {"url": "javascript:alert(1)", "source_name": "Bad"},
@@ -44,6 +48,10 @@ def test_build_payload_is_public_safe() -> None:
     assert payload["public_summary_zh"] == "摘要"
     assert payload["public_title_en"] == "Title"
     assert payload["public_summary_en"] == "Summary"
+    assert payload["translations"] == [
+        {"language": "en", "title": "Title from row", "summary": "Summary from row"},
+        {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
+    ]
     assert payload["public_source_links"] == [
         {"url": "https://example.com/news", "source_name": "Example", "label": "Example"}
     ]
@@ -55,6 +63,7 @@ def test_build_payload_preserves_missing_language_fields() -> None:
     item = make_item()
     item.public_title_zh = None
     item.public_summary_zh = None
+    item.translations = []
 
     payload = build_payload(item)
 
@@ -62,6 +71,48 @@ def test_build_payload_preserves_missing_language_fields() -> None:
     assert payload["public_summary_zh"] is None
     assert payload["public_title_en"] == "Title"
     assert payload["public_summary_en"] == "Summary"
+    assert payload["translations"] == [{"language": "en", "title": "Title", "summary": "Summary"}]
+
+
+def test_public_translation_rows_fall_back_to_legacy_fields() -> None:
+    item = make_item()
+    item.translations = []
+
+    assert public_translation_rows(item) == [
+        {"language": "zh-Hant", "title": "標題", "summary": "摘要"},
+        {"language": "en", "title": "Title", "summary": "Summary"},
+    ]
+
+
+def test_public_translation_rows_prefer_translation_rows_without_changing_idempotency() -> None:
+    item = make_item()
+
+    assert idempotency_key_for(item) == f"event:{item.event_id}:v1"
+    assert public_translation_rows(item) == [
+        {"language": "en", "title": "Title from row", "summary": "Summary from row"},
+        {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
+    ]
+
+
+def test_public_translation_rows_skip_unapproved_rows() -> None:
+    item = make_item()
+    item.translations = [
+        PublicOutboxTranslation(language="en", title="Draft title", summary="Draft summary", status="draft"),
+        PublicOutboxTranslation(language="ja", title="日本語タイトル", summary="日本語要約", status="approved"),
+    ]
+
+    assert public_translation_rows(item) == [
+        {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
+    ]
+
+
+def test_public_translation_rows_do_not_fallback_when_rows_are_unapproved() -> None:
+    item = make_item()
+    item.translations = [
+        PublicOutboxTranslation(language="en", title="Draft title", summary="Draft summary", status="draft"),
+    ]
+
+    assert public_translation_rows(item) == []
 
 
 def test_sanitize_source_links_filters_non_http_urls() -> None:

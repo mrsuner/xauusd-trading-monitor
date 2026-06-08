@@ -7,6 +7,13 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_validator
 
 
+class PublicOutboxTranslation(BaseModel):
+    language: str
+    title: str | None = None
+    summary: str | None = None
+    status: str | None = None
+
+
 class PublicOutboxItem(BaseModel):
     id: UUID
     event_id: UUID
@@ -14,6 +21,7 @@ class PublicOutboxItem(BaseModel):
     public_summary_zh: str | None = None
     public_title_en: str | None = None
     public_summary_en: str | None = None
+    translations: list[PublicOutboxTranslation] = Field(default_factory=list)
     public_source_links: list[dict[str, Any]] = Field(default_factory=list)
     severity: str
     relevance_score: int | None = None
@@ -26,6 +34,13 @@ class PublicOutboxItem(BaseModel):
     @field_validator("public_source_links", mode="before")
     @classmethod
     def normalize_source_links(cls, value: Any) -> list[dict[str, Any]]:
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+        return []
+
+    @field_validator("translations", mode="before")
+    @classmethod
+    def normalize_translations(cls, value: Any) -> list[dict[str, Any]]:
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
         return []

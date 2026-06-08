@@ -5,6 +5,8 @@ from typing import Any
 from .models import PublicOutboxItem
 
 MAX_PUBLIC_TITLE_CHARS = 500
+PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
+PUBLIC_LANGUAGE_EN = "en"
 
 
 def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
@@ -21,6 +23,7 @@ def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
         "public_summary_zh": item.public_summary_zh,
         "public_title_en": clamp_text(item.public_title_en, max_chars=MAX_PUBLIC_TITLE_CHARS),
         "public_summary_en": item.public_summary_en,
+        "translations": public_translation_rows(item),
         "public_source_links": sanitize_source_links(item.public_source_links),
         "topic_tags": item.topic_tags,
         "content_category": None,
@@ -34,6 +37,55 @@ def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
 
 def idempotency_key_for(item: PublicOutboxItem) -> str:
     return f"event:{item.event_id}:v1"
+
+
+def public_translation_rows(item: PublicOutboxItem) -> list[dict[str, str | None]]:
+    rows = [
+        {
+            "language": translation.language,
+            "title": clamp_text(translation.title, max_chars=MAX_PUBLIC_TITLE_CHARS),
+            "summary": translation.summary,
+        }
+        for translation in item.translations
+        if translation.language
+        and (translation.title or translation.summary)
+        and (translation.status is None or translation.status == "approved")
+    ]
+    if rows or item.translations:
+        return rows
+
+    fallback_rows: list[dict[str, str | None]] = []
+    add_public_translation_row(
+        fallback_rows,
+        language=PUBLIC_LANGUAGE_ZH_HANT,
+        title=item.public_title_zh,
+        summary=item.public_summary_zh,
+    )
+    add_public_translation_row(
+        fallback_rows,
+        language=PUBLIC_LANGUAGE_EN,
+        title=item.public_title_en,
+        summary=item.public_summary_en,
+    )
+    return fallback_rows
+
+
+def add_public_translation_row(
+    rows: list[dict[str, str | None]],
+    *,
+    language: str,
+    title: str | None,
+    summary: str | None,
+) -> None:
+    if not title and not summary:
+        return
+    rows.append(
+        {
+            "language": language,
+            "title": clamp_text(title, max_chars=MAX_PUBLIC_TITLE_CHARS),
+            "summary": summary,
+        }
+    )
 
 
 def clamp_text(value: str | None, *, max_chars: int) -> str | None:
