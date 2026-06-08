@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
+
+
+LANGUAGE_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 
 
 class PublicSourceLink(BaseModel):
@@ -13,6 +17,34 @@ class PublicSourceLink(BaseModel):
     label: str | None = None
     source_name: str | None = None
     url: HttpUrl
+
+
+class PublicEventTranslationInput(BaseModel):
+    language: str
+    title: str | None = None
+    summary: str | None = None
+
+    @field_validator("language")
+    @classmethod
+    def normalize_language(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or not LANGUAGE_CODE_RE.match(normalized):
+            raise ValueError("invalid language code")
+        return normalized
+
+    @field_validator("title", "summary")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @model_validator(mode="after")
+    def require_public_content(self) -> PublicEventTranslationInput:
+        if not self.title and not self.summary:
+            raise ValueError("translation requires title or summary")
+        return self
 
 
 class PublicEventIngestRequest(BaseModel):
@@ -28,6 +60,7 @@ class PublicEventIngestRequest(BaseModel):
     public_summary_zh: str | None = None
     public_title_en: str | None = None
     public_summary_en: str | None = None
+    translations: list[PublicEventTranslationInput] = Field(default_factory=list)
     public_source_links: list[PublicSourceLink] = Field(default_factory=list)
     topic_tags: list[str] = Field(default_factory=list)
     content_category: str | None = None

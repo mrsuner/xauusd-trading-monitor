@@ -25,6 +25,52 @@ def test_public_event_ingest_request_normalizes_taxonomy() -> None:
     assert payload.mentioned_actors == ["Trump"]
 
 
+def test_public_event_ingest_request_accepts_translation_rows() -> None:
+    payload = PublicEventIngestRequest.model_validate(
+        {
+            "schema_version": "public_event.v1",
+            "idempotency_key": "event:1:v1",
+            "upstream_event_id": str(uuid4()),
+            "severity": "A",
+            "translations": [
+                {"language": " ja ", "title": " 日本語タイトル ", "summary": " 日本語要約 "},
+                {"language": "zh-Hant", "summary": "中文摘要"},
+            ],
+        }
+    )
+
+    assert [(item.language, item.title, item.summary) for item in payload.translations] == [
+        ("ja", "日本語タイトル", "日本語要約"),
+        ("zh-Hant", None, "中文摘要"),
+    ]
+
+
+def test_public_event_ingest_request_rejects_invalid_translation_language() -> None:
+    with pytest.raises(ValidationError):
+        PublicEventIngestRequest.model_validate(
+            {
+                "schema_version": "public_event.v1",
+                "idempotency_key": "event:1:v1",
+                "upstream_event_id": str(uuid4()),
+                "severity": "A",
+                "translations": [{"language": "not a language", "summary": "Summary"}],
+            }
+        )
+
+
+def test_public_event_ingest_request_rejects_empty_translation_content() -> None:
+    with pytest.raises(ValidationError):
+        PublicEventIngestRequest.model_validate(
+            {
+                "schema_version": "public_event.v1",
+                "idempotency_key": "event:1:v1",
+                "upstream_event_id": str(uuid4()),
+                "severity": "A",
+                "translations": [{"language": "ja", "summary": "   "}],
+            }
+        )
+
+
 def test_public_event_ingest_request_rejects_unsupported_schema() -> None:
     with pytest.raises(ValidationError):
         PublicEventIngestRequest.model_validate(

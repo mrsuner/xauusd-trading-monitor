@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PUBLIC_LANGUAGE = "en"
 PUBLIC_LANGUAGES = {"en", "zh-Hant"}
+PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
+PUBLIC_LANGUAGE_EN = "en"
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -129,6 +131,7 @@ class PublicRepository:
         key_id: str | None,
         nonce: str | None,
     ) -> dict[str, Any]:
+        translation_rows = public_event_translation_rows(payload)
         params = {
             "upstream_event_id": payload.upstream_event_id,
             "idempotency_key": payload.idempotency_key,
@@ -213,6 +216,30 @@ class PublicRepository:
             )
             row = await cur.fetchone()
             status = "accepted" if row and row["inserted"] else "duplicate"
+            if row and translation_rows:
+                for translation in translation_rows:
+                    translation["public_event_id"] = row["id"]
+                await cur.executemany(
+                    """
+                    insert into public_events_translations (
+                      public_event_id,
+                      language,
+                      title,
+                      summary
+                    )
+                    values (
+                      %(public_event_id)s,
+                      %(language)s,
+                      %(title)s,
+                      %(summary)s
+                    )
+                    on conflict (public_event_id, language) do update
+                    set title = excluded.title,
+                        summary = excluded.summary,
+                        updated_at = now()
+                    """,
+                    translation_rows,
+                )
             await cur.execute(
                 """
                 insert into public_ingest_requests (
@@ -474,6 +501,26 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
 
 def _json_ready(row: dict[str, Any]) -> dict[str, Any]:
     return dict(row)
+
+
+def public_event_translation_rows(payload: PublicEventIngestRequest) -> list[dict[str, Any]]:
+    rows_by_language: dict[str, dict[str, Any]] = {}
+
+    def add_row(*, language: str, title: str | None, summary: str | None) -> None:
+        if not title and not summary:
+            return
+        rows_by_language[language] = {
+            "public_event_id": None,
+            "language": language,
+            "title": title,
+            "summary": summary,
+        }
+
+    add_row(language=PUBLIC_LANGUAGE_ZH_HANT, title=payload.public_title_zh, summary=payload.public_summary_zh)
+    add_row(language=PUBLIC_LANGUAGE_EN, title=payload.public_title_en, summary=payload.public_summary_en)
+    for translation in payload.translations:
+        add_row(language=translation.language, title=translation.title, summary=translation.summary)
+    return list(rows_by_language.values())
 
 
 def normalize_public_language(lang: str | None) -> str:
