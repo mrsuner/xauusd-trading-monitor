@@ -16,7 +16,27 @@ export const demoEvents: PublicEvent[] = [
     summary:
       "Fed-linked remarks emphasized persistent inflation and policy restraint, which may affect rate-cut expectations and XAUUSD sensitivity.",
     language: "en",
-    available_languages: ["en", "zh-Hant"],
+    available_languages: ["en", "zh-Hant", "ja"],
+    translations: [
+      {
+        language: "en",
+        title: "Fed rhetoric turns more hawkish",
+        summary:
+          "Fed-linked remarks emphasized persistent inflation and policy restraint, which may affect rate-cut expectations and XAUUSD sensitivity."
+      },
+      {
+        language: "zh-Hant",
+        title: "Fed 官員口徑突然轉鷹，金價風險重新定價",
+        summary:
+          "公開事件流顯示，Fed 相關口徑集中提到通膨韌性與政策限制性，市場對降息路徑的定價可能受到壓力。此摘要僅描述事件與可能傳導路徑，不構成交易建議。"
+      },
+      {
+        language: "ja",
+        title: "Fed 発言が一段とタカ派寄りに",
+        summary:
+          "Fed 関連発言は根強いインフレと政策の制約性を強調しており、利下げ期待と XAUUSD の感応度に影響する可能性があります。"
+      }
+    ],
     public_title_zh: "Fed 官員口徑突然轉鷹，金價風險重新定價",
     public_summary_zh:
       "公開事件流顯示，Fed 相關口徑集中提到通膨韌性與政策限制性，市場對降息路徑的定價可能受到壓力。此摘要僅描述事件與可能傳導路徑，不構成交易建議。",
@@ -47,6 +67,20 @@ export const demoEvents: PublicEvent[] = [
       "Iran hardline-adjacent messaging diverged from optimistic US framing. Further confirmation is needed from official Iranian channels.",
     language: "en",
     available_languages: ["en", "zh-Hant"],
+    translations: [
+      {
+        language: "en",
+        title: "Iran hardline-adjacent source pushes back on deal narrative",
+        summary:
+          "Iran hardline-adjacent messaging diverged from optimistic US framing. Further confirmation is needed from official Iranian channels."
+      },
+      {
+        language: "zh-Hant",
+        title: "伊朗強硬派媒體否認談判讓步敘事",
+        summary:
+          "公開來源出現與美方樂觀敘事不一致的伊朗強硬派口徑。事件仍需等待政府、最高領袖系統或安全系統進一步確認。"
+      }
+    ],
     public_title_zh: "伊朗強硬派媒體否認談判讓步敘事",
     public_summary_zh:
       "公開來源出現與美方樂觀敘事不一致的伊朗強硬派口徑。事件仍需等待政府、最高領袖系統或安全系統進一步確認。",
@@ -78,6 +112,20 @@ export const demoEvents: PublicEvent[] = [
       "A single Trump-related source mentioned progress on Iran talks, without matching confirmation from official diplomatic channels.",
     language: "en",
     available_languages: ["en", "zh-Hant"],
+    translations: [
+      {
+        language: "en",
+        title: "Trump-related source mentions Iran talks",
+        summary:
+          "A single Trump-related source mentioned progress on Iran talks, without matching confirmation from official diplomatic channels."
+      },
+      {
+        language: "zh-Hant",
+        title: "Trump 相關來源提及伊朗談判進展",
+        summary:
+          "單一來源提及談判進展，但尚未看到伊朗官方或美國外交系統同步確認。此類訊息適合列入觀察清單。"
+      }
+    ],
     public_title_zh: "Trump 相關來源提及伊朗談判進展",
     public_summary_zh:
       "單一來源提及談判進展，但尚未看到伊朗官方或美國外交系統同步確認。此類訊息適合列入觀察清單。",

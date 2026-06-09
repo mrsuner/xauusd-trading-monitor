@@ -1,10 +1,12 @@
 import { useLocation, useParams } from "react-router-dom";
-import type { ConfirmationState, Language } from "../api/types";
+import type { ConfirmationState } from "../api/types";
 
-export const defaultLanguage: Language = "en";
-export const supportedLanguages: Language[] = ["en", "zh-Hant"];
+export type UiLanguage = "en" | "zh-Hant";
 
-export const languageLabels: Record<Language, string> = {
+export const defaultLanguage: UiLanguage = "en";
+export const supportedLanguages: UiLanguage[] = ["en", "zh-Hant"];
+
+export const languageLabels: Record<UiLanguage, string> = {
   en: "EN",
   "zh-Hant": "繁中"
 };
@@ -417,16 +419,16 @@ export const dictionaries = {
 
 export type Dictionary = typeof en;
 
-export function isLanguage(value: string | undefined): value is Language {
+export function isLanguage(value: string | undefined): value is UiLanguage {
   return value === "en" || value === "zh-Hant";
 }
 
-export function normalizeLanguage(value: string | null | undefined): Language {
+export function normalizeLanguage(value: string | null | undefined): UiLanguage {
   const candidate = value ?? undefined;
   return isLanguage(candidate) ? candidate : defaultLanguage;
 }
 
-export function useLanguage(): Language {
+export function useLanguage(): UiLanguage {
   const { lang } = useParams();
   return normalizeLanguage(lang);
 }
@@ -435,7 +437,7 @@ export function useI18n(): Dictionary {
   return dictionaries[useLanguage()];
 }
 
-export function localizedPath(lang: Language, path: string, search = ""): string {
+export function localizedPath(lang: UiLanguage, path: string, search = ""): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `/${lang}${normalizedPath}${search}`;
 }
@@ -453,7 +455,7 @@ export function useLocalizedPath() {
   return (path: string, search = "") => localizedPath(lang, path, search);
 }
 
-export function useLanguageSwitchPath(targetLang: Language): string {
+export function useLanguageSwitchPath(targetLang: UiLanguage): string {
   const location = useLocation();
   const pathWithoutLanguage = stripLanguagePrefix(location.pathname);
   return localizedPath(targetLang, pathWithoutLanguage, location.search);

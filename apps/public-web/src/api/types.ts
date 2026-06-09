@@ -1,5 +1,5 @@
 export type Severity = "S" | "A" | "B" | "C";
-export type Language = "en" | "zh-Hant";
+export type Language = string;
 
 export type ConfirmationState =
   | "unconfirmed"
@@ -11,6 +11,12 @@ export interface PublicSourceLink {
   label?: string | null;
   source_name?: string | null;
   url: string;
+}
+
+export interface PublicEventTranslation {
+  language: Language;
+  title: string | null;
+  summary: string | null;
 }
 
 export interface PublicEvent {
@@ -28,6 +34,7 @@ export interface PublicEvent {
   summary: string | null;
   language: Language;
   available_languages: Language[];
+  translations?: PublicEventTranslation[];
   public_title_zh: string | null;
   public_summary_zh: string | null;
   public_title_en: string | null;

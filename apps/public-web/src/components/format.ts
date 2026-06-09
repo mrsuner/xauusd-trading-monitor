@@ -1,42 +1,37 @@
+import { localizedPublicEventValue, publicEventTranslationRows } from "../api/localization";
 import type { Language, PublicEvent, PublicSourceLink } from "../api/types";
 import { dictionaries, type Dictionary } from "../i18n";
 
 function dateFormatter(lang: Language) {
   return new Intl.DateTimeFormat(lang, {
-  month: "short",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
   });
 }
 
 function fullDateFormatter(lang: Language) {
   return new Intl.DateTimeFormat(lang, {
-  year: "numeric",
-  month: "short",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hour12: false
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
   });
 }
 
 export function eventTitle(event: PublicEvent, t: Dictionary = dictionaries.en, lang: Language = "en"): string {
-  const localizedTitle =
-    lang === "zh-Hant"
-      ? event.public_title_zh || event.public_title_en
-      : event.public_title_en || event.public_title_zh;
-  return event.title || localizedTitle || t.format.untitled;
+  const translations = publicEventTranslationRows(event);
+  return localizedPublicEventValue(translations, "title", lang) || event.title || t.format.untitled;
 }
 
 export function eventSummary(event: PublicEvent, t: Dictionary = dictionaries.en, lang: Language = "en"): string {
-  const localizedSummary =
-    lang === "zh-Hant"
-      ? event.public_summary_zh || event.public_summary_en
-      : event.public_summary_en || event.public_summary_zh;
-  return event.summary || localizedSummary || t.format.noSummary;
+  const translations = publicEventTranslationRows(event);
+  return localizedPublicEventValue(translations, "summary", lang) || event.summary || t.format.noSummary;
 }
 
 export function eventTimestamp(event: PublicEvent): string | null {
