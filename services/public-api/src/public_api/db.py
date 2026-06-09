@@ -10,13 +10,12 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .models import PublicEventIngestRequest
+from .models import LANGUAGE_CODE_RE, PublicEventIngestRequest
 from .security import body_sha256
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PUBLIC_LANGUAGE = "en"
-PUBLIC_LANGUAGES = {"en", "zh-Hant"}
 PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
 PUBLIC_LANGUAGE_EN = "en"
 
@@ -363,7 +362,8 @@ class PublicRepository:
                   topic_tags,
                   content_category,
                   mentioned_actors,
-                  route_metadata
+                  route_metadata,
+{public_event_translations_select_sql()} as translations
                 from public_events
                 {where}
                 order by coalesce(event_time, generated_at, received_at) desc, received_at desc
@@ -383,7 +383,7 @@ class PublicRepository:
     async def get_event(self, public_event_id: UUID, *, lang: str | None = None) -> dict[str, Any] | None:
         async with self.db.conn.cursor() as cur:
             await cur.execute(
-                """
+                f"""
                 select
                   id,
                   upstream_event_id,
@@ -403,7 +403,8 @@ class PublicRepository:
                   topic_tags,
                   content_category,
                   mentioned_actors,
-                  route_metadata
+                  route_metadata,
+{public_event_translations_select_sql()} as translations
                 from public_events
                 where id = %(id)s and is_visible = true
                 """,
@@ -486,12 +487,13 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
         params["to_time"] = filters["to_time"]
     if filters.get("q"):
         clauses.append(
-            """
+            f"""
             (
               public_title_zh ilike %(q)s
               or public_summary_zh ilike %(q)s
               or public_title_en ilike %(q)s
               or public_summary_en ilike %(q)s
+              or {public_event_translation_search_exists_sql()}
             )
             """
         )
@@ -501,6 +503,51 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
 
 def _json_ready(row: dict[str, Any]) -> dict[str, Any]:
     return dict(row)
+
+
+def public_event_translations_select_sql(
+    *,
+    event_alias: str = "public_events",
+    translation_alias: str = "pet",
+    indent: str = "                  ",
+) -> str:
+    return f"""{indent}coalesce(
+{indent}  (
+{indent}    select jsonb_agg(
+{indent}      jsonb_build_object(
+{indent}        'language', {translation_alias}.language,
+{indent}        'title', {translation_alias}.title,
+{indent}        'summary', {translation_alias}.summary
+{indent}      )
+{indent}      order by
+{indent}        case {translation_alias}.language
+{indent}          when '{PUBLIC_LANGUAGE_EN}' then 0
+{indent}          when '{PUBLIC_LANGUAGE_ZH_HANT}' then 1
+{indent}          else 2
+{indent}        end,
+{indent}        {translation_alias}.language
+{indent}    )
+{indent}    from public_events_translations {translation_alias}
+{indent}    where {translation_alias}.public_event_id = {event_alias}.id
+{indent}  ),
+{indent}  '[]'::jsonb
+{indent})"""
+
+
+def public_event_translation_search_exists_sql(
+    *,
+    event_alias: str = "public_events",
+    translation_alias: str = "pet_search",
+) -> str:
+    return f"""exists (
+              select 1
+              from public_events_translations {translation_alias}
+              where {translation_alias}.public_event_id = {event_alias}.id
+                and (
+                  {translation_alias}.title ilike %(q)s
+                  or {translation_alias}.summary ilike %(q)s
+                )
+            )"""
 
 
 def public_event_translation_rows(payload: PublicEventIngestRequest) -> list[dict[str, Any]]:
@@ -524,47 +571,116 @@ def public_event_translation_rows(payload: PublicEventIngestRequest) -> list[dic
 
 
 def normalize_public_language(lang: str | None) -> str:
-    return lang if lang in PUBLIC_LANGUAGES else DEFAULT_PUBLIC_LANGUAGE
+    normalized = (lang or "").strip()
+    if not normalized or not LANGUAGE_CODE_RE.match(normalized):
+        return DEFAULT_PUBLIC_LANGUAGE
+    return normalized
 
 
 def shape_public_event(row: dict[str, Any], *, lang: str | None = None) -> dict[str, Any]:
     data = _json_ready(row)
     requested_lang = normalize_public_language(lang)
-    selected_lang = _selected_language(data, requested_lang)
-    data["title"] = _localized_value(data, field="title", lang=selected_lang)
-    data["summary"] = _localized_value(data, field="summary", lang=selected_lang)
+    translations = _public_translation_rows(data)
+    selected_lang = _selected_language(translations, requested_lang)
+    data["title"] = _localized_value(translations, field="title", selected_lang=selected_lang)
+    data["summary"] = _localized_value(translations, field="summary", selected_lang=selected_lang)
     data["language"] = selected_lang
-    data["available_languages"] = _available_languages(data)
+    data["available_languages"] = _available_languages(translations)
+    data["translations"] = translations
     return data
 
 
-def _selected_language(row: dict[str, Any], requested_lang: str) -> str:
-    if _has_public_content(row, requested_lang):
+def _selected_language(translations: list[dict[str, str | None]], requested_lang: str) -> str:
+    if _has_public_content(translations, requested_lang):
         return requested_lang
-    fallback_lang = "zh-Hant" if requested_lang == "en" else "en"
-    if _has_public_content(row, fallback_lang):
-        return fallback_lang
+    if _has_public_content(translations, PUBLIC_LANGUAGE_EN):
+        return PUBLIC_LANGUAGE_EN
+    for translation in translations:
+        language = translation.get("language")
+        if language and _translation_has_content(translation):
+            return language
     return requested_lang
 
 
-def _available_languages(row: dict[str, Any]) -> list[str]:
-    return [lang for lang in ("en", "zh-Hant") if _has_public_content(row, lang)]
+def _available_languages(translations: list[dict[str, str | None]]) -> list[str]:
+    return [translation["language"] for translation in translations if translation.get("language")]
 
 
-def _has_public_content(row: dict[str, Any], lang: str) -> bool:
-    suffix = _language_suffix(lang)
-    return bool(row.get(f"public_title_{suffix}") or row.get(f"public_summary_{suffix}"))
+def _has_public_content(translations: list[dict[str, str | None]], lang: str) -> bool:
+    return any(translation.get("language") == lang and _translation_has_content(translation) for translation in translations)
 
 
-def _localized_value(row: dict[str, Any], *, field: str, lang: str) -> str | None:
-    suffix = _language_suffix(lang)
-    value = row.get(f"public_{field}_{suffix}")
-    if value:
-        return str(value)
-    fallback_suffix = "zh" if suffix == "en" else "en"
-    fallback = row.get(f"public_{field}_{fallback_suffix}")
-    return str(fallback) if fallback else None
+def _localized_value(
+    translations: list[dict[str, str | None]],
+    *,
+    field: str,
+    selected_lang: str,
+) -> str | None:
+    selected_value = _translation_value(translations, language=selected_lang, field=field)
+    if selected_value:
+        return selected_value
+    english_value = _translation_value(translations, language=PUBLIC_LANGUAGE_EN, field=field)
+    if english_value:
+        return english_value
+    for translation in translations:
+        value = translation.get(field)
+        if value:
+            return str(value)
+    return None
 
 
-def _language_suffix(lang: str) -> str:
-    return "zh" if lang == "zh-Hant" else "en"
+def _public_translation_rows(row: dict[str, Any]) -> list[dict[str, str | None]]:
+    rows: list[dict[str, str | None]] = []
+    seen: set[str] = set()
+
+    for raw_translation in row.get("translations") or []:
+        if not isinstance(raw_translation, dict):
+            continue
+        language = raw_translation.get("language")
+        if not isinstance(language, str) or not language.strip():
+            continue
+        title = _optional_string(raw_translation.get("title"))
+        summary = _optional_string(raw_translation.get("summary"))
+        if not title and not summary:
+            continue
+        normalized_language = language.strip()
+        rows.append({"language": normalized_language, "title": title, "summary": summary})
+        seen.add(normalized_language)
+
+    for language, title_key, summary_key in (
+        (PUBLIC_LANGUAGE_EN, "public_title_en", "public_summary_en"),
+        (PUBLIC_LANGUAGE_ZH_HANT, "public_title_zh", "public_summary_zh"),
+    ):
+        if language in seen:
+            continue
+        title = _optional_string(row.get(title_key))
+        summary = _optional_string(row.get(summary_key))
+        if title or summary:
+            rows.append({"language": language, "title": title, "summary": summary})
+            seen.add(language)
+
+    return sorted(rows, key=lambda item: _language_sort_key(item["language"]))
+
+
+def _translation_value(translations: list[dict[str, str | None]], *, language: str, field: str) -> str | None:
+    for translation in translations:
+        if translation.get("language") == language:
+            value = translation.get(field)
+            return str(value) if value else None
+    return None
+
+
+def _translation_has_content(translation: dict[str, str | None]) -> bool:
+    return bool(translation.get("title") or translation.get("summary"))
+
+
+def _optional_string(value: Any) -> str | None:
+    return str(value) if value else None
+
+
+def _language_sort_key(language: str) -> tuple[int, str]:
+    if language == PUBLIC_LANGUAGE_EN:
+        return (0, language)
+    if language == PUBLIC_LANGUAGE_ZH_HANT:
+        return (1, language)
+    return (2, language)

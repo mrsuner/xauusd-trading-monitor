@@ -130,6 +130,7 @@ class PublicEventListItem(BaseModel):
     summary: str | None
     language: str
     available_languages: list[str]
+    translations: list[dict[str, Any]] = Field(default_factory=list)
     public_title_zh: str | None
     public_summary_zh: str | None
     public_title_en: str | None
