@@ -95,6 +95,18 @@ V1 payload：
   "public_summary_zh": "...",
   "public_title_en": "...",
   "public_summary_en": "...",
+  "translations": [
+    {
+      "language": "en",
+      "title": "...",
+      "summary": "..."
+    },
+    {
+      "language": "zh-Hant",
+      "title": "...",
+      "summary": "..."
+    }
+  ],
   "public_source_links": [],
   "topic_tags": [],
   "route_metadata": {
@@ -106,10 +118,13 @@ V1 payload：
 欄位原則：
 
 - `idempotency_key` 必須穩定。
+- `schema_version` 仍使用 `public_event.v1`；`translations` 是 optional additive field。
+- legacy `public_title_*` / `public_summary_*` 必須保留，供已部署 consumer、debug 與 backfill 使用。
 - `schema_version` 必須明確。
 - `public_source_links` 必須只包含公開 URL。
 - 不得加入完整 raw item 原文。
 - 不得加入內部 provider response。
+- 不得直接同步 `raw_item_translations`；public payload 只包含 public-safe copy。
 
 ## 7. Claim 與並行控制
 

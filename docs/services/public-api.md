@@ -113,6 +113,18 @@ Request body：
   "public_summary_zh": "...",
   "public_title_en": "...",
   "public_summary_en": "...",
+  "translations": [
+    {
+      "language": "en",
+      "title": "...",
+      "summary": "..."
+    },
+    {
+      "language": "zh-Hant",
+      "title": "...",
+      "summary": "..."
+    }
+  ],
   "public_source_links": [],
   "topic_tags": [],
   "content_category": "geopolitics",
@@ -162,21 +174,23 @@ page_size
 
 `lang` 支援：
 
-- `en`
-- `zh-Hant`
+- 任意有效 BCP-47-like language code，例如 `en`, `zh-Hant`, `ja`, `fr`。
 
-缺省或不支援的 `lang` 會使用 `en`。Read API 會在每筆 event 上衍生：
+缺省或無效的 `lang` 會使用 `en`。Read API 會在每筆 event 上衍生：
 
 - `title`
 - `summary`
 - `language`
 - `available_languages`
+- `translations`
 
 Fallback 規則：
 
-- `en` 優先使用 `public_title_en/public_summary_en`，缺失時 fallback 到中文。
-- `zh-Hant` 優先使用 `public_title_zh/public_summary_zh`，缺失時 fallback 到英文。
-- 原始 `public_title_*` / `public_summary_*` 欄位在 V1 繼續保留，供前端過渡與 debug。
+- 優先使用 requested language 對應的 `public_events_translations` row。
+- requested language 缺內容時 fallback 到 English (`en`)。
+- English 也缺內容時 fallback 到第一個 available public language。
+- Response `language` 必須標示實際使用語言，而不只是 request language。
+- 原始 `public_title_*` / `public_summary_*` 欄位在 V1 繼續保留，供前端過渡與 debug；它們只作為 row 缺失時的 fallback/backfill source。
 
 Response 應適合 TanStack Query：
 
@@ -189,6 +203,13 @@ Response 應適合 TanStack Query：
       "summary": "Fed-linked remarks emphasized persistent inflation...",
       "language": "en",
       "available_languages": ["en", "zh-Hant"],
+      "translations": [
+        {
+          "language": "en",
+          "title": "Fed rhetoric turns more hawkish",
+          "summary": "Fed-linked remarks emphasized persistent inflation..."
+        }
+      ],
       "public_title_zh": "...",
       "public_summary_zh": "...",
       "public_title_en": "...",
@@ -242,6 +263,17 @@ create index public_events_event_time_idx
 
 create index public_events_topic_tags_gin_idx
   on public_events using gin (topic_tags);
+
+create table public_events_translations (
+  id uuid primary key default gen_random_uuid(),
+  public_event_id uuid not null references public_events(id) on delete cascade,
+  language text not null,
+  title text,
+  summary text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (public_event_id, language)
+);
 ```
 
 Audit table：

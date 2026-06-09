@@ -101,6 +101,18 @@ Public Website 不應直接依賴 HomeLab 的完整 `events` schema。V1 建議�
   "public_summary_zh": "...",
   "public_title_en": "...",
   "public_summary_en": "...",
+  "translations": [
+    {
+      "language": "en",
+      "title": "...",
+      "summary": "..."
+    },
+    {
+      "language": "zh-Hant",
+      "title": "...",
+      "summary": "..."
+    }
+  ],
   "public_source_links": [
     {
       "source_name": "Tasnim",
@@ -118,6 +130,22 @@ Public Website 不應直接依賴 HomeLab 的完整 `events` schema。V1 建議�
 ```
 
 V1 可以直接由 `public_outbox` 映射出 payload。後續若 public website 需要更多欄位，應新增 `schema_version`，避免破壞已部署的 VPS API。
+
+### 4.1 Translation Compatibility Contract
+
+Public translations are display-only public copy. They are separate from raw UI translations and must not be used as AI Layer 2 reasoning input.
+
+Compatibility rules:
+
+- `schema_version` stays `public_event.v1` while adding optional `translations: [{ language, title, summary }]`.
+- Legacy fields `public_title_zh`, `public_summary_zh`, `public_title_en`, and `public_summary_en` remain in the payload and response for backward compatibility.
+- `idempotency_key` stays `event:<event_id>:v1`; do not switch to a v2 key without a separate canonical upstream identity/upsert plan.
+- Public read requests use `lang=<BCP-47 language-code>`.
+- Read fallback order is requested language, then English (`en`), then the first available public language.
+- Response `language` must identify the language actually used after fallback.
+- `available_languages` is derived from translation rows. Legacy fields are only a fallback/backfill source.
+- `raw_item_translations` is not synced to the public database and is not exposed through the public API.
+- `public_outbox_translations` and `public_events_translations` store public-safe copy that can differ from raw UI translations.
 
 ## 5. Public Data Boundary
 
