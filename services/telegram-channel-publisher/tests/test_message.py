@@ -43,6 +43,23 @@ def test_build_plain_message_includes_url() -> None:
     assert "1. Tasnim https://example.com/news" in message
 
 
+def test_build_message_uses_legacy_channel_copy_not_translation_rows() -> None:
+    item = make_item(
+        public_title_zh=None,
+        public_summary_zh=None,
+        public_title_en="English channel headline",
+        public_summary_en="English channel summary.",
+        translations=[{"language": "ja", "title": "Japanese website title", "summary": "Japanese website summary."}],
+    )
+
+    message = build_message(item, parse_mode="plain", limit=3900)
+
+    assert "English channel headline" in message
+    assert "English channel summary." in message
+    assert "Japanese website title" not in message
+    assert "Japanese website summary" not in message
+
+
 def test_invalid_source_url_is_not_rendered() -> None:
     item = make_item(public_source_links=[{"source_name": "internal", "url": "file:///tmp/private"}])
 

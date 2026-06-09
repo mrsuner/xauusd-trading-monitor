@@ -72,6 +72,7 @@ def test_build_post_does_not_fallback_to_english_public_copy() -> None:
         public_summary_zh=None,
         public_title_en="English nuclear headline",
         public_summary_en="Market is watching the headline.",
+        translations=[{"language": "ja", "title": "Japanese website title", "summary": "Japanese website summary."}],
     )
 
     post = build_post(item, limit=260)
@@ -79,6 +80,8 @@ def test_build_post_does_not_fallback_to_english_public_copy() -> None:
     assert "公開事件更新" in post
     assert "nuclear" not in post.lower()
     assert "market" not in post.lower()
+    assert "Japanese website title" not in post
+    assert "Japanese website summary" not in post
 
 
 def test_invalid_source_url_is_not_used() -> None:

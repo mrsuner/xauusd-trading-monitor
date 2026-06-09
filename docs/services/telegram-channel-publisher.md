@@ -175,6 +175,7 @@ Tags: #iran #trump #fed
 - 每則消息都應能獨立理解。
 - 未確認消息必須明確標示。
 - 不使用 AI 針對 Telegram Channel 再次改寫內容。
+- 不讀取或套用 `public_outbox_translations`；Telegram 文案在 V1 仍以 legacy `public_title_*` / `public_summary_*` channel copy 為準。
 
 可選策略：
 
@@ -183,6 +184,16 @@ Tags: #iran #trump #fed
 - B 級事件若發布，使用 `[Watch]` 或 `[B]`。
 
 避免使用過多 emoji，保持資訊平台風格。
+
+### 8.1 Translation Boundary
+
+Telegram Channel copy is channel-specific. It has different length, tone, safety, and source attribution constraints from public website/API copy.
+
+P2 multilingual website/API support must not automatically replace Telegram output with `public_outbox_translations`. V1 keeps reading legacy fields from `public_outbox`:
+
+- Prefer `public_title_zh` and `public_summary_zh`.
+- Fallback to `public_title_en` and `public_summary_en` only when Chinese channel copy is absent.
+- Future Telegram multilingual support should use a channel-aware table or a `surface/channel` dimension, not raw website/API translations.
 
 ## 9. Telegram Formatting
 

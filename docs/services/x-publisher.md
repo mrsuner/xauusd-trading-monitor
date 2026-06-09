@@ -195,6 +195,7 @@ Source: Tasnim
 - 未確認消息必須使用清楚措辭，例如「未確認」、「單一來源」。
 - hashtag 控制在 1-3 個，避免像 spam。
 - V1 不使用 AI 針對 X 再次改寫內容；若後續加入 copy adapter，也只能做壓縮，不得新增事實。
+- 不讀取或套用 `public_outbox_translations`；X 文案在 V1 仍以 legacy Chinese channel copy 為準。
 
 建議 hashtag：
 
@@ -207,6 +208,16 @@ Source: Tasnim
 ```
 
 V1 可先固定最多 2 個 hashtag：一個資產主題、一個事件主題。
+
+### 8.1 Translation Boundary
+
+X copy is channel-specific. It has stricter length, URL, tone, dedupe, and policy constraints than public website/API copy.
+
+P2 multilingual website/API support must not automatically replace X output with `public_outbox_translations`. V1 keeps reading legacy Chinese fields from `public_outbox`:
+
+- Use `public_title_zh` and `public_summary_zh`.
+- Do not fallback to `public_title_en` or `public_summary_en` for the published post.
+- Future X multilingual support should use a channel-aware table or a `surface/channel` dimension, not raw website/API translations.
 
 ## 9. 長度控制
 
