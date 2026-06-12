@@ -32,7 +32,7 @@ class AnomalyConsumer:
                 await asyncio.sleep(3600)
 
         await self.db.connect()
-        timeout = httpx.Timeout(self.settings.request_timeout_seconds, read=None)
+        timeout = httpx.Timeout(self.settings.request_timeout_seconds)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 await self._consume_forever(client)

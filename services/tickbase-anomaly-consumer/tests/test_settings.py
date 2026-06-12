@@ -15,6 +15,7 @@ def test_defaults(monkeypatch):
     assert settings.start_id is None
     assert settings.enabled is False
     assert settings.api_key is None
+    assert settings.sse_read_timeout_seconds == 75.0
 
 
 def test_start_mode_numeric():
@@ -30,6 +31,11 @@ def test_start_mode_invalid_rejected():
 def test_severity_multiplier_must_be_at_least_one():
     with pytest.raises(ValueError):
         Settings(**BASE_ENV, ANOMALY_SEVERITY_B_MULTIPLIER="0.5")
+
+
+def test_sse_read_timeout_must_be_at_least_one():
+    with pytest.raises(ValueError):
+        Settings(**BASE_ENV, ANOMALY_SSE_READ_TIMEOUT_SECONDS="0")
 
 
 def test_api_key_placeholder_normalized():

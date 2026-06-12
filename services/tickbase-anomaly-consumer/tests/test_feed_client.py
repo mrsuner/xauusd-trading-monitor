@@ -63,6 +63,7 @@ async def test_stream_parses_frames_and_skips_heartbeats():
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers.get("last-event-id") == "4"
+        assert request.extensions["timeout"]["read"] == SETTINGS.sse_read_timeout_seconds
         return httpx.Response(200, content=body.encode(), headers={"content-type": "text/event-stream"})
 
     client = FeedClient(SETTINGS)

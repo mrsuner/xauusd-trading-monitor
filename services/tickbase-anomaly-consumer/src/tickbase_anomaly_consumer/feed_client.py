@@ -48,7 +48,11 @@ class FeedClient:
         if last_event_id is not None:
             headers["Last-Event-ID"] = str(last_event_id)
 
-        async with client.stream("GET", self._stream_url, headers=headers) as resp:
+        timeout = httpx.Timeout(
+            self.settings.request_timeout_seconds,
+            read=self.settings.sse_read_timeout_seconds,
+        )
+        async with client.stream("GET", self._stream_url, headers=headers, timeout=timeout) as resp:
             resp.raise_for_status()
             data_lines: list[str] = []
             async for line in resp.aiter_lines():

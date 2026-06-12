@@ -201,7 +201,8 @@ migration 維持 schema + idempotent seed,無 backfill / 外部呼叫,符合 `do
 | `TICKBASE_API_KEY` | `Authorization: Bearer` / `X-API-Key` | — |
 | `ANOMALY_CONSUMER_ENABLED` | 服務開關 | `true` |
 | `ANOMALY_CONSUMER_START` | `tail` / `earliest` / `<id>` | `tail` |
-| `ANOMALY_SSE_RECONNECT_BACKOFF_SECONDS` | 重連 backoff 上限 | 待定 |
+| `ANOMALY_SSE_RECONNECT_BACKOFF_SECONDS` | 重連 backoff 上限 | `30` |
+| `ANOMALY_SSE_READ_TIMEOUT_SECONDS` | SSE read timeout；需大於 tickbase api-go heartbeat，避免 stale 長連線永久等待 | `75` |
 | `ANOMALY_SEVERITY_*_MULTIPLIER` | severity 分級倍率門檻 | 待定 |
 | `DATABASE_URL` | 核心 PostgreSQL | — |
 

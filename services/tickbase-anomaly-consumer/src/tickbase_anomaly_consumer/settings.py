@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     reconnect_max_backoff_seconds: float = Field(
         default=30.0, alias="ANOMALY_SSE_RECONNECT_BACKOFF_SECONDS"
     )
+    sse_read_timeout_seconds: float = Field(default=75.0, alias="ANOMALY_SSE_READ_TIMEOUT_SECONDS")
 
     # Severity = f(ratio) where ratio = observed_change / rule_threshold (>= 1.0
     # because the rule already fired). Bands are inclusive lower bounds.
@@ -69,11 +70,14 @@ class Settings(BaseSettings):
             raise ValueError("value must be > 0")
         return value
 
-    @field_validator(
-        "severity_s_multiplier",
-        "severity_a_multiplier",
-        "severity_b_multiplier",
-    )
+    @field_validator("sse_read_timeout_seconds")
+    @classmethod
+    def validate_sse_read_timeout(cls, value: float) -> float:
+        if value < 1.0:
+            raise ValueError("SSE read timeout must be >= 1.0")
+        return value
+
+    @field_validator("severity_s_multiplier", "severity_a_multiplier", "severity_b_multiplier")
     @classmethod
     def validate_multiplier(cls, value: float) -> float:
         if value < 1.0:
