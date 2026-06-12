@@ -1010,6 +1010,42 @@ VPS 新增元件：
 - 公共網站、Telegram Channel 與 X 可基於同一份 `public_outbox` 內容發布，避免三個出口文案不一致。
 - public 發布失敗不影響核心採集、AI 處理與私人通知。
 
+### Phase 8.1: Public raw items feed
+
+任務狀態：待實作。此任務獨立於 `public_events` / `public_outbox` 事件摘要同步，目標是把 HomeLab `raw_items` 與已翻譯內容同步到 VPS `public-api` public database，作為公共網站除事件列表外的「原始資料源」feed。
+
+設計邊界：
+
+- 不把 raw item 直接塞進 `public_event.v1`，避免破壞既有事件 contract。
+- 新增獨立 schema，例如 `public_raw_item.v1`，idempotency key 使用 `raw_item:<raw_item_id>:v1`。
+- VPS public DB 新增 `public_raw_items`、`public_raw_item_translations`、`public_raw_item_ingest_requests`。
+- `public-api` 新增 `POST /ingest/raw-items`、`GET /raw-items`、`GET /raw-items/{id}`。
+- HomeLab 新增 `raw_items` 同步 cursor / outbox 狀態，或擴展 `public-syncer` 增加 raw item mode；它應與 `public_outbox.publish_status_web` 分離。
+- public-web 新增 raw feed 頁面，並可從 event detail 連到 supporting raw items。
+
+資料策略：
+
+- 允許同步 public-safe 欄位：source name/type/group、public URL、published/ingested time、title、`text_clean` 或清洗後原文、`summary_*`、`full_translation_*`、`raw_item_translations` 的 summary/full_translation、content category、topic tags、mentioned actors、translation status。
+- 不同步 private/internal 欄位：collector raw JSON 中的 token/session/private chat 資訊、AI prompt/raw response、internal source id、HomeLab URL、私人通知與 delivery record。
+- 對 Telegram 內容需再做 scrub：移除 private channel id、chat id、message metadata，只保留公開 URL 與公開可展示文字。
+- 需要 body size limit 與 truncation policy；全文過長時保留 `is_truncated`、`source_text_chars`、`translation_chars`。
+
+建議實作順序：
+
+1. 定義 `public_raw_item.v1` payload、scrub 規則與 acceptance tests。
+2. 在 VPS `public-api` 加 raw item migrations、ingest endpoint、read endpoints 與 HMAC audit。
+3. 在 HomeLab 端為 `raw_items` 建立同步狀態表或 cursor，避免依賴 `public_outbox`。
+4. 擴展 `public-syncer`：先支援 bounded backfill，再支援 near-real-time polling。
+5. 在 public-web 加 raw feed 列表、詳情頁與 event supporting raw items link。
+6. 先用 dry-run / staging key 驗證 payload scrub，再開 production sync。
+
+驗收：
+
+- VPS public DB 可保存 raw feed 且不影響既有 `public_events`。
+- 重複同步同一 raw item 不產生 duplicate row。
+- public-web 可獨立瀏覽 raw feed，event detail 可連到 supporting raw items。
+- HomeLab public-syncer 推送失敗只影響 raw feed sync，不影響 event public sync、私人通知與核心採集。
+
 ## 10. 開放問題
 
 - `alert_score` 已保存到 `alerts` 表，方便後續 audit。

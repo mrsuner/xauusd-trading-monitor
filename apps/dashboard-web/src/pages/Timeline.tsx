@@ -44,6 +44,38 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
+function TextBlock({ label, text }: { label: string; text: string }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const collapsible = isCollapsible(text);
+
+  return (
+    <div className="rounded border border-base-200 bg-base-200/30 p-3">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-base-content/60">{label}</span>
+        {collapsible ? (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs gap-1 text-base-content/60"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? t("common.showLess") : t("common.showMore")}
+            <ChevronIcon open={expanded} />
+          </button>
+        ) : null}
+      </div>
+      <p
+        className={`whitespace-pre-wrap text-sm leading-6 text-base-content/75 ${
+          collapsible && !expanded ? "line-clamp-6" : ""
+        }`}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
 function relevanceTone(item: RawItem): { labelKey: string; className: string } {
   if (item.has_event) return { labelKey: "timeline.relevance.hasEvent", className: "badge-error" };
   if (item.is_relevant === false) return { labelKey: "timeline.relevance.filtered", className: "badge-ghost" };
@@ -74,15 +106,11 @@ type RawItemCardProps = {
 
 function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClick, onActorClick }: RawItemCardProps) {
   const { i18n, t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
 
   const summary = rawItemDisplaySummary(item, i18n.language);
   const fullTranslation = rawItemFullTranslation(item, i18n.language);
   const originalContent = rawItemOriginalContent(item) || "-";
   const title = item.title || item.source_name;
-  const contentLabel = fullTranslation ? t("timeline.fullTranslation") : t("timeline.originalContent");
-  const contentText = fullTranslation || originalContent;
-  const collapsible = isCollapsible(contentText);
   const tags = item.topic_tags ?? [];
   const actors = item.mentioned_actors ?? [];
   const category = item.content_category ? categoryByKey.get(item.content_category) : undefined;
@@ -174,28 +202,9 @@ function RawItemCard({ item, categoryByKey, tagByKey, onCategoryClick, onTagClic
           ))}
         </div>
       ) : null}
-      <div className="mb-3 rounded border border-base-200 bg-base-200/30 p-3">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-base-content/60">{contentLabel}</span>
-          {collapsible ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs gap-1 text-base-content/60"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((value) => !value)}
-            >
-              {expanded ? t("common.showLess") : t("common.showMore")}
-              <ChevronIcon open={expanded} />
-            </button>
-          ) : null}
-        </div>
-        <p
-          className={`whitespace-pre-wrap text-sm leading-6 text-base-content/75 ${
-            collapsible && !expanded ? "line-clamp-6" : ""
-          }`}
-        >
-          {contentText}
-        </p>
+      <div className="mb-3 space-y-3">
+        <TextBlock label={t("timeline.originalContent")} text={originalContent} />
+        {fullTranslation ? <TextBlock label={t("timeline.fullTranslation")} text={fullTranslation} /> : null}
       </div>
       <div className="grid gap-2 text-xs text-base-content/55 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="min-w-0">

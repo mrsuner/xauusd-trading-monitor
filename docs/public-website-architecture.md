@@ -131,7 +131,35 @@ Public Website 不應直接依賴 HomeLab 的完整 `events` schema。V1 建議�
 
 V1 可以直接由 `public_outbox` 映射出 payload。後續若 public website 需要更多欄位，應新增 `schema_version`，避免破壞已部署的 VPS API。
 
-### 4.1 Translation Compatibility Contract
+### 4.1 Raw Items Feed Contract, Planned
+
+`public_event.v1` 只承載事件級 public summary。若公共網站需要像 HomeLab Event Radar Timeline 一樣展示「原始資料源」feed，應新增獨立 contract，而不是把 raw item 內容混入 event payload。
+
+Planned contract:
+
+- `schema_version`: `public_raw_item.v1`
+- ingest endpoint: `POST /ingest/raw-items`
+- read endpoints: `GET /raw-items`, `GET /raw-items/{public_raw_item_id}`
+- idempotency key: `raw_item:<raw_item_id>:v1`
+- VPS tables: `public_raw_items`, `public_raw_item_translations`, `public_raw_item_ingest_requests`
+
+Allowed public-safe fields:
+
+- upstream raw item id, source name/type/group, public source URL.
+- published / ingested / edited timestamps.
+- title, cleaned original content, summary, full translation.
+- translation rows by language.
+- content category, topic tags, mentioned actors.
+- source text / translation character counts and truncation flags.
+
+Required protections:
+
+- Keep this feed separate from `public_events` so event summary sync remains stable.
+- Scrub Telegram private channel/chat/message metadata before ingest.
+- Do not sync `raw_json`, AI prompt, AI raw response, token usage, private notification state, internal HomeLab URLs, API keys, or collector credentials.
+- Enforce payload size limits and deterministic truncation for long source text/full translations.
+
+### 4.2 Translation Compatibility Contract
 
 Public translations are display-only public copy. They are separate from raw UI translations and must not be used as AI Layer 2 reasoning input.
 

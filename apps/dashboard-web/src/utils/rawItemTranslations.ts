@@ -23,6 +23,17 @@ function text(value?: string | null): string | undefined {
   return value && value.trim() ? value : undefined;
 }
 
+function normalizedText(value?: string | null): string | undefined {
+  const valueText = text(value);
+  return valueText?.replace(/\s+/g, " ").trim();
+}
+
+function sameText(left?: string | null, right?: string | null): boolean {
+  const leftText = normalizedText(left);
+  const rightText = normalizedText(right);
+  return Boolean(leftText && rightText && leftText === rightText);
+}
+
 export function normalizeRawItemLanguage(language?: string | null): string {
   return language?.startsWith("zh") ? ZH_HANT : ENGLISH;
 }
@@ -44,8 +55,10 @@ function summaryForLanguage(item: RawItemTranslationSource, language: string): s
 
 function fullTranslationForLanguage(item: RawItemTranslationSource, language: string): string | undefined {
   const translated = text(translationFor(item, language)?.full_translation);
-  if (translated) return translated;
-  return language === ZH_HANT ? text(item.full_translation_zh) : text(item.full_translation_en);
+  const summary = summaryForLanguage(item, language);
+  if (translated && !sameText(translated, summary)) return translated;
+  const legacyFullTranslation = language === ZH_HANT ? text(item.full_translation_zh) : text(item.full_translation_en);
+  return sameText(legacyFullTranslation, summary) ? undefined : legacyFullTranslation;
 }
 
 export function rawItemSummary(item: RawItemTranslationSource, language?: string | null): string | undefined {
