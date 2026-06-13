@@ -1,5 +1,10 @@
-import { localizedPublicEventValue, publicEventTranslationRows } from "../api/localization";
-import type { Language, PublicEvent, PublicSourceLink } from "../api/types";
+import {
+  localizedPublicEventValue,
+  localizedPublicRawItemValue,
+  publicEventTranslationRows,
+  publicRawItemTranslationRows
+} from "../api/localization";
+import type { Language, PublicEvent, PublicRawItem, PublicSourceLink } from "../api/types";
 import { dictionaries, type Dictionary } from "../i18n";
 
 function dateFormatter(lang: Language) {
@@ -36,6 +41,28 @@ export function eventSummary(event: PublicEvent, t: Dictionary = dictionaries.en
 
 export function eventTimestamp(event: PublicEvent): string | null {
   return event.event_time || event.generated_at || event.received_at;
+}
+
+export function rawItemTitle(item: PublicRawItem, t: Dictionary = dictionaries.en): string {
+  return item.title || t.format.untitledRawItem;
+}
+
+export function rawItemSummary(item: PublicRawItem, t: Dictionary = dictionaries.en, lang: Language = "en"): string {
+  const translations = publicRawItemTranslationRows(item);
+  return localizedPublicRawItemValue(translations, "summary", lang) || item.summary || t.format.noRawSummary;
+}
+
+export function rawItemFullTranslation(item: PublicRawItem, lang: Language = "en"): string | null {
+  const translations = publicRawItemTranslationRows(item);
+  return localizedPublicRawItemValue(translations, "full_translation", lang) || item.full_translation || null;
+}
+
+export function rawItemTimestamp(item: PublicRawItem): string | null {
+  return item.published_at || item.ingested_at || item.received_at;
+}
+
+export function rawItemSourceLabel(item: PublicRawItem, t: Dictionary = dictionaries.en): string {
+  return item.source_name || item.source_group || t.raw.sourceFallback;
 }
 
 export function formatTime(value: string | null | undefined, lang: Language = "en", t: Dictionary = dictionaries.en): string {

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { getEvent } from "../api/client";
+import { getEvent, listRawItems } from "../api/client";
 import { ConfirmationBadge, SeverityBadge } from "../components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import {
@@ -16,6 +16,7 @@ import {
 } from "../components/format";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
+import { RawItemCard } from "../components/RawItemCard";
 
 export function EventDetailPage() {
   const { eventId } = useParams();
@@ -25,6 +26,11 @@ export function EventDetailPage() {
   const query = useQuery({
     queryKey: ["public-event", eventId, lang],
     queryFn: () => getEvent(eventId ?? "", lang),
+    enabled: Boolean(eventId)
+  });
+  const rawItemsQuery = useQuery({
+    queryKey: ["public-event-raw-items", eventId, lang],
+    queryFn: () => listRawItems({ event_id: eventId, lang, page_size: 6 }),
     enabled: Boolean(eventId)
   });
 
@@ -99,6 +105,20 @@ export function EventDetailPage() {
             {t.detail.boundary}
           </p>
         </article>
+
+        <section className="rounded-box border border-base-300 bg-base-200/40 p-5 lg:col-start-1">
+          <h2 className="text-lg font-semibold">{t.raw.supportingItems}</h2>
+          <div className="mt-4 grid gap-3">
+            {rawItemsQuery.isLoading && <LoadingState />}
+            {rawItemsQuery.isError && <ErrorState message={(rawItemsQuery.error as Error).message} />}
+            {rawItemsQuery.data?.items.length === 0 && (
+              <p className="text-sm text-base-content/60">{t.raw.noSupportingItems}</p>
+            )}
+            {rawItemsQuery.data?.items.map((item) => (
+              <RawItemCard key={item.id} item={item} compact />
+            ))}
+          </div>
+        </section>
 
         <aside className="space-y-4">
           <section className="rounded-box border border-base-300 bg-base-200/40 p-4">

@@ -20,6 +20,7 @@ export function Layout() {
   const currentPath = stripLanguagePrefix(location.pathname);
   const navLinks = [
     { path: "/events", label: t.nav.latest },
+    { path: "/raw", label: t.nav.raw },
     { path: "/events", search: "?severity=S", label: t.nav.highImpact },
     { path: "/tags/iran", label: t.nav.tags },
     { path: "/about", label: t.nav.about },
@@ -112,6 +113,9 @@ function isNavActive(path: string, linkSearch: string | undefined, currentPath: 
   if (path === "/events" && linkSearch === "?severity=S") {
     return currentPath === "/events" && new URLSearchParams(search).get("severity") === "S";
   }
+  if (path === "/raw") {
+    return currentPath.startsWith("/raw");
+  }
   if (path.startsWith("/tags")) {
     return currentPath.startsWith("/tags");
   }
@@ -159,6 +163,9 @@ function Footer() {
           <div className="mt-3 grid gap-2 text-sm text-base-content/60">
             <NavLink to={to("/events")} className="hover:text-primary">
               {t.footer.latestEvents}
+            </NavLink>
+            <NavLink to={to("/raw")} className="hover:text-primary">
+              {t.footer.rawFeed}
             </NavLink>
             <NavLink to={to("/about")} className="hover:text-primary">
               {t.footer.methodology}

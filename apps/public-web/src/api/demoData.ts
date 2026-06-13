@@ -1,4 +1,4 @@
-import type { OverviewStats, PublicCategory, PublicEvent, PublicTag } from "./types";
+import type { OverviewStats, PublicCategory, PublicEvent, PublicRawItem, PublicTag } from "./types";
 
 export const demoEvents: PublicEvent[] = [
   {
@@ -152,6 +152,125 @@ export const demoCategories: PublicCategory[] = [
   { category: "geopolitics", count: 1 },
   { category: "macro_policy", count: 1 },
   { category: "politics", count: 1 }
+];
+
+export const demoRawItems: PublicRawItem[] = [
+  {
+    id: "demo-raw-fed-001",
+    upstream_raw_item_id: "10000000-0000-4000-8000-000000000001",
+    idempotency_key: "demo:raw:fed:001",
+    schema_version: "public_raw_item.v1",
+    source_name: "Federal Reserve",
+    source_type: "rss",
+    source_group: "macro",
+    official_level: "official",
+    priority: "P0",
+    source_url: "https://www.federalreserve.gov/newsevents.htm",
+    published_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
+    ingested_at: new Date(Date.now() - 13 * 60 * 1000).toISOString(),
+    edited_at: null,
+    received_at: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+    title: "Fed remarks emphasize inflation persistence",
+    original_content:
+      "Federal Reserve remarks emphasized that inflation remains above target and that policy should remain restrictive until confidence improves.",
+    source_language: "en",
+    media_type: "none",
+    summary_zh: "Fed 相關發言強調通膨仍高於目標，政策需要維持限制性直到信心改善。",
+    summary_en:
+      "Fed-linked remarks emphasized inflation persistence and continued policy restraint until confidence improves.",
+    full_translation_zh:
+      "Federal Reserve 相關發言強調，通膨仍高於目標，在信心改善以前，政策應保持限制性。這類口徑可能影響市場對降息時點的預期。",
+    full_translation_en:
+      "Federal Reserve remarks emphasized that inflation remains above target and policy should remain restrictive until confidence improves.",
+    summary: "Fed-linked remarks emphasized inflation persistence and continued policy restraint until confidence improves.",
+    full_translation:
+      "Federal Reserve remarks emphasized that inflation remains above target and policy should remain restrictive until confidence improves.",
+    language: "en",
+    available_languages: ["en", "zh-Hant"],
+    translations: [
+      {
+        language: "en",
+        summary:
+          "Fed-linked remarks emphasized inflation persistence and continued policy restraint until confidence improves.",
+        full_translation:
+          "Federal Reserve remarks emphasized that inflation remains above target and policy should remain restrictive until confidence improves.",
+        status: "completed",
+        is_truncated: false,
+        source_chars: 137,
+        translation_chars: 126
+      },
+      {
+        language: "zh-Hant",
+        summary: "Fed 相關發言強調通膨仍高於目標，政策需要維持限制性直到信心改善。",
+        full_translation:
+          "Federal Reserve 相關發言強調，通膨仍高於目標，在信心改善以前，政策應保持限制性。這類口徑可能影響市場對降息時點的預期。",
+        status: "completed",
+        is_truncated: false,
+        source_chars: 137,
+        translation_chars: 62
+      }
+    ],
+    content_category: "macro_policy",
+    topic_tags: ["fed", "rates", "xauusd"],
+    mentioned_actors: ["Federal Reserve", "XAUUSD"],
+    upstream_event_ids: [demoEvents[0].upstream_event_id],
+    is_relevant: true,
+    relevance_score: 91,
+    filter_reason: null,
+    classification_stage: "completed",
+    classification_status: "completed",
+    is_truncated: false,
+    source_text_chars: 137,
+    translation_chars: 126,
+    scrub_metadata: { source: "raw_items" }
+  },
+  {
+    id: "demo-raw-iran-001",
+    upstream_raw_item_id: "10000000-0000-4000-8000-000000000002",
+    idempotency_key: "demo:raw:iran:001",
+    schema_version: "public_raw_item.v1",
+    source_name: "Tasnim",
+    source_type: "telegram",
+    source_group: "geopolitics",
+    official_level: "semi_official",
+    priority: "P1",
+    source_url: "https://www.tasnimnews.com/",
+    published_at: new Date(Date.now() - 52 * 60 * 1000).toISOString(),
+    ingested_at: new Date(Date.now() - 51 * 60 * 1000).toISOString(),
+    edited_at: null,
+    received_at: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+    title: "Iran hardline-adjacent outlet disputes deal optimism",
+    original_content:
+      "A hardline-adjacent Iranian outlet pushed back on optimistic external framing around talks, saying key conditions remain unresolved.",
+    source_language: "en",
+    media_type: "none",
+    summary_zh: "伊朗強硬派相近媒體否認外部樂觀談判敘事，稱關鍵條件仍未解決。",
+    summary_en:
+      "Iran hardline-adjacent messaging pushed back on optimistic external framing around talks.",
+    full_translation_zh:
+      "伊朗強硬派相近媒體對外部關於談判的樂觀敘事提出反駁，表示關鍵條件仍未解決。此類消息需等待官方渠道進一步確認。",
+    full_translation_en:
+      "A hardline-adjacent Iranian outlet pushed back on optimistic external framing around talks, saying key conditions remain unresolved.",
+    summary: "Iran hardline-adjacent messaging pushed back on optimistic external framing around talks.",
+    full_translation:
+      "A hardline-adjacent Iranian outlet pushed back on optimistic external framing around talks, saying key conditions remain unresolved.",
+    language: "en",
+    available_languages: ["en", "zh-Hant"],
+    translations: [],
+    content_category: "geopolitics",
+    topic_tags: ["iran", "deal", "sanctions"],
+    mentioned_actors: ["Iran"],
+    upstream_event_ids: [demoEvents[1].upstream_event_id],
+    is_relevant: true,
+    relevance_score: 83,
+    filter_reason: null,
+    classification_stage: "completed",
+    classification_status: "completed",
+    is_truncated: false,
+    source_text_chars: 126,
+    translation_chars: 126,
+    scrub_metadata: { source: "raw_items" }
+  }
 ];
 
 export const demoStats: OverviewStats = {

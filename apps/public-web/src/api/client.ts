@@ -1,5 +1,5 @@
-import { demoCategories, demoEvents, demoStats, demoTags } from "./demoData";
-import { localizePublicEvent, publicEventTranslationRows } from "./localization";
+import { demoCategories, demoEvents, demoRawItems, demoStats, demoTags } from "./demoData";
+import { localizePublicEvent, localizePublicRawItem, publicEventTranslationRows, publicRawItemTranslationRows } from "./localization";
 import type {
   EventFilters,
   HealthResponse,
@@ -8,7 +8,9 @@ import type {
   PageResponse,
   PublicCategory,
   PublicEvent,
-  PublicTag
+  PublicRawItem,
+  PublicTag,
+  RawItemFilters
 } from "./types";
 
 const runtimeConfig = window.__TICKBASE_NEWS_CONFIG__ ?? {};
@@ -42,6 +44,24 @@ export async function getEvent(id: string, lang?: Language): Promise<PublicEvent
   return request<PublicEvent>(`/events/${encodeURIComponent(id)}`, { lang });
 }
 
+export async function listRawItems(filters: RawItemFilters = {}): Promise<PageResponse<PublicRawItem>> {
+  if (useDemoData) {
+    return demoListRawItems(filters);
+  }
+  return request<PageResponse<PublicRawItem>>("/raw-items", filters);
+}
+
+export async function getRawItem(id: string, lang?: Language): Promise<PublicRawItem> {
+  if (useDemoData) {
+    const item = demoRawItems.find((rawItem) => rawItem.id === id);
+    if (!item) {
+      throw new Error("Raw item not found");
+    }
+    return localizePublicRawItem(item, lang);
+  }
+  return request<PublicRawItem>(`/raw-items/${encodeURIComponent(id)}`, { lang });
+}
+
 export async function listTags(): Promise<PublicTag[]> {
   if (useDemoData) {
     return demoTags;
@@ -72,7 +92,10 @@ export async function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/health");
 }
 
-async function request<T>(path: string, params?: Record<string, string | number | undefined> | EventFilters): Promise<T> {
+async function request<T>(
+  path: string,
+  params?: Record<string, string | number | undefined> | EventFilters | RawItemFilters
+): Promise<T> {
   if (!apiBaseUrl) {
     throw new Error("PUBLIC_API_BASE_URL is not configured");
   }
@@ -125,6 +148,58 @@ function demoListEvents(filters: EventFilters): PageResponse<PublicEvent> {
   const offset = (page - 1) * pageSize;
   return {
     items: items.slice(offset, offset + pageSize).map((item) => localizePublicEvent(item, filters.lang)),
+    page,
+    page_size: pageSize,
+    total
+  };
+}
+
+function demoListRawItems(filters: RawItemFilters): PageResponse<PublicRawItem> {
+  const page = Number(filters.page ?? 1);
+  const pageSize = Number(filters.page_size ?? 20);
+  let items = [...demoRawItems];
+  if (filters.event_id) {
+    const event = demoEvents.find((item) => item.id === filters.event_id);
+    items = event ? items.filter((item) => item.upstream_event_ids.includes(event.upstream_event_id)) : [];
+  }
+  if (filters.source_type) {
+    items = items.filter((item) => item.source_type === filters.source_type);
+  }
+  if (filters.source_group) {
+    items = items.filter((item) => item.source_group === filters.source_group);
+  }
+  if (filters.tag) {
+    items = items.filter((item) => item.topic_tags.includes(String(filters.tag)));
+  }
+  if (filters.category) {
+    items = items.filter((item) => item.content_category === filters.category);
+  }
+  if (filters.q) {
+    const q = String(filters.q).toLowerCase();
+    items = items.filter((item) =>
+      [
+        item.title,
+        item.original_content,
+        item.summary_zh,
+        item.summary_en,
+        item.full_translation_zh,
+        item.full_translation_en,
+        ...publicRawItemTranslationRows(item).flatMap((translation) => [
+          translation.summary,
+          translation.full_translation
+        ]),
+        ...item.topic_tags,
+        ...item.mentioned_actors,
+        item.source_name
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q))
+    );
+  }
+  const total = items.length;
+  const offset = (page - 1) * pageSize;
+  return {
+    items: items.slice(offset, offset + pageSize).map((item) => localizePublicRawItem(item, filters.lang)),
     page,
     page_size: pageSize,
     total
