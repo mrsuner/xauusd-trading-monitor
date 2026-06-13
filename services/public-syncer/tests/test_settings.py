@@ -16,6 +16,20 @@ def test_settings_normalizes_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.public_api_base_url == "https://news.example.com"
     assert settings.public_ingest_path == "/ingest/events"
     assert settings.ingest_url == "https://news.example.com/ingest/events"
+    assert settings.public_raw_ingest_path == "/ingest/raw-items"
+    assert settings.raw_ingest_url == "https://news.example.com/ingest/raw-items"
+
+
+def test_settings_normalizes_raw_ingest_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://xauusd:secret@postgres:5432/xauusd")
+    monkeypatch.setenv("PUBLIC_API_BASE_URL", "https://news.example.com/")
+    monkeypatch.setenv("PUBLIC_RAW_INGEST_PATH", "ingest/raw-items")
+    monkeypatch.setenv("PUBLIC_RAW_MIN_RELEVANCE_SCORE", "75")
+
+    settings = Settings()
+
+    assert settings.public_raw_ingest_path == "/ingest/raw-items"
+    assert settings.raw_min_relevance_score == 75
 
 
 def test_settings_rejects_invalid_auth_mode(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -17,7 +17,7 @@ class PublicApiProvider:
         self.settings = settings
         self.client = client
 
-    async def send(self, payload: dict, *, idempotency_key: str) -> PublicApiResult:
+    async def send(self, payload: dict, *, idempotency_key: str, ingest_path: str | None = None) -> PublicApiResult:
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
         headers = {
             "Content-Type": "application/json",
@@ -48,7 +48,7 @@ class PublicApiProvider:
             )
 
         try:
-            response = await self.client.post(self.settings.ingest_url, content=body, headers=headers)
+            response = await self.client.post(self._ingest_url(ingest_path), content=body, headers=headers)
         except httpx.TimeoutException as exc:
             return PublicApiResult(success=False, is_transient=True, error_message=sanitize_text(f"timeout:{exc}"))
         except httpx.HTTPError as exc:
@@ -56,6 +56,7 @@ class PublicApiProvider:
 
         response_json = _public_api_response(response, _response_json(response))
         public_event_id = _public_event_id(response_json)
+        public_raw_item_id = _public_raw_item_id(response_json)
         if response.status_code in {200, 201, 202}:
             status = str(response_json.get("status") or "")
             return PublicApiResult(
@@ -63,14 +64,16 @@ class PublicApiProvider:
                 status_code=response.status_code,
                 response_json=response_json,
                 public_event_id=public_event_id,
+                public_raw_item_id=public_raw_item_id,
                 is_duplicate=status == "duplicate",
             )
-        if response.status_code == 409 and public_event_id:
+        if response.status_code == 409 and (public_event_id or public_raw_item_id):
             return PublicApiResult(
                 success=True,
                 status_code=response.status_code,
                 response_json=response_json,
                 public_event_id=public_event_id,
+                public_raw_item_id=public_raw_item_id,
                 is_duplicate=True,
             )
         retry_after = _retry_after(response.headers.get("Retry-After"))
@@ -83,13 +86,21 @@ class PublicApiProvider:
             retry_after_seconds=retry_after,
         )
 
+    def _ingest_url(self, ingest_path: str | None) -> str:
+        if ingest_path is None:
+            return self.settings.ingest_url
+        if not self.settings.public_api_base_url:
+            raise ValueError("PUBLIC_API_BASE_URL is required")
+        path = ingest_path if ingest_path.startswith("/") else f"/{ingest_path}"
+        return f"{self.settings.public_api_base_url}{path}"
+
 
 def _response_json(response: httpx.Response) -> dict:
     try:
         value = response.json()
     except ValueError:
         return {"text": sanitize_text(response.text)}
-    return sanitize_provider_response(value if isinstance(value, dict) else {"data": value})
+    return value if isinstance(value, dict) else {"data": sanitize_provider_response(value)}
 
 
 def _public_api_response(response: httpx.Response, data: dict) -> dict:
@@ -97,14 +108,19 @@ def _public_api_response(response: httpx.Response, data: dict) -> dict:
         "provider": "public-api",
         "status_code": response.status_code,
     }
-    for key in ("status", "public_event_id", "idempotency_key", "schema_version", "error", "detail"):
+    for key in ("status", "public_event_id", "public_raw_item_id", "idempotency_key", "schema_version", "error", "detail"):
         if key in data:
-            clean[key] = data[key]
-    return sanitize_provider_response(clean)
+            clean[key] = sanitize_provider_response(data[key]) if key in {"error", "detail"} else data[key]
+    return clean
 
 
 def _public_event_id(response_json: dict) -> str | None:
     value = response_json.get("public_event_id")
+    return str(value) if value else None
+
+
+def _public_raw_item_id(response_json: dict) -> str | None:
+    value = response_json.get("public_raw_item_id")
     return str(value) if value else None
 
 

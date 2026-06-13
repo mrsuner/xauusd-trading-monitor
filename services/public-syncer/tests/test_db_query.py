@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from public_syncer.db import public_outbox_translations_select_sql
+from public_syncer.db import public_outbox_translations_select_sql, raw_item_translations_select_sql, raw_item_upstream_event_ids_sql
 
 
 def _compact(sql: str) -> str:
@@ -17,3 +17,22 @@ def test_public_outbox_translations_select_sql_reads_translation_rows() -> None:
     assert "'summary', pot.summary" in sql
     assert "'status', pot.status" in sql
     assert "order by pot.language" in sql
+
+
+def test_raw_item_translations_select_sql_reads_completed_rows() -> None:
+    sql = _compact(raw_item_translations_select_sql())
+
+    assert "from raw_item_translations rit" in sql
+    assert "where rit.raw_item_id = r.id" in sql
+    assert "rit.status in ('completed', 'completed_truncated')" in sql
+    assert "'full_translation', rit.full_translation" in sql
+    assert "'input_chars', rit.input_chars" in sql
+
+
+def test_raw_item_upstream_event_ids_sql_reads_processing_and_events() -> None:
+    sql = _compact(raw_item_upstream_event_ids_sql())
+
+    assert "select p.event_id" in sql
+    assert "from events e" in sql
+    assert "where r.id = any(e.raw_item_ids)" in sql
+    assert "'{}'::uuid[]" in sql

@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from public_syncer.models import PublicOutboxItem, PublicOutboxTranslation
+from public_syncer.models import PublicOutboxItem, PublicOutboxTranslation, PublicRawItem
 from public_syncer.payload import build_payload, clamp_text, idempotency_key_for, public_translation_rows, sanitize_source_links
+from public_syncer.payload import build_raw_item_payload, raw_item_idempotency_key_for
 
 
 def make_item() -> PublicOutboxItem:
@@ -130,3 +131,109 @@ def test_clamp_text_normalizes_and_truncates_long_titles() -> None:
     assert len(clamped) == 300
     assert clamped.startswith("alpha ")
     assert clamped.endswith("…")
+
+
+def make_raw_item() -> PublicRawItem:
+    raw_item_id = uuid4()
+    return PublicRawItem(
+        id=raw_item_id,
+        source_id=uuid4(),
+        source_updated_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        ingested_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        title=" Raw item title ",
+        text_clean="Original content with token=abcdefghijklmnopqrstuvwxyz123456 and useful market detail.",
+        language="en",
+        url="https://example.com/news",
+        media_type="none",
+        summary_zh="中文摘要",
+        summary_en="English summary",
+        full_translation_zh="中文全文翻譯",
+        full_translation_en="English full translation",
+        translations=[
+            {
+                "language": "ja",
+                "summary": "日本語要約",
+                "full_translation": "日本語全文",
+                "status": "completed",
+                "input_chars": 120,
+            }
+        ],
+        translation_status="completed",
+        translation_input_chars=120,
+        content_category="macro_policy",
+        topic_tags=["Fed", "fed", "Gold"],
+        mentioned_actors=["Federal Reserve"],
+        source_name="Example",
+        source_type="rss",
+        source_group="macro",
+        official_level="official",
+        priority="P1",
+        classification_stage="completed",
+        classification_status="completed",
+        is_relevant=True,
+        relevance_score=88,
+        upstream_event_ids=[uuid4()],
+    )
+
+
+def test_raw_item_idempotency_key() -> None:
+    item = make_raw_item()
+
+    assert raw_item_idempotency_key_for(item) == f"raw_item:{item.id}:v1"
+
+
+def test_build_raw_item_payload_is_public_safe() -> None:
+    item = make_raw_item()
+
+    payload = build_raw_item_payload(item, max_original_chars=4000, max_translation_chars=8000)
+
+    assert payload["schema_version"] == "public_raw_item.v1"
+    assert payload["idempotency_key"] == f"raw_item:{item.id}:v1"
+    assert payload["upstream_raw_item_id"] == str(item.id)
+    assert payload["source"]["name"] == "Example"
+    assert payload["source_url"] == "https://example.com/news"
+    assert payload["title"] == "Raw item title"
+    assert "[REDACTED]" in payload["original_content"]
+    assert "abcdefghijklmnopqrstuvwxyz123456" not in payload["original_content"]
+    assert payload["summary_zh"] == "中文摘要"
+    assert payload["full_translation_en"] == "English full translation"
+    assert payload["translations"] == [
+        {
+            "language": "ja",
+            "summary": "日本語要約",
+            "full_translation": "日本語全文",
+            "status": "completed",
+            "is_truncated": False,
+            "source_chars": 120,
+            "translation_chars": 5,
+        }
+    ]
+    assert payload["topic_tags"] == ["Fed", "Gold"]
+    assert payload["classification"]["relevance_score"] == 88
+    assert "raw_json" not in payload
+    assert "text_raw" not in payload
+
+
+def test_build_raw_item_payload_truncates_original_and_translation() -> None:
+    item = make_raw_item()
+    item.text_clean = "alpha " * 20
+    item.full_translation_en = "bravo " * 20
+
+    payload = build_raw_item_payload(item, max_original_chars=20, max_translation_chars=25)
+
+    assert len(payload["original_content"]) == 20
+    assert payload["original_content"].endswith("…")
+    assert len(payload["full_translation_en"]) <= 25
+    assert payload["full_translation_en"].endswith("…")
+    assert payload["scrub_metadata"]["original_content_truncated"] is True
+    assert payload["scrub_metadata"]["full_translation_en_truncated"] is True
+
+
+def test_build_raw_item_payload_filters_non_http_url() -> None:
+    item = make_raw_item()
+    item.url = "ftp://example.com/file"
+
+    payload = build_raw_item_payload(item, max_original_chars=4000, max_translation_chars=8000)
+
+    assert payload["source_url"] is None
