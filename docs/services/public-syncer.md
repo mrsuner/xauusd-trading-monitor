@@ -2,11 +2,11 @@
 
 ## 1. 服務定位
 
-`public-syncer` 部署在 HomeLab，負責把 `public_outbox` 中已核准公開的事件同步到 VPS `public-api`。
+`public-syncer` 部署在 HomeLab，負責把 `public_outbox` 中已核准公開的事件同步到 VPS `public-api`。它也可選擇性同步 public-safe `raw_items` feed，作為獨立於 events 的公共原始資料源。
 
 它不是 publisher，也不直接發布到社交平台。它的輸出目標只有公共網站 ingest API。
 
-VPS 上的 `public-api` 有自己的 PostgreSQL 與 migrations；`public-syncer` 不需要知道 VPS schema，只需要遵守 `public_event.v1` ingest contract。
+VPS 上的 `public-api` 有自己的 PostgreSQL 與 migrations；`public-syncer` 不需要知道 VPS schema，只需要遵守 `public_event.v1` 與 `public_raw_item.v1` ingest contract。
 
 目標資料流：
 
@@ -20,12 +20,25 @@ VPS public-api
 public-postgres
 ```
 
+Raw feed 資料流：
+
+```text
+raw_items + raw_item_translations
+  ↓
+public_raw_item_sync_state
+  ↓
+public-syncer
+  ↓ HTTPS
+VPS public-api /ingest/raw-items
+```
+
 ## 2. 目標
 
 - 讀取 HomeLab PostgreSQL 的 `public_outbox`。
 - 只處理 `approved_for_public = true`。
 - 只處理 `publish_status_web in ('pending', 'retry')`。
 - 將 `public_outbox` 映射成 `public_event.v1` payload。
+- 選擇性將 eligible `raw_items` 映射成 `public_raw_item.v1` payload。
 - 以 HTTPS POST 到 VPS `public-api` ingest endpoint。
 - 支援 idempotency。
 - 支援 HMAC / API key auth。
@@ -40,7 +53,7 @@ V1 不包含：
 
 - 從 VPS 拉資料。
 - 讓 VPS 回調 HomeLab。
-- 同步 `raw_items`、完整原文、prompt、AI raw response、token usage。
+- 同步未清洗的 `raw_items.text_raw`、`raw_json`、prompt、AI raw response、token usage。
 - public copywriting 或 AI 改寫。
 - 社交平台發布。
 - 多個 public website destination。
@@ -72,6 +85,7 @@ Go 可作後續備選，但 V1 建議維持 Python。
 ### 5.2 輸出
 
 - `POST /ingest/events` 到 VPS `public-api`。
+- optional：`POST /ingest/raw-items` 到 VPS `public-api`。
 - `public_outbox.publish_status_web`。
 - `public_outbox.published_web_at`。
 - `public_outbox.provider_response_web`。
@@ -125,6 +139,58 @@ V1 payload：
 - 不得加入完整 raw item 原文。
 - 不得加入內部 provider response。
 - 不得直接同步 `raw_item_translations`；public payload 只包含 public-safe copy。
+
+### 6.1 Raw Item Payload Mapping
+
+`PUBLIC_SYNC_RAW_ITEMS_ENABLED=true` 時，服務會以獨立 state table `public_raw_item_sync_state` 同步 eligible raw items。
+
+V1 payload：
+
+```json
+{
+  "schema_version": "public_raw_item.v1",
+  "idempotency_key": "raw_item:<raw_item_id>:v1",
+  "upstream_raw_item_id": "uuid",
+  "source": {
+    "name": "...",
+    "source_type": "telegram",
+    "source_group": "macro",
+    "official_level": "official",
+    "priority": "P1"
+  },
+  "source_url": "https://...",
+  "published_at": "2026-06-13T10:00:00Z",
+  "ingested_at": "2026-06-13T10:00:05Z",
+  "title": "...",
+  "original_content": "scrubbed raw_items.text_clean, capped",
+  "summary_zh": "...",
+  "summary_en": "...",
+  "full_translation_zh": "...",
+  "full_translation_en": "...",
+  "translations": [
+    {
+      "language": "zh-Hant",
+      "summary": "...",
+      "full_translation": "...",
+      "status": "completed"
+    }
+  ],
+  "classification": {
+    "is_relevant": true,
+    "relevance_score": 88
+  },
+  "topic_tags": [],
+  "mentioned_actors": [],
+  "upstream_event_ids": []
+}
+```
+
+Raw feed 欄位原則：
+
+- 只使用 scrub 後的 `raw_items.text_clean`，不得同步 `text_raw`。
+- 不同步 `raw_json`、collector metadata、model prompt、model raw response、token usage、私人通知狀態。
+- `original_content` 與 `full_translation` 會依 env limit 截斷，並在 payload `scrub_metadata` 中標記。
+- raw sync 先處理 event outbox，再處理 raw items，避免 backfill 阻塞事件發布。
 
 ## 7. Claim 與並行控制
 
@@ -204,6 +270,13 @@ PUBLIC_SYNCER_MAX_PER_MINUTE=60
 PUBLIC_SYNCER_PROVIDER_TIMEOUT_SECONDS=10
 PUBLIC_SYNCER_LOCK_TIMEOUT_SECONDS=300
 PUBLIC_SYNCER_POLL_INTERVAL_SECONDS=10
+PUBLIC_SYNC_RAW_ITEMS_ENABLED=false
+PUBLIC_RAW_BACKFILL_ENABLED=false
+PUBLIC_RAW_BATCH_SIZE=20
+PUBLIC_RAW_MAX_PER_MINUTE=30
+PUBLIC_RAW_MIN_RELEVANCE_SCORE=50
+PUBLIC_RAW_MAX_ORIGINAL_CHARS=4000
+PUBLIC_RAW_MAX_TRANSLATION_CHARS=8000
 ```
 
 錯誤處理：
@@ -226,6 +299,7 @@ PUBLIC_SYNCER_ENABLED=false
 PUBLIC_SYNCER_DRY_RUN=true
 PUBLIC_API_BASE_URL=
 PUBLIC_INGEST_PATH=/ingest/events
+PUBLIC_RAW_INGEST_PATH=/ingest/raw-items
 PUBLIC_SYNC_AUTH_MODE=hmac
 PUBLIC_SYNC_KEY_ID=
 PUBLIC_SYNC_SECRET=
@@ -237,6 +311,13 @@ PUBLIC_SYNCER_MAX_PER_MINUTE=60
 PUBLIC_SYNCER_PROVIDER_TIMEOUT_SECONDS=10
 PUBLIC_SYNCER_LOCK_TIMEOUT_SECONDS=300
 PUBLIC_SYNCER_POLL_INTERVAL_SECONDS=10
+PUBLIC_SYNC_RAW_ITEMS_ENABLED=false
+PUBLIC_RAW_BACKFILL_ENABLED=false
+PUBLIC_RAW_BATCH_SIZE=20
+PUBLIC_RAW_MAX_PER_MINUTE=30
+PUBLIC_RAW_MIN_RELEVANCE_SCORE=50
+PUBLIC_RAW_MAX_ORIGINAL_CHARS=4000
+PUBLIC_RAW_MAX_TRANSLATION_CHARS=8000
 LOG_LEVEL=INFO
 ```
 
@@ -254,6 +335,7 @@ HomeLab production Compose 中此服務使用 `public-website` profile；啟用�
 Unit tests：
 
 - payload mapping。
+- raw item payload scrub / truncation。
 - source URL validation。
 - HMAC signature。
 - idempotency key generation。
@@ -279,4 +361,5 @@ Manual test：
 - 同一事件重複同步不產生 duplicate。
 - public-api 失敗不影響 HomeLab 其他服務。
 - `publish_status_web`、`last_error_web`、`provider_response_web` 可用於排障。
-- payload 不包含 raw item 原文、prompt、token usage 或內部 URL。
+- event payload 不包含 raw item 原文、prompt、token usage 或內部 URL。
+- raw item payload 不包含 `text_raw`、`raw_json`、prompt、token usage 或私人 metadata。

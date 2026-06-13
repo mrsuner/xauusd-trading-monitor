@@ -2,7 +2,7 @@
 
 ## 1. 服務定位
 
-`public-web` 是部署在 Cloudflare Pages 的公共網站前端，用於展示 `public-api` 提供的 public-safe event stream。
+`public-web` 是部署在 Cloudflare Pages 的公共網站前端，用於展示 `public-api` 提供的 public-safe event stream 與 raw source feed。
 
 它不同於 HomeLab `dashboard-web`：
 
@@ -13,6 +13,7 @@
 
 - 提供 public timeline。
 - 提供 event detail page。
+- 提供 public-safe raw source feed。
 - 支援 severity、tag、category、confirmation state filter。
 - 顯示 source attribution 與 source links。
 - mobile-first。
@@ -26,7 +27,7 @@ V1 不包含：
 - 登入、多租戶、付費訂閱。
 - source 管理。
 - processing / AI usage / alert delivery debug。
-- raw item 全文閱讀。
+- 未清洗 raw item、private metadata、prompt 或 AI raw response 閱讀。
 - 交易建議或下單功能。
 - 即時 WebSocket。
 - 複雜 chart 或行情疊加。
@@ -57,6 +58,8 @@ GET /events/{public_event_id}
 GET /tags
 GET /categories
 GET /stats/overview
+GET /raw-items
+GET /raw-items/{public_raw_item_id}
 ```
 
 不得呼叫 HomeLab `dashboard-api`，不得直接連 PostgreSQL。
@@ -124,6 +127,7 @@ UI 原則：
 - category。
 - mentioned actors。
 - route metadata 的 public-safe subset。
+- supporting raw items。
 
 後續可加入：
 
@@ -144,7 +148,29 @@ UI 原則：
 - 展示單一 topic tag 的事件流。
 - 例如 `iran`、`trump`、`fed`、`xauusd`。
 
-### 6.4 About Page
+### 6.4 Raw Source Feed
+
+路由：
+
+```text
+/raw
+/raw/:rawItemId
+```
+
+主要內容：
+
+- raw item card list。
+- source type / source name。
+- cleaned original content。
+- localized summary。
+- full translation。
+- topic tags、category、mentioned actors。
+- relevance band。
+- event detail linked supporting raw items。
+
+Public raw feed 僅展示 `public_raw_item.v1` 的 public-safe 欄位；不得展示 `text_raw`、`raw_json`、private chat metadata、prompt、AI raw response 或 token usage。
+
+### 6.5 About Page
 
 路由：
 
@@ -404,9 +430,9 @@ Browser tests：
 
 ## 12. 驗收標準
 
-- public-web 可只透過 public-api 展示事件列表。
+- public-web 可只透過 public-api 展示事件列表、raw feed 與詳情頁。
 - mobile 與 desktop layout 不重疊、不溢出。
-- 不顯示 raw item、prompt、AI usage、private alert、Telegram session 或 HomeLab URL。
+- 不顯示未清洗 raw item、prompt、AI usage、private alert、Telegram session 或 HomeLab URL。
 - source links 可點擊。
 - filters 可用。
 - About page 清楚說明非交易建議。
@@ -427,6 +453,9 @@ apps/public-web
 - TickBase-style sticky nav、theme toggle、footer。
 - Public timeline card list。
 - Event detail page。
+- Raw source feed page。
+- Raw source detail page。
+- Event detail supporting raw items。
 - Tag page。
 - About page。
 - Status page。

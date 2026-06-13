@@ -1,6 +1,6 @@
 # Public Raw Items Feed Implementation Plan
 
-狀態：方案審核完成，待實作。
+狀態：本地實作完成，待部署與 dry-run 驗證。
 
 目標：把 HomeLab `raw_items` 與其 public-safe 翻譯內容同步到 VPS `public-api` public database，作為獨立於 `public_events` 的原始資料 feed。此 feed 服務 public website 的資料瀏覽與 event detail supporting raw items，不替代現有事件摘要同步。
 
@@ -351,14 +351,17 @@ Rollback:
 
 ## 8. Acceptance Checklist
 
-- `public_events` behavior is unchanged.
-- Re-sending the same raw item updates one `public_raw_items` row, no duplicates.
-- Raw item with later translation update is re-synced.
-- Public API can list raw feed independently of events.
-- Public API can fetch supporting raw items for an event.
-- Public website renders summary + original content + full translation distinctly.
-- No private/internal fields appear in API responses or syncer logs.
-- Raw backfill failure does not block event public sync, anomaly consumer, alerts, or collectors.
+- [x] `public_events` behavior is unchanged in code path.
+- [x] Re-sending the same raw item updates one `public_raw_items` row by idempotency key.
+- [x] Raw item with later translation/classification update is eligible for re-sync through `public_raw_item_sync_state`.
+- [x] Public API can list raw feed independently of events.
+- [x] Public API can fetch supporting raw items for an event through `GET /raw-items?event_id=...`.
+- [x] Public website renders summary + original content + full translation distinctly.
+- [x] Syncer payload tests prove private/internal fields are excluded from raw payload.
+- [x] Raw backfill has separate enable flag, batch size and rate limit from event sync.
+- [ ] Deploy VPS `public-api` migration/image and verify `/raw-items`.
+- [ ] Deploy HomeLab migration/image with `PUBLIC_SYNC_RAW_ITEMS_ENABLED=false`.
+- [ ] Run production dry-run/backfill sample review before enabling raw sync.
 
 ## 9. Open Decisions
 

@@ -2,7 +2,7 @@
 
 ## 1. 服務定位
 
-`public-api` 部署在 VPS，負責接收 HomeLab `public-syncer` 推送的 public-safe events，保存到 public database，並提供公共網站讀取 API。
+`public-api` 部署在 VPS，負責接收 HomeLab `public-syncer` 推送的 public-safe events 與可選 raw item feed，保存到 public database，並提供公共網站讀取 API。
 
 它不是 HomeLab dashboard API，不讀 HomeLab DB，也不保存內部敏感資料。
 
@@ -23,6 +23,7 @@ public-web
 ## 2. 目標
 
 - 提供 event ingest endpoint。
+- 提供 raw item ingest endpoint。
 - 驗證 API key 或 HMAC signature。
 - 支援 idempotency。
 - 保存 public event 到 VPS database。
@@ -39,7 +40,7 @@ V1 不包含：
 - 管理 HomeLab source registry。
 - 私人通知、alert delivery 或 publisher delivery。
 - 使用者登入、多租戶、訂閱付費。
-- 寫入 raw item、prompt、AI raw response、token usage。
+- 寫入未清洗 raw item、prompt、AI raw response、token usage。
 - 在 public-api 內做 AI 分析或事件重新分類。
 
 ## 4. 技術棧
@@ -155,6 +156,33 @@ GET /events/{public_event_id}
 GET /tags
 GET /categories
 GET /stats/overview
+```
+
+Raw feed endpoints：
+
+```text
+POST /ingest/raw-items
+GET /raw-items
+GET /raw-items/{public_raw_item_id}
+```
+
+`POST /ingest/raw-items` 使用與 `/ingest/events` 相同的 HMAC / bearer auth。`public_ingest_requests` 會以 `ingest_kind='raw_item'` 記錄 request，HMAC nonce 防重放在 events/raw-items 之間保持全局有效。
+
+`GET /raw-items` filters：
+
+```text
+lang
+source_type
+source_group
+tag
+category
+q
+event_id
+min_relevance_score
+from
+to
+page
+page_size
 ```
 
 `GET /events` filters：
@@ -276,6 +304,15 @@ create table public_events_translations (
 );
 ```
 
+Raw feed tables：
+
+```sql
+create table public_raw_items (...);
+create table public_raw_item_translations (...);
+```
+
+`public_raw_items` 使用 `idempotency_key` 與 `upstream_raw_item_id` 去重；只保存 scrub 後且有字數上限的 original content / translation display copy，不保存 HomeLab `text_raw`、`raw_json`、prompt 或 token usage。
+
 Audit table：
 
 ```sql
@@ -283,6 +320,9 @@ create table public_ingest_requests (
   id uuid primary key default gen_random_uuid(),
   idempotency_key text,
   upstream_event_id uuid,
+  ingest_kind text not null default 'event',
+  public_event_id uuid,
+  public_raw_item_id uuid,
   request_hash text,
   key_id text,
   status text not null,
@@ -326,6 +366,10 @@ PUBLIC_INGEST_KEY_ID=
 PUBLIC_INGEST_SECRET=
 PUBLIC_INGEST_MAX_BODY_BYTES=262144
 PUBLIC_INGEST_TIMESTAMP_SKEW_SECONDS=300
+PUBLIC_INGEST_MAX_TITLE_CHARS=500
+PUBLIC_INGEST_MAX_SUMMARY_CHARS=4000
+PUBLIC_INGEST_MAX_ORIGINAL_CONTENT_CHARS=4000
+PUBLIC_INGEST_MAX_FULL_TRANSLATION_CHARS=8000
 CORS_ORIGINS=https://...
 DEFAULT_PAGE_SIZE=20
 MAX_PAGE_SIZE=100
@@ -368,6 +412,9 @@ Integration tests：
 - invalid signature。
 - read events pagination。
 - hidden event 不出現在 public list。
+- raw item ingest fixture。
+- raw item duplicate ingest。
+- raw item read pagination and event linking。
 
 ## 11. 驗收標準
 
@@ -375,4 +422,4 @@ Integration tests：
 - 重複 `idempotency_key` 不產生重複資料。
 - public read API 不回傳任何 private/internal 欄位。
 - invalid auth 無法 ingest。
-- public-web 可以只透過 public-api 完成事件列表與詳情頁。
+- public-web 可以只透過 public-api 完成事件列表、事件詳情、raw feed 與 raw detail。

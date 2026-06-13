@@ -1012,7 +1012,7 @@ VPS 新增元件：
 
 ### Phase 8.1: Public raw items feed
 
-任務狀態：待實作。此任務獨立於 `public_events` / `public_outbox` 事件摘要同步，目標是把 HomeLab `raw_items` 與已翻譯內容同步到 VPS `public-api` public database，作為公共網站除事件列表外的「原始資料源」feed。
+任務狀態：本地實作完成，待部署與 dry-run 驗證。此任務獨立於 `public_events` / `public_outbox` 事件摘要同步，目標是把 HomeLab `raw_items` 與已翻譯內容同步到 VPS `public-api` public database，作為公共網站除事件列表外的「原始資料源」feed。
 
 具體實施方案：見 [Public Raw Items Feed Implementation Plan](public-raw-items-feed-implementation-plan.md)。
 
