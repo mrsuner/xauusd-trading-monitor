@@ -1014,11 +1014,13 @@ VPS 新增元件：
 
 任務狀態：待實作。此任務獨立於 `public_events` / `public_outbox` 事件摘要同步，目標是把 HomeLab `raw_items` 與已翻譯內容同步到 VPS `public-api` public database，作為公共網站除事件列表外的「原始資料源」feed。
 
+具體實施方案：見 [Public Raw Items Feed Implementation Plan](public-raw-items-feed-implementation-plan.md)。
+
 設計邊界：
 
 - 不把 raw item 直接塞進 `public_event.v1`，避免破壞既有事件 contract。
 - 新增獨立 schema，例如 `public_raw_item.v1`，idempotency key 使用 `raw_item:<raw_item_id>:v1`。
-- VPS public DB 新增 `public_raw_items`、`public_raw_item_translations`、`public_raw_item_ingest_requests`。
+- VPS public DB 新增 `public_raw_items`、`public_raw_item_translations`，並擴展既有 `public_ingest_requests` 記錄 `raw_item` ingest，確保 HMAC nonce 在 events/raw-items 之間全局防重放。
 - `public-api` 新增 `POST /ingest/raw-items`、`GET /raw-items`、`GET /raw-items/{id}`。
 - HomeLab 新增 `raw_items` 同步 cursor / outbox 狀態，或擴展 `public-syncer` 增加 raw item mode；它應與 `public_outbox.publish_status_web` 分離。
 - public-web 新增 raw feed 頁面，並可從 event detail 連到 supporting raw items。

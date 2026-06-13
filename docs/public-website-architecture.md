@@ -135,13 +135,15 @@ V1 可以直接由 `public_outbox` 映射出 payload。後續若 public website 
 
 `public_event.v1` 只承載事件級 public summary。若公共網站需要像 HomeLab Event Radar Timeline 一樣展示「原始資料源」feed，應新增獨立 contract，而不是把 raw item 內容混入 event payload。
 
+具體實施方案：見 [Public Raw Items Feed Implementation Plan](public-raw-items-feed-implementation-plan.md)。
+
 Planned contract:
 
 - `schema_version`: `public_raw_item.v1`
 - ingest endpoint: `POST /ingest/raw-items`
 - read endpoints: `GET /raw-items`, `GET /raw-items/{public_raw_item_id}`
 - idempotency key: `raw_item:<raw_item_id>:v1`
-- VPS tables: `public_raw_items`, `public_raw_item_translations`, `public_raw_item_ingest_requests`
+- VPS tables: `public_raw_items`, `public_raw_item_translations`; extend existing `public_ingest_requests` with raw item ingest metadata so HMAC nonce replay protection remains global.
 
 Allowed public-safe fields:
 
@@ -202,6 +204,8 @@ Compatibility rules:
 - 私人通知策略與 delivery record。
 
 若需要展示更完整上下文，應由 `event-router` 或後續 public content adapter 先生成 public-safe summary，不應讓 public-api 直接讀內部資料。
+
+Planned `public_raw_item.v1` 是此邊界的受控例外：只能同步 scrub 後且有字數上限的 `raw_items.text_clean`、summary 與 full translation display copy；仍不得同步 `text_raw`、`raw_json`、AI prompt/raw response 或任何私有 collector metadata。
 
 ## 6. VPS Public Database
 
