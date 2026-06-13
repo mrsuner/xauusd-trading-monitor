@@ -200,7 +200,7 @@ class Database:
                       and rit.status in ('completed', 'completed_truncated')
                   ) translation_state on true
                   left join public_raw_item_sync_state state on state.raw_item_id = r.id
-                  where coalesce(s.archived, false) = false
+                  where s.archived_at is null
                     and (
                       nullif(btrim(coalesce(r.text_clean, '')), '') is not null
                       or (

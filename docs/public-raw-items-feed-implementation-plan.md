@@ -185,7 +185,7 @@ Eligibility V1:
 - `raw_items.text_clean` or non-empty title exists.
 - `raw_items.translation_status in ('completed', 'completed_truncated', 'skipped')` or at least one `raw_item_translations.status in ('completed', 'completed_truncated')`.
 - `raw_item_processing.is_relevant is true` or `relevance_score >= PUBLIC_RAW_MIN_RELEVANCE_SCORE`.
-- `sources.archived = false` and source is public-safe.
+- `sources.archived_at is null` and source is public-safe.
 - Exclude media-only empty items by default.
 
 Why not cursor only: translations/classification can arrive after `raw_items.ingested_at`, so a pure ingested cursor would miss late updates. The state table allows backfill, retries, late translation refresh, and payload hash based no-op detection.
