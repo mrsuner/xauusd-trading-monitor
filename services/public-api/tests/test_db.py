@@ -5,13 +5,18 @@ from uuid import uuid4
 
 from public_api.db import (
     _build_filters,
+    _build_raw_item_filters,
     normalize_public_language,
     public_event_translation_rows,
     public_event_translation_search_exists_sql,
     public_event_translations_select_sql,
+    public_raw_item_translation_rows,
+    public_raw_item_translation_search_exists_sql,
+    public_raw_item_translations_select_sql,
     shape_public_event,
+    shape_public_raw_item,
 )
-from public_api.models import PublicEventIngestRequest
+from public_api.models import PublicEventIngestRequest, PublicRawItemIngestRequest
 
 
 def event_row(**overrides: object) -> dict[str, object]:
@@ -35,6 +40,49 @@ def event_row(**overrides: object) -> dict[str, object]:
         "content_category": "macro_policy",
         "mentioned_actors": ["Federal Reserve"],
         "route_metadata": {},
+        "translations": [],
+    }
+    row.update(overrides)
+    return row
+
+
+def raw_item_row(**overrides: object) -> dict[str, object]:
+    row: dict[str, object] = {
+        "id": uuid4(),
+        "upstream_raw_item_id": uuid4(),
+        "idempotency_key": "raw_item:1:v1",
+        "schema_version": "public_raw_item.v1",
+        "source_name": "Example",
+        "source_type": "telegram",
+        "source_group": "macro",
+        "official_level": "official",
+        "priority": "P1",
+        "source_url": "https://example.com/news",
+        "published_at": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        "ingested_at": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        "edited_at": None,
+        "received_at": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        "title": "Raw item title",
+        "original_content": "Original content",
+        "source_language": "en",
+        "media_type": "none",
+        "summary_zh": "中文摘要",
+        "summary_en": "English summary",
+        "full_translation_zh": "中文全文翻譯",
+        "full_translation_en": "English full translation",
+        "content_category": "macro_policy",
+        "topic_tags": ["fed"],
+        "mentioned_actors": ["Federal Reserve"],
+        "upstream_event_ids": [uuid4()],
+        "is_relevant": True,
+        "relevance_score": 88,
+        "filter_reason": None,
+        "classification_stage": "completed",
+        "classification_status": "completed",
+        "is_truncated": False,
+        "source_text_chars": 100,
+        "translation_chars": 120,
+        "scrub_metadata": {},
         "translations": [],
     }
     row.update(overrides)
@@ -233,4 +281,141 @@ def test_public_event_translation_rows_prefer_payload_translations() -> None:
     assert [(row["language"], row["title"], row["summary"]) for row in rows] == [
         ("en", "Updated English title", "Updated English summary"),
         ("ja", "日本語タイトル", "日本語要約"),
+    ]
+
+
+def test_shape_public_raw_item_defaults_to_english() -> None:
+    item = shape_public_raw_item(raw_item_row(), lang=None)
+
+    assert item["summary"] == "English summary"
+    assert item["full_translation"] == "English full translation"
+    assert item["language"] == "en"
+    assert item["available_languages"] == ["en", "zh-Hant"]
+    assert item["translations"] == [
+        {
+            "language": "en",
+            "summary": "English summary",
+            "full_translation": "English full translation",
+            "status": None,
+            "is_truncated": False,
+            "source_chars": 100,
+            "translation_chars": 120,
+        },
+        {
+            "language": "zh-Hant",
+            "summary": "中文摘要",
+            "full_translation": "中文全文翻譯",
+            "status": None,
+            "is_truncated": False,
+            "source_chars": 100,
+            "translation_chars": 120,
+        },
+    ]
+
+
+def test_shape_public_raw_item_selects_arbitrary_translation_language() -> None:
+    item = shape_public_raw_item(
+        raw_item_row(
+            translations=[
+                {
+                    "language": "ja",
+                    "summary": "日本語要約",
+                    "full_translation": "日本語全文",
+                    "status": "completed",
+                    "is_truncated": False,
+                    "source_chars": 200,
+                    "translation_chars": 120,
+                }
+            ]
+        ),
+        lang="ja",
+    )
+
+    assert item["summary"] == "日本語要約"
+    assert item["full_translation"] == "日本語全文"
+    assert item["language"] == "ja"
+    assert item["available_languages"] == ["en", "zh-Hant", "ja"]
+
+
+def test_public_raw_item_translations_select_sql_reads_translation_rows() -> None:
+    sql = " ".join(public_raw_item_translations_select_sql(raw_item_alias="pri").split())
+
+    assert "from public_raw_item_translations prit" in sql
+    assert "where prit.public_raw_item_id = pri.id" in sql
+    assert "'language', prit.language" in sql
+    assert "'summary', prit.summary" in sql
+    assert "'full_translation', prit.full_translation" in sql
+
+
+def test_public_raw_item_translation_search_exists_sql_reads_translation_rows() -> None:
+    sql = " ".join(public_raw_item_translation_search_exists_sql(raw_item_alias="pri").split())
+
+    assert "from public_raw_item_translations prit_search" in sql
+    assert "where prit_search.public_raw_item_id = pri.id" in sql
+    assert "prit_search.summary ilike %(q)s" in sql
+    assert "prit_search.full_translation ilike %(q)s" in sql
+
+
+def test_build_raw_item_filters_searches_translation_rows_and_event_link() -> None:
+    event_id = str(uuid4())
+    where, params = _build_raw_item_filters(q="日本語", event_id=event_id, min_relevance_score=50)
+
+    assert "public_raw_item_translations prit_search" in where
+    assert "prit_search.full_translation ilike %(q)s" in where
+    assert "from public_events pe" in where
+    assert "pe.upstream_event_id = any(public_raw_items.upstream_event_ids)" in where
+    assert params["q"] == "%日本語%"
+    assert params["event_id"] == event_id
+    assert params["min_relevance_score"] == 50
+
+
+def test_public_raw_item_translation_rows_use_legacy_fields() -> None:
+    payload = PublicRawItemIngestRequest.model_validate(
+        {
+            "schema_version": "public_raw_item.v1",
+            "idempotency_key": "raw_item:1:v1",
+            "upstream_raw_item_id": str(uuid4()),
+            "title": "Title",
+            "summary_zh": "中文摘要",
+            "summary_en": "English summary",
+            "full_translation_en": "English full translation",
+            "scrub_metadata": {"source_text_chars": 300},
+        }
+    )
+
+    rows = public_raw_item_translation_rows(payload)
+
+    assert [(row["language"], row["summary"], row["full_translation"], row["source_chars"]) for row in rows] == [
+        ("zh-Hant", "中文摘要", None, 300),
+        ("en", "English summary", "English full translation", 300),
+    ]
+
+
+def test_public_raw_item_translation_rows_prefer_payload_translations() -> None:
+    payload = PublicRawItemIngestRequest.model_validate(
+        {
+            "schema_version": "public_raw_item.v1",
+            "idempotency_key": "raw_item:1:v1",
+            "upstream_raw_item_id": str(uuid4()),
+            "title": "Title",
+            "summary_en": "Legacy English summary",
+            "full_translation_en": "Legacy English full translation",
+            "translations": [
+                {
+                    "language": "en",
+                    "summary": "Updated English summary",
+                    "full_translation": "Updated English full translation",
+                    "status": "completed",
+                    "translation_chars": 32,
+                },
+                {"language": "ja", "summary": "日本語要約", "full_translation": "日本語全文"},
+            ],
+        }
+    )
+
+    rows = public_raw_item_translation_rows(payload)
+
+    assert [(row["language"], row["summary"], row["full_translation"], row["status"]) for row in rows] == [
+        ("en", "Updated English summary", "Updated English full translation", "completed"),
+        ("ja", "日本語要約", "日本語全文", None),
     ]

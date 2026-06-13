@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from .db import Database, PublicRepository
-from .models import PublicEventIngestRequest
+from .models import PublicEventIngestRequest, PublicRawItemIngestRequest
 from .security import timestamp_age_seconds, verify_signature
 from .settings import Settings
 
@@ -154,6 +154,80 @@ def create_app() -> FastAPI:
         result = await repository.ingest_event(payload, raw_body=body, key_id=xer_key_id, nonce=xer_nonce)
         return result
 
+    @app.post("/ingest/raw-items")
+    async def ingest_raw_item(
+        request: Request,
+        authorization: Annotated[str | None, Header()] = None,
+        idempotency_header: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+        xer_key_id: Annotated[str | None, Header(alias="X-XER-Key-Id")] = None,
+        xer_timestamp: Annotated[str | None, Header(alias="X-XER-Timestamp")] = None,
+        xer_nonce: Annotated[str | None, Header(alias="X-XER-Nonce")] = None,
+        xer_signature: Annotated[str | None, Header(alias="X-XER-Signature")] = None,
+        repository: PublicRepository = Depends(repo),
+    ) -> dict[str, Any]:
+        body = await request.body()
+        settings: Settings = request.app.state.settings
+        if len(body) > settings.ingest_max_body_bytes:
+            raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Payload too large")
+
+        try:
+            body_obj = json.loads(body)
+            idempotency_key = str(body_obj.get("idempotency_key") or idempotency_header or "")
+        except json.JSONDecodeError:
+            idempotency_key = idempotency_header or None
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message="invalid_json",
+                idempotency_key=idempotency_key,
+                ingest_kind="raw_item",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+
+        try:
+            await _authorize_ingest(
+                settings=settings,
+                repository=repository,
+                body=body,
+                authorization=authorization,
+                idempotency_key=idempotency_key,
+                key_id=xer_key_id,
+                timestamp=xer_timestamp,
+                nonce=xer_nonce,
+                signature=xer_signature,
+            )
+        except HTTPException as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc.detail),
+                idempotency_key=idempotency_key,
+                ingest_kind="raw_item",
+            )
+            raise
+
+        try:
+            payload = PublicRawItemIngestRequest.model_validate(body_obj)
+            _validate_public_raw_item_lengths(payload, settings)
+        except (ValidationError, ValueError) as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc),
+                idempotency_key=idempotency_key,
+                ingest_kind="raw_item",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid public raw item payload") from exc
+
+        if idempotency_header and idempotency_header != payload.idempotency_key:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Idempotency-Key header mismatch")
+
+        result = await repository.ingest_raw_item(payload, raw_body=body, key_id=xer_key_id, nonce=xer_nonce)
+        return result
+
     @app.get("/events")
     async def list_events(
         repository: PublicRepository = Depends(repo),
@@ -192,6 +266,49 @@ def create_app() -> FastAPI:
         if not event:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
         return event
+
+    @app.get("/raw-items")
+    async def list_raw_items(
+        repository: PublicRepository = Depends(repo),
+        default_page_size: int = Depends(page_size_default),
+        source_type: str | None = None,
+        source_group: str | None = None,
+        tag: str | None = None,
+        category: str | None = None,
+        q: str | None = None,
+        event_id: str | None = None,
+        lang: str | None = None,
+        min_relevance_score: Annotated[int | None, Query(ge=0, le=100)] = None,
+        from_time: Annotated[str | None, Query(alias="from")] = None,
+        to_time: Annotated[str | None, Query(alias="to")] = None,
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int | None, Query(ge=1)] = None,
+    ) -> dict[str, Any]:
+        return await repository.list_raw_items(
+            page=page,
+            page_size=page_size or default_page_size,
+            lang=lang,
+            source_type=source_type,
+            source_group=source_group,
+            tag=tag,
+            category=category,
+            q=q,
+            event_id=event_id,
+            min_relevance_score=min_relevance_score,
+            from_time=from_time,
+            to_time=to_time,
+        )
+
+    @app.get("/raw-items/{public_raw_item_id}")
+    async def get_raw_item(
+        public_raw_item_id: UUID,
+        repository: PublicRepository = Depends(repo),
+        lang: str | None = None,
+    ) -> dict[str, Any]:
+        raw_item = await repository.get_raw_item(public_raw_item_id, lang=lang)
+        if not raw_item:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Raw item not found")
+        return raw_item
 
     @app.get("/tags")
     async def list_tags(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
@@ -269,3 +386,25 @@ def _validate_public_text_lengths(payload: PublicEventIngestRequest, settings: S
         for value in summary_fields:
             if value and len(value) > settings.max_summary_chars:
                 raise ValueError("public summary is too long")
+
+
+def _validate_public_raw_item_lengths(payload: PublicRawItemIngestRequest, settings: Settings) -> None:
+    title_fields = [payload.title]
+    summary_fields = [payload.summary_zh, payload.summary_en]
+    full_translation_fields = [payload.full_translation_zh, payload.full_translation_en]
+    summary_fields.extend(translation.summary for translation in payload.translations)
+    full_translation_fields.extend(translation.full_translation for translation in payload.translations)
+    if settings.max_title_chars:
+        for value in title_fields:
+            if value and len(value) > settings.max_title_chars:
+                raise ValueError("public raw item title is too long")
+    if settings.max_original_content_chars and payload.original_content and len(payload.original_content) > settings.max_original_content_chars:
+        raise ValueError("public raw item original content is too long")
+    if settings.max_summary_chars:
+        for value in summary_fields:
+            if value and len(value) > settings.max_summary_chars:
+                raise ValueError("public raw item summary is too long")
+    if settings.max_full_translation_chars:
+        for value in full_translation_fields:
+            if value and len(value) > settings.max_full_translation_chars:
+                raise ValueError("public raw item full translation is too long")

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     ingest_timestamp_skew_seconds: int = Field(default=300, alias="PUBLIC_INGEST_TIMESTAMP_SKEW_SECONDS")
     max_summary_chars: int = Field(default=4000, alias="PUBLIC_INGEST_MAX_SUMMARY_CHARS")
     max_title_chars: int = Field(default=500, alias="PUBLIC_INGEST_MAX_TITLE_CHARS")
+    max_original_content_chars: int = Field(default=4000, alias="PUBLIC_INGEST_MAX_ORIGINAL_CONTENT_CHARS")
+    max_full_translation_chars: int = Field(default=8000, alias="PUBLIC_INGEST_MAX_FULL_TRANSLATION_CHARS")
 
     cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     default_page_size: int = Field(default=20, alias="DEFAULT_PAGE_SIZE")
@@ -48,7 +50,7 @@ class Settings(BaseSettings):
             raise ValueError("value must be > 0")
         return value
 
-    @field_validator("max_summary_chars", "max_title_chars")
+    @field_validator("max_summary_chars", "max_title_chars", "max_original_content_chars", "max_full_translation_chars")
     @classmethod
     def validate_non_negative_int(cls, value: int) -> int:
         if value < 0:

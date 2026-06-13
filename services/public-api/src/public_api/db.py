@@ -10,7 +10,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .models import LANGUAGE_CODE_RE, PublicEventIngestRequest
+from .models import LANGUAGE_CODE_RE, PublicEventIngestRequest, PublicRawItemIngestRequest
 from .security import body_sha256
 
 logger = logging.getLogger(__name__)
@@ -242,6 +242,7 @@ class PublicRepository:
             await cur.execute(
                 """
                 insert into public_ingest_requests (
+                  ingest_kind,
                   idempotency_key,
                   upstream_event_id,
                   public_event_id,
@@ -251,6 +252,7 @@ class PublicRepository:
                   status
                 )
                 values (
+                  'event',
                   %(idempotency_key)s,
                   %(upstream_event_id)s,
                   %(public_event_id)s,
@@ -273,6 +275,235 @@ class PublicRepository:
         await self.db.conn.commit()
         return {"status": status, "public_event_id": row["id"], "idempotency_key": payload.idempotency_key}
 
+    async def ingest_raw_item(
+        self,
+        payload: PublicRawItemIngestRequest,
+        *,
+        raw_body: bytes,
+        key_id: str | None,
+        nonce: str | None,
+    ) -> dict[str, Any]:
+        translation_rows = public_raw_item_translation_rows(payload)
+        params = {
+            "upstream_raw_item_id": payload.upstream_raw_item_id,
+            "idempotency_key": payload.idempotency_key,
+            "schema_version": payload.schema_version,
+            "source_name": payload.source.name,
+            "source_type": payload.source.source_type,
+            "source_group": payload.source.source_group,
+            "official_level": payload.source.official_level,
+            "priority": payload.source.priority,
+            "source_url": str(payload.source_url) if payload.source_url else None,
+            "published_at": payload.published_at,
+            "ingested_at": payload.ingested_at,
+            "edited_at": payload.edited_at,
+            "title": payload.title,
+            "original_content": payload.original_content,
+            "language": payload.language,
+            "media_type": payload.media_type,
+            "summary_zh": payload.summary_zh,
+            "summary_en": payload.summary_en,
+            "full_translation_zh": payload.full_translation_zh,
+            "full_translation_en": payload.full_translation_en,
+            "content_category": payload.content_category,
+            "topic_tags": payload.topic_tags,
+            "mentioned_actors": payload.mentioned_actors,
+            "upstream_event_ids": payload.upstream_event_ids,
+            "is_relevant": payload.classification.is_relevant,
+            "relevance_score": payload.classification.relevance_score,
+            "filter_reason": payload.classification.filter_reason,
+            "classification_stage": payload.classification.stage,
+            "classification_status": payload.classification.status,
+            "is_truncated": bool(
+                payload.scrub_metadata.get("original_content_truncated")
+                or any(translation.is_truncated for translation in payload.translations)
+            ),
+            "source_text_chars": _optional_int(payload.scrub_metadata.get("source_text_chars")),
+            "translation_chars": _max_translation_chars(payload),
+            "scrub_metadata": Jsonb(payload.scrub_metadata),
+        }
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(
+                """
+                insert into public_raw_items (
+                  upstream_raw_item_id,
+                  idempotency_key,
+                  schema_version,
+                  source_name,
+                  source_type,
+                  source_group,
+                  official_level,
+                  priority,
+                  source_url,
+                  published_at,
+                  ingested_at,
+                  edited_at,
+                  title,
+                  original_content,
+                  language,
+                  media_type,
+                  summary_zh,
+                  summary_en,
+                  full_translation_zh,
+                  full_translation_en,
+                  content_category,
+                  topic_tags,
+                  mentioned_actors,
+                  upstream_event_ids,
+                  is_relevant,
+                  relevance_score,
+                  filter_reason,
+                  classification_stage,
+                  classification_status,
+                  is_truncated,
+                  source_text_chars,
+                  translation_chars,
+                  scrub_metadata
+                )
+                values (
+                  %(upstream_raw_item_id)s,
+                  %(idempotency_key)s,
+                  %(schema_version)s,
+                  %(source_name)s,
+                  %(source_type)s,
+                  %(source_group)s,
+                  %(official_level)s,
+                  %(priority)s,
+                  %(source_url)s,
+                  %(published_at)s,
+                  %(ingested_at)s,
+                  %(edited_at)s,
+                  %(title)s,
+                  %(original_content)s,
+                  %(language)s,
+                  %(media_type)s,
+                  %(summary_zh)s,
+                  %(summary_en)s,
+                  %(full_translation_zh)s,
+                  %(full_translation_en)s,
+                  %(content_category)s,
+                  %(topic_tags)s,
+                  %(mentioned_actors)s,
+                  %(upstream_event_ids)s,
+                  %(is_relevant)s,
+                  %(relevance_score)s,
+                  %(filter_reason)s,
+                  %(classification_stage)s,
+                  %(classification_status)s,
+                  %(is_truncated)s,
+                  %(source_text_chars)s,
+                  %(translation_chars)s,
+                  %(scrub_metadata)s
+                )
+                on conflict (idempotency_key) do update
+                set upstream_raw_item_id = excluded.upstream_raw_item_id,
+                    schema_version = excluded.schema_version,
+                    source_name = excluded.source_name,
+                    source_type = excluded.source_type,
+                    source_group = excluded.source_group,
+                    official_level = excluded.official_level,
+                    priority = excluded.priority,
+                    source_url = excluded.source_url,
+                    published_at = excluded.published_at,
+                    ingested_at = excluded.ingested_at,
+                    edited_at = excluded.edited_at,
+                    title = excluded.title,
+                    original_content = excluded.original_content,
+                    language = excluded.language,
+                    media_type = excluded.media_type,
+                    summary_zh = excluded.summary_zh,
+                    summary_en = excluded.summary_en,
+                    full_translation_zh = excluded.full_translation_zh,
+                    full_translation_en = excluded.full_translation_en,
+                    content_category = excluded.content_category,
+                    topic_tags = excluded.topic_tags,
+                    mentioned_actors = excluded.mentioned_actors,
+                    upstream_event_ids = excluded.upstream_event_ids,
+                    is_relevant = excluded.is_relevant,
+                    relevance_score = excluded.relevance_score,
+                    filter_reason = excluded.filter_reason,
+                    classification_stage = excluded.classification_stage,
+                    classification_status = excluded.classification_status,
+                    is_truncated = excluded.is_truncated,
+                    source_text_chars = excluded.source_text_chars,
+                    translation_chars = excluded.translation_chars,
+                    scrub_metadata = excluded.scrub_metadata,
+                    updated_at = now()
+                returning id, (xmax = 0) as inserted
+                """,
+                params,
+            )
+            row = await cur.fetchone()
+            status = "accepted" if row and row["inserted"] else "duplicate"
+            if row and translation_rows:
+                for translation in translation_rows:
+                    translation["public_raw_item_id"] = row["id"]
+                await cur.executemany(
+                    """
+                    insert into public_raw_item_translations (
+                      public_raw_item_id,
+                      language,
+                      summary,
+                      full_translation,
+                      status,
+                      is_truncated,
+                      source_chars,
+                      translation_chars
+                    )
+                    values (
+                      %(public_raw_item_id)s,
+                      %(language)s,
+                      %(summary)s,
+                      %(full_translation)s,
+                      %(status)s,
+                      %(is_truncated)s,
+                      %(source_chars)s,
+                      %(translation_chars)s
+                    )
+                    on conflict (public_raw_item_id, language) do update
+                    set summary = excluded.summary,
+                        full_translation = excluded.full_translation,
+                        status = excluded.status,
+                        is_truncated = excluded.is_truncated,
+                        source_chars = excluded.source_chars,
+                        translation_chars = excluded.translation_chars,
+                        updated_at = now()
+                    """,
+                    translation_rows,
+                )
+            await cur.execute(
+                """
+                insert into public_ingest_requests (
+                  ingest_kind,
+                  idempotency_key,
+                  public_raw_item_id,
+                  request_hash,
+                  key_id,
+                  nonce,
+                  status
+                )
+                values (
+                  'raw_item',
+                  %(idempotency_key)s,
+                  %(public_raw_item_id)s,
+                  %(request_hash)s,
+                  %(key_id)s,
+                  %(nonce)s,
+                  %(status)s
+                )
+                """,
+                {
+                    "idempotency_key": payload.idempotency_key,
+                    "public_raw_item_id": row["id"],
+                    "request_hash": body_sha256(raw_body),
+                    "key_id": key_id,
+                    "nonce": nonce,
+                    "status": status,
+                },
+            )
+        await self.db.conn.commit()
+        return {"status": status, "public_raw_item_id": row["id"], "idempotency_key": payload.idempotency_key}
+
     async def record_rejected_ingest(
         self,
         *,
@@ -281,11 +512,13 @@ class PublicRepository:
         nonce: str | None,
         error_message: str,
         idempotency_key: str | None = None,
+        ingest_kind: str = "event",
     ) -> None:
         async with self.db.conn.cursor() as cur:
             await cur.execute(
                 """
                 insert into public_ingest_requests (
+                  ingest_kind,
                   idempotency_key,
                   request_hash,
                   key_id,
@@ -294,6 +527,7 @@ class PublicRepository:
                   error_message
                 )
                 values (
+                  %(ingest_kind)s,
                   %(idempotency_key)s,
                   %(request_hash)s,
                   %(key_id)s,
@@ -304,6 +538,7 @@ class PublicRepository:
                 on conflict do nothing
                 """,
                 {
+                    "ingest_kind": ingest_kind,
                     "idempotency_key": idempotency_key,
                     "request_hash": body_sha256(raw_body),
                     "key_id": key_id,
@@ -312,6 +547,143 @@ class PublicRepository:
                 },
             )
         await self.db.conn.commit()
+
+    async def list_raw_items(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        lang: str | None = None,
+        source_type: str | None = None,
+        source_group: str | None = None,
+        tag: str | None = None,
+        category: str | None = None,
+        q: str | None = None,
+        event_id: str | None = None,
+        min_relevance_score: int | None = None,
+        from_time: str | None = None,
+        to_time: str | None = None,
+    ) -> dict[str, Any]:
+        limit = min(page_size, self.max_page_size)
+        offset = (page - 1) * limit
+        where, params = _build_raw_item_filters(
+            source_type=source_type,
+            source_group=source_group,
+            tag=tag,
+            category=category,
+            q=q,
+            event_id=event_id,
+            min_relevance_score=min_relevance_score,
+            from_time=from_time,
+            to_time=to_time,
+        )
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(f"select count(*) as total from public_raw_items {where}", params)
+            total_row = await cur.fetchone()
+            await cur.execute(
+                f"""
+                select
+                  id,
+                  upstream_raw_item_id,
+                  idempotency_key,
+                  schema_version,
+                  source_name,
+                  source_type,
+                  source_group,
+                  official_level,
+                  priority,
+                  source_url,
+                  published_at,
+                  ingested_at,
+                  edited_at,
+                  received_at,
+                  title,
+                  original_content,
+                  language as source_language,
+                  media_type,
+                  summary_zh,
+                  summary_en,
+                  full_translation_zh,
+                  full_translation_en,
+                  content_category,
+                  topic_tags,
+                  mentioned_actors,
+                  upstream_event_ids,
+                  is_relevant,
+                  relevance_score,
+                  filter_reason,
+                  classification_stage,
+                  classification_status,
+                  is_truncated,
+                  source_text_chars,
+                  translation_chars,
+                  scrub_metadata,
+{public_raw_item_translations_select_sql()} as translations
+                from public_raw_items
+                {where}
+                order by coalesce(published_at, ingested_at, received_at) desc, received_at desc
+                limit %(limit)s offset %(offset)s
+                """,
+                {**params, "limit": limit, "offset": offset},
+            )
+            rows = await cur.fetchall()
+        await self.db.conn.commit()
+        return {
+            "items": [shape_public_raw_item(row, lang=lang) for row in rows],
+            "page": page,
+            "page_size": limit,
+            "total": int(total_row["total"]),
+        }
+
+    async def get_raw_item(self, public_raw_item_id: UUID, *, lang: str | None = None) -> dict[str, Any] | None:
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(
+                f"""
+                select
+                  id,
+                  upstream_raw_item_id,
+                  idempotency_key,
+                  schema_version,
+                  source_name,
+                  source_type,
+                  source_group,
+                  official_level,
+                  priority,
+                  source_url,
+                  published_at,
+                  ingested_at,
+                  edited_at,
+                  received_at,
+                  title,
+                  original_content,
+                  language as source_language,
+                  media_type,
+                  summary_zh,
+                  summary_en,
+                  full_translation_zh,
+                  full_translation_en,
+                  content_category,
+                  topic_tags,
+                  mentioned_actors,
+                  upstream_event_ids,
+                  is_relevant,
+                  relevance_score,
+                  filter_reason,
+                  classification_stage,
+                  classification_status,
+                  is_truncated,
+                  source_text_chars,
+                  translation_chars,
+                  scrub_metadata,
+{public_raw_item_translations_select_sql()} as translations
+                from public_raw_items
+                where id = %(id)s and is_visible = true
+                """,
+                {"id": public_raw_item_id},
+            )
+            row = await cur.fetchone()
+        await self.db.conn.commit()
+        return shape_public_raw_item(row, lang=lang) if row else None
 
     async def list_events(
         self,
@@ -501,6 +873,61 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
     return f"where {' and '.join(clauses)}", params
 
 
+def _build_raw_item_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
+    clauses = ["is_visible = true"]
+    params: dict[str, Any] = {}
+    if filters.get("source_type"):
+        clauses.append("source_type = %(source_type)s")
+        params["source_type"] = filters["source_type"]
+    if filters.get("source_group"):
+        clauses.append("source_group = %(source_group)s")
+        params["source_group"] = filters["source_group"]
+    if filters.get("tag"):
+        clauses.append("%(tag)s = any(topic_tags)")
+        params["tag"] = filters["tag"]
+    if filters.get("category"):
+        clauses.append("content_category = %(category)s")
+        params["category"] = filters["category"]
+    if filters.get("min_relevance_score") is not None:
+        clauses.append("relevance_score >= %(min_relevance_score)s")
+        params["min_relevance_score"] = filters["min_relevance_score"]
+    if filters.get("from_time"):
+        clauses.append("coalesce(published_at, ingested_at, received_at) >= %(from_time)s")
+        params["from_time"] = filters["from_time"]
+    if filters.get("to_time"):
+        clauses.append("coalesce(published_at, ingested_at, received_at) <= %(to_time)s")
+        params["to_time"] = filters["to_time"]
+    if filters.get("event_id"):
+        clauses.append(
+            """
+            exists (
+              select 1
+              from public_events pe
+              where pe.id = %(event_id)s
+                and pe.upstream_event_id = any(public_raw_items.upstream_event_ids)
+            )
+            """
+        )
+        params["event_id"] = filters["event_id"]
+    if filters.get("q"):
+        clauses.append(
+            f"""
+            (
+              title ilike %(q)s
+              or original_content ilike %(q)s
+              or summary_zh ilike %(q)s
+              or summary_en ilike %(q)s
+              or full_translation_zh ilike %(q)s
+              or full_translation_en ilike %(q)s
+              or source_name ilike %(q)s
+              or {public_raw_item_translation_search_exists_sql()}
+            )
+            """
+        )
+        params["q"] = f"%{filters['q']}%"
+    return f"where {' and '.join(clauses)}", params
+
+
 def _json_ready(row: dict[str, Any]) -> dict[str, Any]:
     return dict(row)
 
@@ -570,6 +997,112 @@ def public_event_translation_rows(payload: PublicEventIngestRequest) -> list[dic
     return list(rows_by_language.values())
 
 
+def public_raw_item_translations_select_sql(
+    *,
+    raw_item_alias: str = "public_raw_items",
+    translation_alias: str = "prit",
+    indent: str = "                  ",
+) -> str:
+    return f"""{indent}coalesce(
+{indent}  (
+{indent}    select jsonb_agg(
+{indent}      jsonb_build_object(
+{indent}        'language', {translation_alias}.language,
+{indent}        'summary', {translation_alias}.summary,
+{indent}        'full_translation', {translation_alias}.full_translation,
+{indent}        'status', {translation_alias}.status,
+{indent}        'is_truncated', {translation_alias}.is_truncated,
+{indent}        'source_chars', {translation_alias}.source_chars,
+{indent}        'translation_chars', {translation_alias}.translation_chars
+{indent}      )
+{indent}      order by
+{indent}        case {translation_alias}.language
+{indent}          when '{PUBLIC_LANGUAGE_EN}' then 0
+{indent}          when '{PUBLIC_LANGUAGE_ZH_HANT}' then 1
+{indent}          else 2
+{indent}        end,
+{indent}        {translation_alias}.language
+{indent}    )
+{indent}    from public_raw_item_translations {translation_alias}
+{indent}    where {translation_alias}.public_raw_item_id = {raw_item_alias}.id
+{indent}  ),
+{indent}  '[]'::jsonb
+{indent})"""
+
+
+def public_raw_item_translation_search_exists_sql(
+    *,
+    raw_item_alias: str = "public_raw_items",
+    translation_alias: str = "prit_search",
+) -> str:
+    return f"""exists (
+              select 1
+              from public_raw_item_translations {translation_alias}
+              where {translation_alias}.public_raw_item_id = {raw_item_alias}.id
+                and (
+                  {translation_alias}.summary ilike %(q)s
+                  or {translation_alias}.full_translation ilike %(q)s
+                )
+            )"""
+
+
+def public_raw_item_translation_rows(payload: PublicRawItemIngestRequest) -> list[dict[str, Any]]:
+    rows_by_language: dict[str, dict[str, Any]] = {}
+
+    def add_row(
+        *,
+        language: str,
+        summary: str | None,
+        full_translation: str | None,
+        status: str | None = None,
+        is_truncated: bool = False,
+        source_chars: int | None = None,
+        translation_chars: int | None = None,
+    ) -> None:
+        if not summary and not full_translation:
+            return
+        rows_by_language[language] = {
+            "public_raw_item_id": None,
+            "language": language,
+            "summary": summary,
+            "full_translation": full_translation,
+            "status": status,
+            "is_truncated": is_truncated,
+            "source_chars": source_chars,
+            "translation_chars": translation_chars,
+        }
+
+    add_row(
+        language=PUBLIC_LANGUAGE_ZH_HANT,
+        summary=payload.summary_zh,
+        full_translation=payload.full_translation_zh,
+        status=None,
+        is_truncated=bool(payload.scrub_metadata.get("full_translation_zh_truncated")),
+        source_chars=_optional_int(payload.scrub_metadata.get("source_text_chars")),
+        translation_chars=len(payload.full_translation_zh) if payload.full_translation_zh else None,
+    )
+    add_row(
+        language=PUBLIC_LANGUAGE_EN,
+        summary=payload.summary_en,
+        full_translation=payload.full_translation_en,
+        status=None,
+        is_truncated=bool(payload.scrub_metadata.get("full_translation_en_truncated")),
+        source_chars=_optional_int(payload.scrub_metadata.get("source_text_chars")),
+        translation_chars=len(payload.full_translation_en) if payload.full_translation_en else None,
+    )
+    for translation in payload.translations:
+        add_row(
+            language=translation.language,
+            summary=translation.summary,
+            full_translation=translation.full_translation,
+            status=translation.status,
+            is_truncated=translation.is_truncated,
+            source_chars=translation.source_chars,
+            translation_chars=translation.translation_chars,
+        )
+    return list(rows_by_language.values())
+
+
 def normalize_public_language(lang: str | None) -> str:
     normalized = (lang or "").strip()
     if not normalized or not LANGUAGE_CODE_RE.match(normalized):
@@ -584,6 +1117,19 @@ def shape_public_event(row: dict[str, Any], *, lang: str | None = None) -> dict[
     selected_lang = _selected_language(translations, requested_lang)
     data["title"] = _localized_value(translations, field="title", selected_lang=selected_lang)
     data["summary"] = _localized_value(translations, field="summary", selected_lang=selected_lang)
+    data["language"] = selected_lang
+    data["available_languages"] = _available_languages(translations)
+    data["translations"] = translations
+    return data
+
+
+def shape_public_raw_item(row: dict[str, Any], *, lang: str | None = None) -> dict[str, Any]:
+    data = _json_ready(row)
+    requested_lang = normalize_public_language(lang)
+    translations = _public_raw_item_translation_rows(data)
+    selected_lang = _selected_raw_item_language(translations, requested_lang)
+    data["summary"] = _localized_value(translations, field="summary", selected_lang=selected_lang)
+    data["full_translation"] = _localized_value(translations, field="full_translation", selected_lang=selected_lang)
     data["language"] = selected_lang
     data["available_languages"] = _available_languages(translations)
     data["translations"] = translations
@@ -662,6 +1208,79 @@ def _public_translation_rows(row: dict[str, Any]) -> list[dict[str, str | None]]
     return sorted(rows, key=lambda item: _language_sort_key(item["language"]))
 
 
+def _public_raw_item_translation_rows(row: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for raw_translation in row.get("translations") or []:
+        if not isinstance(raw_translation, dict):
+            continue
+        language = raw_translation.get("language")
+        if not isinstance(language, str) or not language.strip():
+            continue
+        summary = _optional_string(raw_translation.get("summary"))
+        full_translation = _optional_string(raw_translation.get("full_translation"))
+        if not summary and not full_translation:
+            continue
+        normalized_language = language.strip()
+        rows.append(
+            {
+                "language": normalized_language,
+                "summary": summary,
+                "full_translation": full_translation,
+                "status": _optional_string(raw_translation.get("status")),
+                "is_truncated": bool(raw_translation.get("is_truncated")),
+                "source_chars": _optional_int(raw_translation.get("source_chars")),
+                "translation_chars": _optional_int(raw_translation.get("translation_chars")),
+            }
+        )
+        seen.add(normalized_language)
+
+    for language, summary_key, full_translation_key in (
+        (PUBLIC_LANGUAGE_EN, "summary_en", "full_translation_en"),
+        (PUBLIC_LANGUAGE_ZH_HANT, "summary_zh", "full_translation_zh"),
+    ):
+        if language in seen:
+            continue
+        summary = _optional_string(row.get(summary_key))
+        full_translation = _optional_string(row.get(full_translation_key))
+        if summary or full_translation:
+            rows.append(
+                {
+                    "language": language,
+                    "summary": summary,
+                    "full_translation": full_translation,
+                    "status": None,
+                    "is_truncated": bool(row.get("is_truncated")),
+                    "source_chars": _optional_int(row.get("source_text_chars")),
+                    "translation_chars": _optional_int(row.get("translation_chars")),
+                }
+            )
+            seen.add(language)
+
+    return sorted(rows, key=lambda item: _language_sort_key(item["language"]))
+
+
+def _selected_raw_item_language(translations: list[dict[str, Any]], requested_lang: str) -> str:
+    if _has_raw_item_content(translations, requested_lang):
+        return requested_lang
+    if _has_raw_item_content(translations, PUBLIC_LANGUAGE_EN):
+        return PUBLIC_LANGUAGE_EN
+    for translation in translations:
+        language = translation.get("language")
+        if language and _raw_item_translation_has_content(translation):
+            return str(language)
+    return requested_lang
+
+
+def _has_raw_item_content(translations: list[dict[str, Any]], lang: str) -> bool:
+    return any(translation.get("language") == lang and _raw_item_translation_has_content(translation) for translation in translations)
+
+
+def _raw_item_translation_has_content(translation: dict[str, Any]) -> bool:
+    return bool(translation.get("summary") or translation.get("full_translation"))
+
+
 def _translation_value(translations: list[dict[str, str | None]], *, language: str, field: str) -> str | None:
     for translation in translations:
         if translation.get("language") == language:
@@ -676,6 +1295,29 @@ def _translation_has_content(translation: dict[str, str | None]) -> bool:
 
 def _optional_string(value: Any) -> str | None:
     return str(value) if value else None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
+
+
+def _max_translation_chars(payload: PublicRawItemIngestRequest) -> int | None:
+    candidates: list[int] = []
+    for value in (payload.full_translation_zh, payload.full_translation_en):
+        if value:
+            candidates.append(len(value))
+    for translation in payload.translations:
+        if translation.translation_chars is not None:
+            candidates.append(translation.translation_chars)
+        elif translation.full_translation:
+            candidates.append(len(translation.full_translation))
+    return max(candidates) if candidates else None
 
 
 def _language_sort_key(language: str) -> tuple[int, str]:
