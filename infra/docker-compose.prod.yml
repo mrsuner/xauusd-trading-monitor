@@ -8,7 +8,7 @@ x-default-logging: &default-logging
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.14-alpine
     restart: unless-stopped
     logging: *default-logging
     environment:
