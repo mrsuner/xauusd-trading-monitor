@@ -19,6 +19,8 @@ const en = {
     tags: "Tags",
     about: "About",
     status: "Status",
+    support: "Support",
+    supportCta: "Support",
     language: "Language",
     tickbaseHome: "TickBase News home",
     toggleTheme: "Toggle theme"
@@ -29,6 +31,7 @@ const en = {
     latestEvents: "Latest events",
     rawFeed: "Raw feed",
     methodology: "Methodology",
+    support: "Support this site",
     apiStatus: "API status",
     dataBoundary: "Data Boundary",
     dataBoundaryBody:
@@ -169,6 +172,33 @@ const en = {
       }
     ]
   },
+  support: {
+    eyebrow: "Support",
+    title: "Powered by goodwill — keep the radar running",
+    body:
+      "TickBase News is free and has no subscription. Unlike TickBase's monthly plan, this site runs on a \"pay it forward\" model: if it creates value for you, a small donation helps keep it online for everyone.",
+    costsTitle: "Where your support goes",
+    costs: [
+      {
+        title: "AI inference",
+        body: "Translation, summarization, and relevance judgement run on paid model APIs. This is the largest recurring cost as coverage grows."
+      },
+      {
+        title: "Servers & infrastructure",
+        body: "The public site, public API, and database run on a VPS that has to stay online around the clock to keep the feed fresh."
+      },
+      {
+        title: "Ongoing development",
+        body: "Daily maintenance, new sources, and feature work that keep the event radar accurate, fast, and useful."
+      }
+    ],
+    ctaTitle: "Buy the radar a minute — or an hour",
+    ctaBody:
+      "On Ko-fi you can chip in any amount to \"top up\" the site's running time, by the minute or by the hour. Every bit directly offsets AI, server, and upkeep costs.",
+    ctaButton: "Support on Ko-fi",
+    ctaNote: "Donations are voluntary and do not unlock paywalled content — everything here stays public.",
+    disclaimer: "Support keeps the lights on; it does not buy investment advice. All content remains information and research only."
+  },
   status: {
     eyebrow: "Status",
     title: "Public API Status",
@@ -265,6 +295,8 @@ const zhHant: typeof en = {
     tags: "標籤",
     about: "關於",
     status: "狀態",
+    support: "支持",
+    supportCta: "支持",
     language: "語言",
     tickbaseHome: "TickBase News 首頁",
     toggleTheme: "切換主題"
@@ -275,6 +307,7 @@ const zhHant: typeof en = {
     latestEvents: "最新事件",
     rawFeed: "原始 feed",
     methodology: "方法說明",
+    support: "支持本站",
     apiStatus: "API 狀態",
     dataBoundary: "資料邊界",
     dataBoundaryBody:
@@ -411,6 +444,33 @@ const zhHant: typeof en = {
         body: "本網站內容僅供資訊與研究用途，不構成投資建議、交易建議、法律建議或財務建議。"
       }
     ]
+  },
+  support: {
+    eyebrow: "支持",
+    title: "用愛發電，維持雷達運轉",
+    body:
+      "TickBase News 完全免費、沒有訂閱制。不同於 TickBase 的月付模式，本站採「用愛發電」：如果它為你帶來價值，一點小額捐助就能幫助它持續為大家運轉。",
+    costsTitle: "你的支持會用在哪裡",
+    costs: [
+      {
+        title: "AI 調用",
+        body: "翻譯、摘要與相關度判斷都跑在付費模型 API 上。隨著覆蓋範圍擴大，這是最主要的持續性成本。"
+      },
+      {
+        title: "伺服器與基礎設施",
+        body: "公開網站、public API 與資料庫跑在 VPS 上，必須全天候在線才能維持 feed 的即時性。"
+      },
+      {
+        title: "日常開發維護",
+        body: "每日維護、新增來源與功能開發，讓事件雷達持續準確、快速且實用。"
+      }
+    ],
+    ctaTitle: "幫雷達續一分鐘，或一小時",
+    ctaBody:
+      "在 Ko-fi 你可以用任意金額為本站「續時」，以分鐘或小時計。每一份支持都直接抵銷 AI、伺服器與維護成本。",
+    ctaButton: "前往 Ko-fi 支持",
+    ctaNote: "捐助完全出於自願，也不會解鎖任何付費內容——這裡的一切都維持公開。",
+    disclaimer: "支持是維持站點運轉，而非購買投資建議。所有內容仍僅供資訊與研究用途。"
   },
   status: {
     eyebrow: "狀態",

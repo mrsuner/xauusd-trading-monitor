@@ -11,6 +11,7 @@ import { EventsPage } from "./pages/EventsPage";
 import { RawItemDetailPage } from "./pages/RawItemDetailPage";
 import { RawItemsPage } from "./pages/RawItemsPage";
 import { StatusPage } from "./pages/StatusPage";
+import { SupportPage } from "./pages/SupportPage";
 import { TagPage } from "./pages/TagPage";
 
 const queryClient = new QueryClient({
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
   { path: "/tags/:tag", element: <LegacyRedirect /> },
   { path: "/about", element: <LegacyRedirect /> },
   { path: "/status", element: <LegacyRedirect /> },
+  { path: "/support", element: <LegacyRedirect /> },
   {
     path: "/:lang",
     element: <LanguageLayout />,
@@ -43,7 +45,8 @@ const router = createBrowserRouter([
       { path: "raw/:rawItemId", element: <RawItemDetailPage /> },
       { path: "tags/:tag", element: <TagPage /> },
       { path: "about", element: <AboutPage /> },
-      { path: "status", element: <StatusPage /> }
+      { path: "status", element: <StatusPage /> },
+      { path: "support", element: <SupportPage /> }
     ]
   }
 ]);

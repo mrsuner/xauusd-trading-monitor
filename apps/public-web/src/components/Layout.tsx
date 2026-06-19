@@ -1,5 +1,6 @@
-import { Languages, Menu } from "lucide-react";
+import { Coffee, Languages, Menu } from "lucide-react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { KOFI_URL } from "../pages/SupportPage";
 import {
   languageLabels,
   localizedPath,
@@ -24,7 +25,8 @@ export function Layout() {
     { path: "/events", search: "?severity=S", label: t.nav.highImpact },
     { path: "/tags/iran", label: t.nav.tags },
     { path: "/about", label: t.nav.about },
-    { path: "/status", label: t.nav.status }
+    { path: "/status", label: t.nav.status },
+    { path: "/support", label: t.nav.support }
   ];
 
   return (
@@ -53,6 +55,15 @@ export function Layout() {
           <div className="ml-auto flex items-center gap-2">
             <LanguageSwitcher />
             <ThemeToggle />
+            <a
+              href={KOFI_URL}
+              target="_blank"
+              className="btn btn-primary btn-sm hidden sm:inline-flex"
+              rel="noreferrer"
+            >
+              <Coffee className="h-4 w-4" />
+              {t.nav.supportCta}
+            </a>
             <a
               href="https://thetickbase.com"
               className="btn btn-ghost btn-sm hidden sm:inline-flex"
@@ -169,6 +180,9 @@ function Footer() {
             </NavLink>
             <NavLink to={to("/about")} className="hover:text-primary">
               {t.footer.methodology}
+            </NavLink>
+            <NavLink to={to("/support")} className="hover:text-primary">
+              {t.footer.support}
             </NavLink>
             <NavLink to={to("/status")} className="hover:text-primary">
               {t.footer.apiStatus}
