@@ -6,15 +6,7 @@ from .models import PublicOutboxItem, SourceLink
 
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
-SEVERITY_LABELS = {
-    "S": "[S]",
-    "A": "[A]",
-    "B": "[Watch]",
-    "C": "[Info]",
-}
-
 TOPIC_HASHTAGS = {
-    "xauusd": "#XAUUSD",
     "gold": "#Gold",
     "fed": "#Fed",
     "iran": "#Iran",
@@ -22,13 +14,17 @@ TOPIC_HASHTAGS = {
     "geopolitics": "#Geopolitics",
     "oil": "#Oil",
     "israel": "#Israel",
+    "sanctions": "#Sanctions",
+    "diplomacy": "#Diplomacy",
+    "military": "#Military",
+    "energy": "#Energy",
+    "market": "#Markets",
+    "economy": "#Economy",
+    "nuclear": "#Nuclear",
+    "hormuz": "#Hormuz",
 }
 
-CONFIRMATION_LABELS = {
-    "unconfirmed": "未確認",
-    "partially_confirmed": "部分確認",
-    "contradicted": "相互矛盾",
-}
+MACHINE_KEY_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$")
 
 TRADE_ADVICE_PATTERNS = (
     "做多",
@@ -94,22 +90,38 @@ def canonical_source_link(item: PublicOutboxItem) -> SourceLink | None:
     return None
 
 
-def render_hashtags(tags: list[str], *, limit: int = 2) -> str:
+def hashtag_for(raw: str) -> str | None:
+    key = raw.strip().lower().replace("-", "_")
+    tag = TOPIC_HASHTAGS.get(key)
+    if tag:
+        return tag
+    clean = re.sub(r"[^A-Za-z0-9_]", "", raw.strip().replace("-", "_"))
+    if not clean:
+        return None
+    return f"#{clean[:30]}"
+
+
+def category_tokens_from_title(title: str) -> list[str]:
+    key = title.strip().lower()
+    if not MACHINE_KEY_RE.fullmatch(key):
+        return []
+    return [token for token in key.split("_") if token]
+
+
+def render_hashtags(tags: list[str], *, title: str | None = None, limit: int = 2) -> str:
     rendered: list[str] = []
-    for raw in tags:
-        key = raw.strip().lower().replace("-", "_")
-        tag = TOPIC_HASHTAGS.get(key)
+    candidates = [*tags]
+    if title:
+        candidates.extend(category_tokens_from_title(title))
+
+    for raw in candidates:
+        tag = hashtag_for(raw)
         if not tag:
-            clean = re.sub(r"[^A-Za-z0-9_]", "", raw.strip().replace("-", "_"))
-            if not clean:
-                continue
-            tag = f"#{clean[:30]}"
+            continue
         if tag not in rendered:
             rendered.append(tag)
         if len(rendered) >= limit:
             break
-    if "#XAUUSD" not in rendered:
-        rendered.insert(0, "#XAUUSD")
     return " ".join(rendered[:limit])
 
 
@@ -119,19 +131,13 @@ def contains_trade_advice(text: str) -> bool:
 
 
 def build_post(item: PublicOutboxItem, *, limit: int) -> str:
-    severity = SEVERITY_LABELS.get(item.severity, f"[{item.severity}]")
-    title = compact_text(title_for(item), limit=96)
-    summary = compact_text(summary_for(item), limit=120)
-    confirmation = item.confirmation_state or "unconfirmed"
+    title = title_for(item)
+    summary = compact_text(summary_for(item), limit=180)
     source_link = canonical_source_link(item)
     source_name = compact_text(source_link.label, limit=32) if source_link else None
-    hashtags = render_hashtags(item.topic_tags)
+    hashtags = render_hashtags(item.topic_tags, title=title)
 
-    lines = [f"{severity} {title}"]
-    if summary and summary != title:
-        lines.extend(["", summary])
-    if confirmation in CONFIRMATION_LABELS:
-        lines.extend(["", f"狀態：{CONFIRMATION_LABELS[confirmation]}"])
+    lines = [summary or compact_text(title, limit=180)]
     if source_name:
         lines.extend(["", f"來源：{source_name}"])
     if hashtags:
@@ -141,12 +147,12 @@ def build_post(item: PublicOutboxItem, *, limit: int) -> str:
     if len(post) <= limit:
         return post
 
-    compact_summary = compact_text(summary, limit=72)
-    lines = [f"{severity} {compact_text(title, limit=82)}"]
-    if compact_summary and compact_summary != title:
-        lines.extend(["", compact_summary])
+    compact_summary = compact_text(summary, limit=120)
+    lines = [compact_summary or compact_text(title, limit=120)]
     if source_name:
         lines.extend(["", f"來源：{source_name}"])
+    if hashtags:
+        lines.extend(["", hashtags])
     post = "\n".join(lines)
     if len(post) <= limit:
         return post
@@ -154,9 +160,11 @@ def build_post(item: PublicOutboxItem, *, limit: int) -> str:
     fixed_lines = []
     if source_name:
         fixed_lines.append(f"來源：{source_name}")
+    if hashtags:
+        fixed_lines.append(hashtags)
     fixed_tail = "\n\n".join(fixed_lines)
     reserved = len(fixed_tail) + (2 if fixed_tail else 0)
-    header = f"{severity} {compact_text(title, limit=max(20, limit - reserved))}"
+    header = compact_text(summary or title, limit=max(20, limit - reserved))
     if fixed_tail:
         return compact_text(f"{header}\n\n{fixed_tail}", limit=limit)
     return compact_text(header, limit=limit)

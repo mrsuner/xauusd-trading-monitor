@@ -177,11 +177,11 @@ X V1 應採用一則短文，不做 thread。
 建議格式：
 
 ```text
-[S] 伊朗強硬派否認 Trump 的核協議說法。
+塔斯尼姆轉載一份所謂伊朗與美國的諒解備忘錄全文，內容涉及停火、解除制裁及後續談判安排。
 
-市場先交易樂觀預期，但伊朗安全系統尚未確認，反轉風險升高。
+來源：Tasnim News
 
-Source: Tasnim
+#Sanctions #Diplomacy
 ```
 
 格式原則：
@@ -192,22 +192,24 @@ Source: Tasnim
 - 不包含交易建議。
 - 不寫「買入」、「賣出」、「做多」、「做空」。
 - 不發布完整原文。
-- 未確認消息必須使用清楚措辭，例如「未確認」、「單一來源」。
+- 不發布內部 routing metadata，例如 severity、relevance score、`event_type` machine key 或 `confirmation_state`。
+- 來源歸屬由正文與 `來源：...` 表達；系統提供多來源、多視角參考，不把 X post 包裝成 100% fact-check 結論。
 - hashtag 控制在 1-3 個，避免像 spam。
+- hashtag 應貼合事件分類或主題，不固定附加 `#XAUUSD`。
 - V1 不使用 AI 針對 X 再次改寫內容；若後續加入 copy adapter，也只能做壓縮，不得新增事實。
 - 不讀取或套用 `public_outbox_translations`；X 文案在 V1 仍以 legacy Chinese channel copy 為準。
 
 建議 hashtag：
 
 ```text
-#XAUUSD
-#Gold
+#Sanctions
+#Diplomacy
 #Geopolitics
 #Fed
 #Iran
 ```
 
-V1 可先固定最多 2 個 hashtag：一個資產主題、一個事件主題。
+V1 可先固定最多 2 個 hashtag：優先使用事件分類，其次使用主題或主要 actor。
 
 ### 8.1 Translation Boundary
 
@@ -345,8 +347,7 @@ X 是公開擴散平台，風險高於 Telegram Channel。服務不得發布：
 
 措辭原則：
 
-- 使用「reported」、「said」、「claimed」、「unconfirmed」等來源歸屬語義。
-- 對未確認事件明確標示確認狀態。
+- 使用「據」、「稱」、「轉載」、「報導」、「需進一步核實」等來源歸屬語義。
 - 對市場影響使用「可能影響」、「市場正在關注」，避免斷言。
 
 ## 14. 測試策略
@@ -358,7 +359,7 @@ Unit tests：
 - hashtag 裁剪。
 - URL stripping，確保 title / summary / source label / source link 都不會讓 post 文字包含 `http://` 或 `https://`。
 - source attribution。
-- severity / confirmation label。
+- 不輸出 severity / confirmation label / machine key header。
 - duplicate detection。
 - provider error classification。
 

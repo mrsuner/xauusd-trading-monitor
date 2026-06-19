@@ -29,16 +29,36 @@ def test_build_post_uses_public_payload_and_source_attribution_without_url() -> 
 
     post = build_post(item, limit=260)
 
-    assert post.startswith("[S] 伊朗強硬派否認 Trump")
+    assert post.startswith("市場先交易樂觀預期")
     assert "來源：Tasnim" in post
-    assert "狀態：部分確認" in post
+    assert "狀態：" not in post
+    assert "[S]" not in post
+    assert "partially_confirmed" not in post
     assert "Source:" not in post
     assert "Status:" not in post
     assert "https://example.com/news" not in post
     assert "http://" not in post
     assert "https://" not in post
-    assert "#XAUUSD" in post
+    assert "#Iran" in post
+    assert "#Trump" in post
+    assert "#XAUUSD" not in post
     assert len(post) <= 260
+
+
+def test_build_post_uses_machine_key_title_only_for_hashtags() -> None:
+    item = make_item(
+        public_title_zh="sanctions_diplomacy",
+        public_summary_zh="塔斯尼姆轉載一份所謂伊朗與美國的諒解備忘錄全文，內容涉及停火、解除制裁及後續談判安排。",
+        topic_tags=[],
+    )
+
+    post = build_post(item, limit=260)
+
+    assert post.startswith("塔斯尼姆轉載")
+    assert "sanctions_diplomacy" not in post
+    assert "[S]" not in post
+    assert "#Sanctions" in post
+    assert "#Diplomacy" in post
 
 
 def test_build_post_truncates_to_limit() -> None:
@@ -59,9 +79,9 @@ def test_build_post_strips_urls_from_public_text() -> None:
 
     post = build_post(item, limit=260)
 
-    assert "Fed headline" in post
     assert "Market watching for confirmation." in post
     assert "來源：Source" in post
+    assert "Fed headline" not in post
     assert "http://" not in post
     assert "https://" not in post
 
