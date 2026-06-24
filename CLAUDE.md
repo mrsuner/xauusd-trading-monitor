@@ -13,6 +13,14 @@ The authoritative product spec is `docs/overview.md`; scope boundaries are in `d
 - Chat/explanation output: **Traditional Chinese**. Code, identifiers, comments, commit messages, commands, paths, API names, error messages: **English**.
 - Work on `develop` or feature branches off `develop`. **Never** commit to `main` unless the user explicitly asks for a release commit.
 
+### Merge workflow
+
+Promotion always flows **feature → `develop` → `main`**. `main` is the **release** branch — it only receives changes by merging `develop` at release time, never directly from a feature branch.
+
+- Land a feature branch into `develop` (then push `develop`).
+- Promote to `main` **only** when the user explicitly asks for a release; that merge comes from `develop`, not from a feature branch.
+- Never skip `develop` by merging or pushing a feature branch straight into `main`.
+
 ## Architecture
 
 Monorepo of independent Python backend services + one React frontend, coordinated through a single PostgreSQL database. **PostgreSQL is the source of truth**; there is no message broker. Services communicate by writing rows and polling a work queue.
