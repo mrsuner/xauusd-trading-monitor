@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import json
+import re
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LANGUAGE_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
+DEFAULT_TRANSLATION_OUTPUT_LANGUAGES = ("zh-Hant", "en")
 
 
 class Settings(BaseSettings):
@@ -56,6 +62,9 @@ class Settings(BaseSettings):
     translation_model_reasoning_effort: str | None = Field(default=None, alias="TRANSLATION_MODEL_REASONING_EFFORT")
     translation_http_referer: str | None = Field(default=None, alias="TRANSLATION_HTTP_REFERER")
     translation_app_title: str | None = Field(default="XAUUSD Event Radar", alias="TRANSLATION_APP_TITLE")
+    translation_output_languages_raw: str = Field(default="zh-Hant,en", alias="TRANSLATION_OUTPUT_LANGUAGES")
+    translation_language_labels_json: str | None = Field(default=None, alias="TRANSLATION_LANGUAGE_LABELS_JSON")
+    translation_require_all_languages: bool = Field(default=True, alias="TRANSLATION_REQUIRE_ALL_LANGUAGES")
     translation_default_max_chars: int = Field(default=20000, alias="TRANSLATION_DEFAULT_MAX_CHARS")
     translation_high_priority_max_chars: int = Field(default=100000, alias="TRANSLATION_HIGH_PRIORITY_MAX_CHARS")
     translation_single_call_max_chars: int = Field(default=100000, alias="TRANSLATION_SINGLE_CALL_MAX_CHARS")
@@ -151,9 +160,58 @@ class Settings(BaseSettings):
         "translation_model_reasoning_effort",
         "translation_http_referer",
         "translation_app_title",
+        "translation_language_labels_json",
     )
     @classmethod
     def normalize_optional_string(cls, value: str | None) -> str | None:
         if value is None or value == "":
             return None
         return value
+
+    @field_validator("translation_output_languages_raw")
+    @classmethod
+    def validate_translation_output_languages_raw(cls, value: str) -> str:
+        parse_language_list(value, env_name="TRANSLATION_OUTPUT_LANGUAGES")
+        return value
+
+    @property
+    def translation_output_languages(self) -> tuple[str, ...]:
+        return parse_language_list(self.translation_output_languages_raw, env_name="TRANSLATION_OUTPUT_LANGUAGES")
+
+    @property
+    def translation_language_labels(self) -> dict[str, str]:
+        if not self.translation_language_labels_json:
+            return {}
+        try:
+            decoded = json.loads(self.translation_language_labels_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError("TRANSLATION_LANGUAGE_LABELS_JSON must be valid JSON") from exc
+        if not isinstance(decoded, dict):
+            raise ValueError("TRANSLATION_LANGUAGE_LABELS_JSON must be a JSON object")
+        labels: dict[str, str] = {}
+        for key, value in decoded.items():
+            language = str(key).strip()
+            if language not in self.translation_output_languages:
+                raise ValueError("TRANSLATION_LANGUAGE_LABELS_JSON keys must match TRANSLATION_OUTPUT_LANGUAGES")
+            label = str(value).strip()
+            if label:
+                labels[language] = label
+        return labels
+
+
+def parse_language_list(value: str | None, *, env_name: str) -> tuple[str, ...]:
+    raw_languages = [item.strip() for item in str(value or "").split(",")]
+    languages: list[str] = []
+    for language in raw_languages:
+        if not language:
+            continue
+        if not LANGUAGE_CODE_RE.match(language):
+            raise ValueError(f"{env_name} contains invalid BCP 47 language code: {language}")
+        if language in languages:
+            raise ValueError(f"{env_name} contains duplicate language code: {language}")
+        languages.append(language)
+    if not languages:
+        raise ValueError(f"{env_name} must contain at least one language code")
+    if len(languages) > 8:
+        raise ValueError(f"{env_name} supports at most 8 languages")
+    return tuple(languages)

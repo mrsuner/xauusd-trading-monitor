@@ -96,6 +96,7 @@ def test_normalize_public_language_defaults_to_english() -> None:
     assert normalize_public_language("not a language") == "en"
     assert normalize_public_language("en") == "en"
     assert normalize_public_language("zh-Hant") == "zh-Hant"
+    assert normalize_public_language("bad language", default_language="zh-Hant") == "zh-Hant"
 
 
 def test_shape_public_event_defaults_to_english() -> None:
@@ -193,6 +194,25 @@ def test_shape_public_event_falls_back_to_available_language_when_english_missin
     assert event["summary"] == "日本語要約"
     assert event["language"] == "ja"
     assert event["available_languages"] == ["ja"]
+
+
+def test_shape_public_event_uses_configured_default_language_and_priority() -> None:
+    event = shape_public_event(
+        event_row(
+            translations=[
+                {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
+                {"language": "th", "title": "หัวข้อภาษาไทย", "summary": "สรุปภาษาไทย"},
+            ]
+        ),
+        lang=None,
+        default_language="zh-Hant",
+        language_priority=("zh-Hant", "en", "th", "ja"),
+    )
+
+    assert event["title"] == "中文標題"
+    assert event["summary"] == "中文摘要"
+    assert event["language"] == "zh-Hant"
+    assert event["available_languages"] == ["zh-Hant", "en", "th", "ja"]
 
 
 def test_shape_public_event_falls_back_per_field() -> None:

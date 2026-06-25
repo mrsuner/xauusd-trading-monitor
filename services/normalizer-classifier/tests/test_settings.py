@@ -53,6 +53,31 @@ def test_settings_accepts_translation_model_defaults() -> None:
     assert settings.translation_fallback_model_name == "openai/gpt-oss-20b"
     assert settings.translation_paid_fallback_enabled is True
     assert settings.translation_high_priority_max_chars == 100000
+    assert settings.translation_output_languages == ("zh-Hant", "en")
+    assert settings.translation_require_all_languages is True
+
+
+def test_settings_accepts_configured_translation_languages() -> None:
+    settings = Settings(
+        DATABASE_URL="postgresql://user:pass@localhost/db",
+        CLOUD_MODEL_API_KEY="test-key",
+        TRANSLATION_OUTPUT_LANGUAGES="zh-Hant,en,th,ja",
+        TRANSLATION_LANGUAGE_LABELS_JSON='{"zh-Hant":"Traditional Chinese","en":"English","th":"Thai","ja":"Japanese"}',
+        TRANSLATION_REQUIRE_ALL_LANGUAGES="false",
+    )
+
+    assert settings.translation_output_languages == ("zh-Hant", "en", "th", "ja")
+    assert settings.translation_language_labels["th"] == "Thai"
+    assert settings.translation_require_all_languages is False
+
+
+def test_settings_rejects_duplicate_translation_languages() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            DATABASE_URL="postgresql://user:pass@localhost/db",
+            CLOUD_MODEL_API_KEY="test-key",
+            TRANSLATION_OUTPUT_LANGUAGES="en,en",
+        )
 
 
 def test_settings_accepts_stale_task_timeout() -> None:

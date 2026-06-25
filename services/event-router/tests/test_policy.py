@@ -3,7 +3,14 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from event_router.models import AlertChannelStats, EventContext, RawItemContext, RoutePolicyRuntime, SourceContext
+from event_router.models import (
+    AlertChannelStats,
+    EventContext,
+    RawItemContext,
+    RawItemTranslationContext,
+    RoutePolicyRuntime,
+    SourceContext,
+)
 from event_router.policy import route_results
 from event_router.settings import Settings
 
@@ -175,6 +182,39 @@ def test_public_outbox_preserves_english_public_content() -> None:
             "Fed rhetoric turns more hawkish",
             "Fed-linked remarks emphasized persistent inflation and policy restraint.",
         ),
+    ]
+
+
+def test_public_outbox_uses_configured_additional_translation_languages() -> None:
+    event = make_event(
+        severity="A",
+        relevance_score=90,
+        title="Fed rhetoric turns more hawkish",
+        summary_en="Fed-linked remarks emphasized persistent inflation and policy restraint.",
+    )
+    event.raw_item_translations = [
+        RawItemTranslationContext(language="ja", summary="Fed 関係者の発言は根強いインフレを強調した。"),
+        RawItemTranslationContext(language="th", summary="ถ้อยแถลงที่เกี่ยวข้องกับ Fed เน้นเงินเฟ้อที่ยังคงอยู่"),
+    ]
+
+    results = route_results(
+        event,
+        RoutePolicyRuntime(),
+        make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True, PUBLIC_OUTBOX_LANGUAGES="zh-Hant,en,th,ja"),
+    )
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is True
+    assert public_website.public_outbox is not None
+    assert [(row.language, row.title, row.summary) for row in public_website.public_outbox.translations] == [
+        ("zh-Hant", "Fed rhetoric turns more hawkish", "測試事件摘要。"),
+        (
+            "en",
+            "Fed rhetoric turns more hawkish",
+            "Fed-linked remarks emphasized persistent inflation and policy restraint.",
+        ),
+        ("th", None, "ถ้อยแถลงที่เกี่ยวข้องกับ Fed เน้นเงินเฟ้อที่ยังคงอยู่"),
+        ("ja", None, "Fed 関係者の発言は根強いインフレを強調した。"),
     ]
 
 

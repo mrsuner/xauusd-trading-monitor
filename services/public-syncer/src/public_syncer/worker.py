@@ -115,7 +115,7 @@ class PublicSyncer:
         return synced
 
     async def _sync_item(self, item: PublicOutboxItem, provider: PublicApiProvider) -> None:
-        payload = build_payload(item)
+        payload = build_payload(item, sync_languages=self.settings.public_sync_languages)
         idempotency_key = idempotency_key_for(item)
 
         if self.settings.dry_run:
@@ -164,6 +164,7 @@ class PublicSyncer:
             item,
             max_original_chars=self.settings.raw_max_original_chars,
             max_translation_chars=self.settings.raw_max_translation_chars,
+            sync_languages=self.settings.public_raw_sync_languages,
         )
         idempotency_key = raw_item_idempotency_key_for(item)
         payload_hash = body_sha256(json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8"))

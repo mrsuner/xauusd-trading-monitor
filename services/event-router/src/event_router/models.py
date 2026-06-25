@@ -35,6 +35,13 @@ class RawItemContext(BaseModel):
     text_raw: str | None = None
 
 
+class RawItemTranslationContext(BaseModel):
+    language: str
+    summary: str | None = None
+    full_translation: str | None = None
+    status: str | None = None
+
+
 class EventClaimContext(BaseModel):
     claim_text: str
     claim_direction: str
@@ -61,6 +68,7 @@ class EventContext(BaseModel):
     source_group: str | None = None
     source: SourceContext = Field(default_factory=SourceContext)
     raw_item: RawItemContext = Field(default_factory=RawItemContext)
+    raw_item_translations: list[RawItemTranslationContext] = Field(default_factory=list)
     claims: list[EventClaimContext] = Field(default_factory=list)
     topic_tags: list[str] = Field(default_factory=list)
 

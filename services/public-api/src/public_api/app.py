@@ -30,7 +30,12 @@ def create_app() -> FastAPI:
         await db.connect()
         app.state.settings = settings
         app.state.db = db
-        app.state.repository = PublicRepository(db, max_page_size=settings.max_page_size)
+        app.state.repository = PublicRepository(
+            db,
+            max_page_size=settings.max_page_size,
+            default_language=settings.public_default_language,
+            language_priority=settings.public_language_priority,
+        )
         try:
             yield
         finally:

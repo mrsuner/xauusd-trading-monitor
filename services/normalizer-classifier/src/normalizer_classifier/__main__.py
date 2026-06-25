@@ -29,6 +29,7 @@ async def run_worker() -> None:
         settings.database_url,
         min_size=settings.db_pool_min_size,
         max_size=db_pool_max_size,
+        translation_output_languages=settings.translation_output_languages,
     )
     model_client = build_model_client(settings)
     translation_model_clients = build_translation_model_clients(settings)

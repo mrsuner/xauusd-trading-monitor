@@ -362,6 +362,57 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
     assert response.result.translation_for("ja") is not None
 
 
+async def test_openai_style_model_client_requires_configured_translation_languages(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        user_payload = json_module.loads(json["messages"][1]["content"])
+        assert user_payload["translation_scope"]["output_languages"] == ["zh-Hant", "en", "ja"]
+        content = {
+            "translations": [
+                {
+                    "language": "zh-Hant",
+                    "summary": "Trump 稱伊朗協議接近完成。",
+                    "full_translation": "Trump 表示伊朗協議已接近完成。",
+                },
+                {
+                    "language": "en",
+                    "summary": "Trump says an Iran deal is close.",
+                    "full_translation": "Trump says Iran deal is close.",
+                },
+            ],
+            "content_category": "diplomacy",
+            "topic_tags": ["trump", "iran"],
+            "mentioned_actors": ["Trump", "Iran"],
+            "detected_language": "en",
+            "notes": None,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="translation_primary",
+        base_url="https://api.example.test/v1",
+        api_key="test-key",
+        model="translation-model",
+        timeout_seconds=5,
+        response_format="json_object",
+        translation_output_languages=("zh-Hant", "en", "ja"),
+    )
+
+    try:
+        await client.summarize_and_translate(raw_item, source, normalized)
+    except Exception as exc:
+        assert "missing languages: ja" in str(exc)
+    else:
+        raise AssertionError("expected missing configured language to fail")
+
+
 def test_auxiliary_text_result_backfills_translations_from_legacy_fields() -> None:
     result = AuxiliaryTextResult.model_validate(
         {
@@ -386,6 +437,23 @@ def test_auxiliary_text_json_schema_uses_translations_array() -> None:
     assert "translations" in schema["required"]
     translation_item = schema["properties"]["translations"]["items"]
     assert translation_item["required"] == ["language", "summary", "full_translation"]
+    assert schema["properties"]["translations"]["minItems"] == 2
+    assert translation_item["properties"]["language"]["enum"] == ["zh-Hant", "en"]
+
+
+def test_auxiliary_text_json_schema_can_use_configured_languages() -> None:
+    schema = auxiliary_text_json_schema_response_format(
+        ("zh-Hant", "en", "th", "ja"),
+        require_all_languages=True,
+    )["json_schema"]["schema"]
+
+    assert schema["properties"]["translations"]["minItems"] == 4
+    assert schema["properties"]["translations"]["items"]["properties"]["language"]["enum"] == [
+        "zh-Hant",
+        "en",
+        "th",
+        "ja",
+    ]
 
 
 def test_build_auxiliary_model_client_openrouter() -> None:
@@ -417,9 +485,11 @@ def test_build_translation_model_clients_use_free_then_paid_fallback() -> None:
         TRANSLATION_PRIMARY_MODEL_NAME="openai/gpt-oss-20b:free",
         TRANSLATION_FALLBACK_MODEL_NAME="openai/gpt-oss-20b",
         TRANSLATION_PAID_FALLBACK_ENABLED="true",
+        TRANSLATION_OUTPUT_LANGUAGES="zh-Hant,en,ja",
     )
 
     clients = build_translation_model_clients(settings)
 
     assert [client.provider for client in clients] == ["translation_primary", "translation_paid_fallback"]
     assert [client.model for client in clients] == ["openai/gpt-oss-20b:free", "openai/gpt-oss-20b"]
+    assert [client.translation_output_languages for client in clients] == [("zh-Hant", "en", "ja")] * 2

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import re
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LANGUAGE_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 
 
 class Settings(BaseSettings):
@@ -27,6 +31,8 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     default_page_size: int = Field(default=20, alias="DEFAULT_PAGE_SIZE")
     max_page_size: int = Field(default=100, alias="MAX_PAGE_SIZE")
+    public_default_language: str = Field(default="en", alias="PUBLIC_DEFAULT_LANGUAGE")
+    public_language_priority_raw: str = Field(default="en,zh-Hant", alias="PUBLIC_LANGUAGE_PRIORITY")
 
     @field_validator("public_api_token", "ingest_key_id", "ingest_secret")
     @classmethod
@@ -57,8 +63,44 @@ class Settings(BaseSettings):
             raise ValueError("value must be >= 0")
         return value
 
+    @field_validator("public_default_language")
+    @classmethod
+    def validate_public_default_language(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or not LANGUAGE_CODE_RE.match(normalized):
+            raise ValueError("PUBLIC_DEFAULT_LANGUAGE must be a valid BCP 47 language code")
+        return normalized
+
+    @field_validator("public_language_priority_raw")
+    @classmethod
+    def validate_public_language_priority_raw(cls, value: str) -> str:
+        parse_language_list(value, env_name="PUBLIC_LANGUAGE_PRIORITY")
+        return value
+
     @property
     def cors_origin_list(self) -> list[str]:
         if not self.cors_origins:
             return []
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def public_language_priority(self) -> tuple[str, ...]:
+        return parse_language_list(self.public_language_priority_raw, env_name="PUBLIC_LANGUAGE_PRIORITY")
+
+
+def parse_language_list(value: str | None, *, env_name: str) -> tuple[str, ...]:
+    raw_languages = [item.strip() for item in str(value or "").split(",")]
+    languages: list[str] = []
+    for language in raw_languages:
+        if not language:
+            continue
+        if not LANGUAGE_CODE_RE.match(language):
+            raise ValueError(f"{env_name} contains invalid BCP 47 language code: {language}")
+        if language in languages:
+            raise ValueError(f"{env_name} contains duplicate language code: {language}")
+        languages.append(language)
+    if not languages:
+        raise ValueError(f"{env_name} must contain at least one language code")
+    if len(languages) > 8:
+        raise ValueError(f"{env_name} supports at most 8 languages")
+    return tuple(languages)

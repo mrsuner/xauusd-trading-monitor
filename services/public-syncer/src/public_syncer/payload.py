@@ -10,7 +10,11 @@ PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
 PUBLIC_LANGUAGE_EN = "en"
 
 
-def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
+def build_payload(
+    item: PublicOutboxItem,
+    *,
+    sync_languages: tuple[str, ...] = (PUBLIC_LANGUAGE_ZH_HANT, PUBLIC_LANGUAGE_EN),
+) -> dict[str, Any]:
     return {
         "schema_version": "public_event.v1",
         "idempotency_key": idempotency_key_for(item),
@@ -24,7 +28,7 @@ def build_payload(item: PublicOutboxItem) -> dict[str, Any]:
         "public_summary_zh": item.public_summary_zh,
         "public_title_en": clamp_text(item.public_title_en, max_chars=MAX_PUBLIC_TITLE_CHARS),
         "public_summary_en": item.public_summary_en,
-        "translations": public_translation_rows(item),
+        "translations": public_translation_rows(item, sync_languages=sync_languages),
         "public_source_links": sanitize_source_links(item.public_source_links),
         "topic_tags": item.topic_tags,
         "content_category": None,
@@ -45,6 +49,7 @@ def build_raw_item_payload(
     *,
     max_original_chars: int,
     max_translation_chars: int,
+    sync_languages: tuple[str, ...] = (PUBLIC_LANGUAGE_ZH_HANT, PUBLIC_LANGUAGE_EN),
 ) -> dict[str, Any]:
     original_content, original_truncated, source_text_chars = clamp_public_text(
         item.text_clean,
@@ -84,6 +89,7 @@ def build_raw_item_payload(
         "translations": raw_item_translation_rows(
             item,
             max_translation_chars=max_translation_chars,
+            sync_languages=sync_languages,
         ),
         "classification": {
             "is_relevant": item.is_relevant,
@@ -113,7 +119,18 @@ def raw_item_idempotency_key_for(item: PublicRawItem) -> str:
     return f"raw_item:{item.id}:v1"
 
 
-def public_translation_rows(item: PublicOutboxItem) -> list[dict[str, str | None]]:
+def public_translation_rows(
+    item: PublicOutboxItem,
+    *,
+    sync_languages: tuple[str, ...] = (PUBLIC_LANGUAGE_ZH_HANT, PUBLIC_LANGUAGE_EN),
+) -> list[dict[str, str | None]]:
+    allowed_languages = set(sync_languages)
+    has_allowed_translation_rows = any(
+        translation.language
+        and translation.language in allowed_languages
+        and (translation.title or translation.summary)
+        for translation in item.translations
+    )
     rows = [
         {
             "language": translation.language,
@@ -122,25 +139,29 @@ def public_translation_rows(item: PublicOutboxItem) -> list[dict[str, str | None
         }
         for translation in item.translations
         if translation.language
+        and translation.language in allowed_languages
         and (translation.title or translation.summary)
         and (translation.status is None or translation.status == "approved")
     ]
-    if rows or item.translations:
+    if rows or has_allowed_translation_rows:
         return rows
 
     fallback_rows: list[dict[str, str | None]] = []
-    add_public_translation_row(
-        fallback_rows,
-        language=PUBLIC_LANGUAGE_ZH_HANT,
-        title=item.public_title_zh,
-        summary=item.public_summary_zh,
-    )
-    add_public_translation_row(
-        fallback_rows,
-        language=PUBLIC_LANGUAGE_EN,
-        title=item.public_title_en,
-        summary=item.public_summary_en,
-    )
+    for language in sync_languages:
+        if language == PUBLIC_LANGUAGE_ZH_HANT:
+            add_public_translation_row(
+                fallback_rows,
+                language=PUBLIC_LANGUAGE_ZH_HANT,
+                title=item.public_title_zh,
+                summary=item.public_summary_zh,
+            )
+        elif language == PUBLIC_LANGUAGE_EN:
+            add_public_translation_row(
+                fallback_rows,
+                language=PUBLIC_LANGUAGE_EN,
+                title=item.public_title_en,
+                summary=item.public_summary_en,
+            )
     return fallback_rows
 
 
@@ -181,11 +202,17 @@ def clamp_public_text(value: str | None, *, max_chars: int) -> tuple[str | None,
     return text[: max_chars - 1].rstrip() + "…", True, source_chars
 
 
-def raw_item_translation_rows(item: PublicRawItem, *, max_translation_chars: int) -> list[dict[str, Any]]:
+def raw_item_translation_rows(
+    item: PublicRawItem,
+    *,
+    max_translation_chars: int,
+    sync_languages: tuple[str, ...] = (PUBLIC_LANGUAGE_ZH_HANT, PUBLIC_LANGUAGE_EN),
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
+    allowed_languages = set(sync_languages)
     for translation in item.translations:
-        if not translation.language or translation.language in seen:
+        if not translation.language or translation.language in seen or translation.language not in allowed_languages:
             continue
         summary = translation.summary.strip() if translation.summary else None
         full_translation, truncated, translation_chars = clamp_public_text(

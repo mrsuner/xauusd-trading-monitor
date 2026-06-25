@@ -41,7 +41,7 @@ def test_idempotency_key_for_event() -> None:
 
 def test_build_payload_is_public_safe() -> None:
     item = make_item()
-    payload = build_payload(item)
+    payload = build_payload(item, sync_languages=("zh-Hant", "en", "ja"))
 
     assert payload["schema_version"] == "public_event.v1"
     assert payload["upstream_event_id"] == str(item.event_id)
@@ -89,9 +89,17 @@ def test_public_translation_rows_prefer_translation_rows_without_changing_idempo
     item = make_item()
 
     assert idempotency_key_for(item) == f"event:{item.event_id}:v1"
-    assert public_translation_rows(item) == [
+    assert public_translation_rows(item, sync_languages=("zh-Hant", "en", "ja")) == [
         {"language": "en", "title": "Title from row", "summary": "Summary from row"},
         {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
+    ]
+
+
+def test_public_translation_rows_respects_sync_languages() -> None:
+    item = make_item()
+
+    assert public_translation_rows(item, sync_languages=("zh-Hant", "en")) == [
+        {"language": "en", "title": "Title from row", "summary": "Summary from row"},
     ]
 
 
@@ -102,7 +110,7 @@ def test_public_translation_rows_skip_unapproved_rows() -> None:
         PublicOutboxTranslation(language="ja", title="日本語タイトル", summary="日本語要約", status="approved"),
     ]
 
-    assert public_translation_rows(item) == [
+    assert public_translation_rows(item, sync_languages=("zh-Hant", "en", "ja")) == [
         {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
     ]
 
@@ -186,7 +194,12 @@ def test_raw_item_idempotency_key() -> None:
 def test_build_raw_item_payload_is_public_safe() -> None:
     item = make_raw_item()
 
-    payload = build_raw_item_payload(item, max_original_chars=4000, max_translation_chars=8000)
+    payload = build_raw_item_payload(
+        item,
+        max_original_chars=4000,
+        max_translation_chars=8000,
+        sync_languages=("zh-Hant", "en", "ja"),
+    )
 
     assert payload["schema_version"] == "public_raw_item.v1"
     assert payload["idempotency_key"] == f"raw_item:{item.id}:v1"
@@ -220,7 +233,12 @@ def test_build_raw_item_payload_truncates_original_and_translation() -> None:
     item.text_clean = "alpha " * 20
     item.full_translation_en = "bravo " * 20
 
-    payload = build_raw_item_payload(item, max_original_chars=20, max_translation_chars=25)
+    payload = build_raw_item_payload(
+        item,
+        max_original_chars=20,
+        max_translation_chars=25,
+        sync_languages=("zh-Hant", "en", "ja"),
+    )
 
     assert len(payload["original_content"]) == 20
     assert payload["original_content"].endswith("…")

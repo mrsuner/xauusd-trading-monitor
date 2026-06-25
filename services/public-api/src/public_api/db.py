@@ -101,9 +101,18 @@ class Database:
 
 
 class PublicRepository:
-    def __init__(self, db: Database, *, max_page_size: int) -> None:
+    def __init__(
+        self,
+        db: Database,
+        *,
+        max_page_size: int,
+        default_language: str = DEFAULT_PUBLIC_LANGUAGE,
+        language_priority: tuple[str, ...] = (PUBLIC_LANGUAGE_EN, PUBLIC_LANGUAGE_ZH_HANT),
+    ) -> None:
         self.db = db
         self.max_page_size = max_page_size
+        self.default_language = default_language
+        self.language_priority = language_priority
 
     async def nonce_seen(self, *, key_id: str | None, nonce: str | None) -> bool:
         if not key_id or not nonce:
@@ -629,7 +638,15 @@ class PublicRepository:
             rows = await cur.fetchall()
         await self.db.conn.commit()
         return {
-            "items": [shape_public_raw_item(row, lang=lang) for row in rows],
+            "items": [
+                shape_public_raw_item(
+                    row,
+                    lang=lang,
+                    default_language=self.default_language,
+                    language_priority=self.language_priority,
+                )
+                for row in rows
+            ],
             "page": page,
             "page_size": limit,
             "total": int(total_row["total"]),
@@ -683,7 +700,16 @@ class PublicRepository:
             )
             row = await cur.fetchone()
         await self.db.conn.commit()
-        return shape_public_raw_item(row, lang=lang) if row else None
+        return (
+            shape_public_raw_item(
+                row,
+                lang=lang,
+                default_language=self.default_language,
+                language_priority=self.language_priority,
+            )
+            if row
+            else None
+        )
 
     async def list_events(
         self,
@@ -746,7 +772,15 @@ class PublicRepository:
             rows = await cur.fetchall()
         await self.db.conn.commit()
         return {
-            "items": [shape_public_event(row, lang=lang) for row in rows],
+            "items": [
+                shape_public_event(
+                    row,
+                    lang=lang,
+                    default_language=self.default_language,
+                    language_priority=self.language_priority,
+                )
+                for row in rows
+            ],
             "page": page,
             "page_size": limit,
             "total": int(total_row["total"]),
@@ -784,7 +818,16 @@ class PublicRepository:
             )
             row = await cur.fetchone()
         await self.db.conn.commit()
-        return shape_public_event(row, lang=lang) if row else None
+        return (
+            shape_public_event(
+                row,
+                lang=lang,
+                default_language=self.default_language,
+                language_priority=self.language_priority,
+            )
+            if row
+            else None
+        )
 
     async def list_tags(self) -> list[dict[str, Any]]:
         async with self.db.conn.cursor() as cur:
@@ -1103,43 +1146,82 @@ def public_raw_item_translation_rows(payload: PublicRawItemIngestRequest) -> lis
     return list(rows_by_language.values())
 
 
-def normalize_public_language(lang: str | None) -> str:
+def normalize_public_language(lang: str | None, *, default_language: str = DEFAULT_PUBLIC_LANGUAGE) -> str:
     normalized = (lang or "").strip()
     if not normalized or not LANGUAGE_CODE_RE.match(normalized):
-        return DEFAULT_PUBLIC_LANGUAGE
+        return default_language
     return normalized
 
 
-def shape_public_event(row: dict[str, Any], *, lang: str | None = None) -> dict[str, Any]:
+def shape_public_event(
+    row: dict[str, Any],
+    *,
+    lang: str | None = None,
+    default_language: str = DEFAULT_PUBLIC_LANGUAGE,
+    language_priority: tuple[str, ...] = (PUBLIC_LANGUAGE_EN, PUBLIC_LANGUAGE_ZH_HANT),
+) -> dict[str, Any]:
     data = _json_ready(row)
-    requested_lang = normalize_public_language(lang)
-    translations = _public_translation_rows(data)
-    selected_lang = _selected_language(translations, requested_lang)
-    data["title"] = _localized_value(translations, field="title", selected_lang=selected_lang)
-    data["summary"] = _localized_value(translations, field="summary", selected_lang=selected_lang)
+    requested_lang = normalize_public_language(lang, default_language=default_language)
+    translations = _public_translation_rows(data, language_priority=language_priority)
+    selected_lang = _selected_language(translations, requested_lang, default_language=default_language)
+    data["title"] = _localized_value(
+        translations,
+        field="title",
+        selected_lang=selected_lang,
+        default_language=default_language,
+    )
+    data["summary"] = _localized_value(
+        translations,
+        field="summary",
+        selected_lang=selected_lang,
+        default_language=default_language,
+    )
     data["language"] = selected_lang
     data["available_languages"] = _available_languages(translations)
     data["translations"] = translations
     return data
 
 
-def shape_public_raw_item(row: dict[str, Any], *, lang: str | None = None) -> dict[str, Any]:
+def shape_public_raw_item(
+    row: dict[str, Any],
+    *,
+    lang: str | None = None,
+    default_language: str = DEFAULT_PUBLIC_LANGUAGE,
+    language_priority: tuple[str, ...] = (PUBLIC_LANGUAGE_EN, PUBLIC_LANGUAGE_ZH_HANT),
+) -> dict[str, Any]:
     data = _json_ready(row)
-    requested_lang = normalize_public_language(lang)
-    translations = _public_raw_item_translation_rows(data)
-    selected_lang = _selected_raw_item_language(translations, requested_lang)
-    data["summary"] = _localized_value(translations, field="summary", selected_lang=selected_lang)
-    data["full_translation"] = _localized_value(translations, field="full_translation", selected_lang=selected_lang)
+    requested_lang = normalize_public_language(lang, default_language=default_language)
+    translations = _public_raw_item_translation_rows(data, language_priority=language_priority)
+    selected_lang = _selected_raw_item_language(translations, requested_lang, default_language=default_language)
+    data["summary"] = _localized_value(
+        translations,
+        field="summary",
+        selected_lang=selected_lang,
+        default_language=default_language,
+    )
+    data["full_translation"] = _localized_value(
+        translations,
+        field="full_translation",
+        selected_lang=selected_lang,
+        default_language=default_language,
+    )
     data["language"] = selected_lang
     data["available_languages"] = _available_languages(translations)
     data["translations"] = translations
     return data
 
 
-def _selected_language(translations: list[dict[str, str | None]], requested_lang: str) -> str:
+def _selected_language(
+    translations: list[dict[str, str | None]],
+    requested_lang: str,
+    *,
+    default_language: str,
+) -> str:
     if _has_public_content(translations, requested_lang):
         return requested_lang
-    if _has_public_content(translations, PUBLIC_LANGUAGE_EN):
+    if _has_public_content(translations, default_language):
+        return default_language
+    if default_language != PUBLIC_LANGUAGE_EN and _has_public_content(translations, PUBLIC_LANGUAGE_EN):
         return PUBLIC_LANGUAGE_EN
     for translation in translations:
         language = translation.get("language")
@@ -1161,13 +1243,18 @@ def _localized_value(
     *,
     field: str,
     selected_lang: str,
+    default_language: str,
 ) -> str | None:
     selected_value = _translation_value(translations, language=selected_lang, field=field)
     if selected_value:
         return selected_value
-    english_value = _translation_value(translations, language=PUBLIC_LANGUAGE_EN, field=field)
-    if english_value:
-        return english_value
+    default_value = _translation_value(translations, language=default_language, field=field)
+    if default_value:
+        return default_value
+    if default_language != PUBLIC_LANGUAGE_EN:
+        english_value = _translation_value(translations, language=PUBLIC_LANGUAGE_EN, field=field)
+        if english_value:
+            return english_value
     for translation in translations:
         value = translation.get(field)
         if value:
@@ -1175,7 +1262,11 @@ def _localized_value(
     return None
 
 
-def _public_translation_rows(row: dict[str, Any]) -> list[dict[str, str | None]]:
+def _public_translation_rows(
+    row: dict[str, Any],
+    *,
+    language_priority: tuple[str, ...] = (PUBLIC_LANGUAGE_EN, PUBLIC_LANGUAGE_ZH_HANT),
+) -> list[dict[str, str | None]]:
     rows: list[dict[str, str | None]] = []
     seen: set[str] = set()
 
@@ -1205,10 +1296,14 @@ def _public_translation_rows(row: dict[str, Any]) -> list[dict[str, str | None]]
             rows.append({"language": language, "title": title, "summary": summary})
             seen.add(language)
 
-    return sorted(rows, key=lambda item: _language_sort_key(item["language"]))
+    return sorted(rows, key=lambda item: _language_sort_key(item["language"], language_priority=language_priority))
 
 
-def _public_raw_item_translation_rows(row: dict[str, Any]) -> list[dict[str, Any]]:
+def _public_raw_item_translation_rows(
+    row: dict[str, Any],
+    *,
+    language_priority: tuple[str, ...] = (PUBLIC_LANGUAGE_EN, PUBLIC_LANGUAGE_ZH_HANT),
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
 
@@ -1258,13 +1353,20 @@ def _public_raw_item_translation_rows(row: dict[str, Any]) -> list[dict[str, Any
             )
             seen.add(language)
 
-    return sorted(rows, key=lambda item: _language_sort_key(item["language"]))
+    return sorted(rows, key=lambda item: _language_sort_key(item["language"], language_priority=language_priority))
 
 
-def _selected_raw_item_language(translations: list[dict[str, Any]], requested_lang: str) -> str:
+def _selected_raw_item_language(
+    translations: list[dict[str, Any]],
+    requested_lang: str,
+    *,
+    default_language: str,
+) -> str:
     if _has_raw_item_content(translations, requested_lang):
         return requested_lang
-    if _has_raw_item_content(translations, PUBLIC_LANGUAGE_EN):
+    if _has_raw_item_content(translations, default_language):
+        return default_language
+    if default_language != PUBLIC_LANGUAGE_EN and _has_raw_item_content(translations, PUBLIC_LANGUAGE_EN):
         return PUBLIC_LANGUAGE_EN
     for translation in translations:
         language = translation.get("language")
@@ -1320,9 +1422,12 @@ def _max_translation_chars(payload: PublicRawItemIngestRequest) -> int | None:
     return max(candidates) if candidates else None
 
 
-def _language_sort_key(language: str) -> tuple[int, str]:
-    if language == PUBLIC_LANGUAGE_EN:
-        return (0, language)
-    if language == PUBLIC_LANGUAGE_ZH_HANT:
-        return (1, language)
-    return (2, language)
+def _language_sort_key(
+    language: str,
+    *,
+    language_priority: tuple[str, ...] = (PUBLIC_LANGUAGE_EN, PUBLIC_LANGUAGE_ZH_HANT),
+) -> tuple[int, str]:
+    try:
+        return (language_priority.index(language), language)
+    except ValueError:
+        return (len(language_priority), language)

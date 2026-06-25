@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import re
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LANGUAGE_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 
 
 class Settings(BaseSettings):
@@ -31,6 +35,8 @@ class Settings(BaseSettings):
     public_website_threshold: int = Field(default=50, alias="PUBLIC_WEBSITE_ROUTE_SCORE_THRESHOLD")
     public_x_threshold: int = Field(default=85, alias="PUBLIC_X_ROUTE_SCORE_THRESHOLD")
     public_x_a_relevance_threshold: int = Field(default=90, alias="PUBLIC_X_A_RELEVANCE_THRESHOLD")
+    public_outbox_languages_raw: str = Field(default="zh-Hant,en", alias="PUBLIC_OUTBOX_LANGUAGES")
+    public_outbox_default_language: str = Field(default="en", alias="PUBLIC_OUTBOX_DEFAULT_LANGUAGE")
 
     @field_validator(
         "event_lookback_minutes",
@@ -63,3 +69,39 @@ class Settings(BaseSettings):
         if value not in {"skip", "telegram_only", "normal"}:
             raise ValueError("backfill_mode must be skip, telegram_only, or normal")
         return value
+
+    @field_validator("public_outbox_languages_raw")
+    @classmethod
+    def validate_public_outbox_languages_raw(cls, value: str) -> str:
+        parse_language_list(value, env_name="PUBLIC_OUTBOX_LANGUAGES")
+        return value
+
+    @field_validator("public_outbox_default_language")
+    @classmethod
+    def validate_public_outbox_default_language(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or not LANGUAGE_CODE_RE.match(normalized):
+            raise ValueError("PUBLIC_OUTBOX_DEFAULT_LANGUAGE must be a valid BCP 47 language code")
+        return normalized
+
+    @property
+    def public_outbox_languages(self) -> tuple[str, ...]:
+        return parse_language_list(self.public_outbox_languages_raw, env_name="PUBLIC_OUTBOX_LANGUAGES")
+
+
+def parse_language_list(value: str | None, *, env_name: str) -> tuple[str, ...]:
+    raw_languages = [item.strip() for item in str(value or "").split(",")]
+    languages: list[str] = []
+    for language in raw_languages:
+        if not language:
+            continue
+        if not LANGUAGE_CODE_RE.match(language):
+            raise ValueError(f"{env_name} contains invalid BCP 47 language code: {language}")
+        if language in languages:
+            raise ValueError(f"{env_name} contains duplicate language code: {language}")
+        languages.append(language)
+    if not languages:
+        raise ValueError(f"{env_name} must contain at least one language code")
+    if len(languages) > 8:
+        raise ValueError(f"{env_name} supports at most 8 languages")
+    return tuple(languages)

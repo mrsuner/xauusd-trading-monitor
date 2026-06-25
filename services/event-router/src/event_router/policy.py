@@ -34,6 +34,7 @@ class Thresholds(Protocol):
     public_website_threshold: int
     public_x_threshold: int
     public_x_a_relevance_threshold: int
+    public_outbox_languages: tuple[str, ...]
 
 
 AGGREGATOR_GROUPS = {"osint_aggregator", "market_squawk"}
@@ -184,6 +185,7 @@ def public_telegram_channel_route(event: EventContext, settings: Thresholds, sco
         reason="queued",
         public_outbox=build_public_outbox_draft(
             event,
+            languages=settings.public_outbox_languages,
             approved_for_public=True,
             publish_status_telegram="pending",
             publish_status_web="skipped",
@@ -211,6 +213,7 @@ def public_website_route(event: EventContext, settings: Thresholds, score: int) 
         reason="queued",
         public_outbox=build_public_outbox_draft(
             event,
+            languages=settings.public_outbox_languages,
             approved_for_public=has_public_source_url(event),
             publish_status_telegram="skipped",
             publish_status_web="pending",
@@ -241,6 +244,7 @@ def public_x_route(event: EventContext, settings: Thresholds, score: int) -> Rou
         reason="queued",
         public_outbox=build_public_outbox_draft(
             event,
+            languages=settings.public_outbox_languages,
             approved_for_public=True,
             publish_status_telegram="skipped",
             publish_status_web="skipped",
@@ -300,6 +304,7 @@ def has_public_source_url(event: EventContext) -> bool:
 def build_public_outbox_draft(
     event: EventContext,
     *,
+    languages: tuple[str, ...] = (PUBLIC_LANGUAGE_ZH_HANT, PUBLIC_LANGUAGE_EN),
     approved_for_public: bool,
     publish_status_web: str,
     publish_status_telegram: str,
@@ -319,6 +324,8 @@ def build_public_outbox_draft(
         public_title_en=public_title_en,
         public_summary_en=public_summary_en,
         translations=public_outbox_translations(
+            event=event,
+            languages=languages,
             zh_title=public_title_zh,
             zh_summary=public_summary_zh,
             en_title=public_title_en,
@@ -338,29 +345,46 @@ def build_public_outbox_draft(
 
 def public_outbox_translations(
     *,
+    event: EventContext,
+    languages: tuple[str, ...] = (PUBLIC_LANGUAGE_ZH_HANT, PUBLIC_LANGUAGE_EN),
     zh_title: str | None,
     zh_summary: str | None,
     en_title: str | None,
     en_summary: str | None,
 ) -> list[PublicOutboxTranslation]:
     rows: list[PublicOutboxTranslation] = []
-    if zh_title or zh_summary:
+    seen: set[str] = set()
+    for language in languages:
+        if language in seen:
+            continue
+        seen.add(language)
+        title: str | None = None
+        summary: str | None = None
+        if language == PUBLIC_LANGUAGE_ZH_HANT:
+            title = zh_title
+            summary = zh_summary
+        elif language == PUBLIC_LANGUAGE_EN:
+            title = en_title
+            summary = en_summary
+        else:
+            summary = raw_item_translation_summary(event, language)
+        if not title and not summary:
+            continue
         rows.append(
             PublicOutboxTranslation(
-                language=PUBLIC_LANGUAGE_ZH_HANT,
-                title=zh_title,
-                summary=zh_summary,
-            )
-        )
-    if en_title or en_summary:
-        rows.append(
-            PublicOutboxTranslation(
-                language=PUBLIC_LANGUAGE_EN,
-                title=en_title,
-                summary=en_summary,
+                language=language,
+                title=title,
+                summary=summary,
             )
         )
     return rows
+
+
+def raw_item_translation_summary(event: EventContext, language: str) -> str | None:
+    for translation in event.raw_item_translations:
+        if translation.language == language and translation.summary:
+            return translation.summary
+    return None
 
 
 def public_outbox_title(event: EventContext) -> str:

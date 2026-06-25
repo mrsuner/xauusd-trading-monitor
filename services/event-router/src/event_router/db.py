@@ -17,6 +17,7 @@ from .models import (
     EventContext,
     PublicOutboxDraft,
     RawItemContext,
+    RawItemTranslationContext,
     RouteDecision,
     SourceContext,
 )
@@ -206,6 +207,19 @@ class Database:
                 {"event_id": event_id},
             )
             claim_rows = await cur.fetchall()
+            translation_rows: list[dict[str, Any]] = []
+            if row["raw_item_id"]:
+                await cur.execute(
+                    """
+                    select language, summary, full_translation, status
+                    from raw_item_translations
+                    where raw_item_id = %(raw_item_id)s
+                      and status in ('completed', 'completed_truncated')
+                    order by language
+                    """,
+                    {"raw_item_id": row["raw_item_id"]},
+                )
+                translation_rows = await cur.fetchall()
 
         await self.conn.commit()
 
@@ -252,6 +266,9 @@ class Database:
                 text_clean=row["raw_item_text_clean"],
                 text_raw=row["raw_item_text_raw"],
             ),
+            raw_item_translations=[
+                RawItemTranslationContext.model_validate(translation) for translation in translation_rows
+            ],
             claims=[EventClaimContext.model_validate(claim) for claim in claim_rows],
             topic_tags=list(row["topic_tags"] or []),
         )

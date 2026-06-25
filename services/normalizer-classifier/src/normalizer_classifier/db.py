@@ -60,6 +60,7 @@ def raw_item_translation_rows_for_result(
     model_provider: str | None,
     model: str | None,
     input_chars: int | None,
+    languages: tuple[str, ...] = DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -81,10 +82,15 @@ def raw_item_translation_rows_for_result(
             }
         )
 
-    append_row("zh-Hant", result.summary_zh, result.full_translation_zh)
-    append_row("en", result.summary_en, result.full_translation_en)
-    for translation in result.translations:
-        append_row(translation.language, translation.summary, translation.full_translation)
+    for language in languages:
+        translation = result.translation_for(language)
+        if translation is None:
+            continue
+        append_row(
+            language,
+            translation.summary,
+            translation.full_translation,
+        )
     return rows
 
 
@@ -113,10 +119,18 @@ def _positive_float_env(name: str, default: float) -> float:
 
 
 class Database:
-    def __init__(self, database_url: str, *, min_size: int = 1, max_size: int = 10) -> None:
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        min_size: int = 1,
+        max_size: int = 10,
+        translation_output_languages: tuple[str, ...] = DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES,
+    ) -> None:
         self._database_url = database_url
         self._min_size = min_size
         self._max_size = max_size
+        self._translation_output_languages = translation_output_languages
         self._pool = self._create_pool()
 
     def _create_pool(self) -> AsyncConnectionPool:
@@ -544,6 +558,7 @@ class Database:
                 model_provider=response.provider,
                 model=response.model,
                 input_chars=input_chars,
+                languages=self._translation_output_languages,
             ):
                 await self._upsert_raw_item_translation(cur, raw_item_id=raw_item_id, **translation_row)
             await self._refresh_raw_item_translation_status(cur, raw_item_id=raw_item_id)
@@ -602,7 +617,7 @@ class Database:
                 """,
                 {"raw_item_id": raw_item_id, "translation_error": error},
             )
-            for language in DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES:
+            for language in self._translation_output_languages:
                 await self._upsert_raw_item_translation(
                     cur,
                     raw_item_id=raw_item_id,
@@ -645,7 +660,7 @@ class Database:
                     "translation_error": error,
                 },
             )
-            for language in DEFAULT_RAW_ITEM_TRANSLATION_LANGUAGES:
+            for language in self._translation_output_languages:
                 await self._upsert_raw_item_translation(
                     cur,
                     raw_item_id=raw_item_id,

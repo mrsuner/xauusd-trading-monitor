@@ -51,11 +51,34 @@ def test_raw_item_translation_rows_include_additional_languages() -> None:
         model_provider="provider",
         model="model",
         input_chars=123,
+        languages=("zh-Hant", "en", "ja"),
     )
 
     assert [row["language"] for row in rows] == ["zh-Hant", "en", "ja"]
     assert rows[2]["summary"] == "日本語要約"
     assert rows[2]["full_translation"] == "日本語全文"
+
+
+def test_raw_item_translation_rows_skip_missing_configured_languages() -> None:
+    result = AuxiliaryTextResult.model_validate(
+        {
+            "translations": [
+                {"language": "zh-Hant", "summary": "中文摘要", "full_translation": "中文全文"},
+                {"language": "en", "summary": "English summary", "full_translation": "English full text"},
+            ],
+        }
+    )
+
+    rows = raw_item_translation_rows_for_result(
+        result,
+        status="completed",
+        model_provider="provider",
+        model="model",
+        input_chars=123,
+        languages=("zh-Hant", "en", "ja"),
+    )
+
+    assert [row["language"] for row in rows] == ["zh-Hant", "en"]
 
 
 def test_aggregate_raw_item_translation_status_complete_sets() -> None:

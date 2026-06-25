@@ -63,6 +63,9 @@ class OpenAIStyleModelClient:
         response_format: str,
         reasoning_effort: str | None = None,
         extra_headers: dict[str, str] | None = None,
+        translation_output_languages: tuple[str, ...] = ("zh-Hant", "en"),
+        translation_language_labels: dict[str, str] | None = None,
+        translation_require_all_languages: bool = True,
     ) -> None:
         self.provider = provider
         self.base_url = base_url.rstrip("/")
@@ -73,6 +76,9 @@ class OpenAIStyleModelClient:
         self.response_format = response_format
         self.reasoning_effort = reasoning_effort
         self.extra_headers = extra_headers or {}
+        self.translation_output_languages = translation_output_languages
+        self.translation_language_labels = translation_language_labels or {}
+        self.translation_require_all_languages = translation_require_all_languages
 
     async def classify(self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem) -> ModelResponse:
         payload = {
@@ -179,7 +185,13 @@ class OpenAIStyleModelClient:
             "model": self.model,
             "temperature": 0,
             "messages": [
-                {"role": "system", "content": auxiliary_text_system_prompt()},
+                {
+                    "role": "system",
+                    "content": auxiliary_text_system_prompt(
+                        self.translation_output_languages,
+                        language_labels=self.translation_language_labels,
+                    ),
+                },
                 {
                     "role": "user",
                     "content": json.dumps(
@@ -196,6 +208,8 @@ class OpenAIStyleModelClient:
                                 "summary_required": True,
                                 "full_translation_required": full_translation_required,
                                 "truncated_input": truncated,
+                                "output_languages": list(self.translation_output_languages),
+                                "require_all_languages": self.translation_require_all_languages,
                             },
                             "taxonomy_context": {
                                 "content_categories": [
@@ -224,7 +238,13 @@ class OpenAIStyleModelClient:
                 },
             ],
         }
-        self._apply_common_payload_options(payload, auxiliary_text_json_schema_response_format())
+        self._apply_common_payload_options(
+            payload,
+            auxiliary_text_json_schema_response_format(
+                self.translation_output_languages,
+                require_all_languages=self.translation_require_all_languages,
+            ),
+        )
         started = time.perf_counter()
         try:
             body = await self._post_chat_completions(
@@ -247,7 +267,13 @@ class OpenAIStyleModelClient:
         try:
             decoded = json.loads(content)
             result = AuxiliaryTextResult.model_validate(decoded)
-        except (KeyError, TypeError, json.JSONDecodeError, ValidationError) as exc:
+            validate_auxiliary_text_result(
+                result,
+                languages=self.translation_output_languages,
+                require_all_languages=self.translation_require_all_languages,
+                full_translation_required=full_translation_required,
+            )
+        except (KeyError, TypeError, json.JSONDecodeError, ValidationError, ValueError) as exc:
             usage = self._build_usage(
                 payload=payload,
                 body=body,
@@ -472,6 +498,9 @@ def build_auxiliary_model_client(settings: Settings) -> OpenAIStyleModelClient |
             response_format=settings.openrouter_model_response_format,
             reasoning_effort=settings.openrouter_model_reasoning_effort,
             extra_headers=extra_headers,
+            translation_output_languages=settings.translation_output_languages,
+            translation_language_labels=settings.translation_language_labels,
+            translation_require_all_languages=settings.translation_require_all_languages,
         )
 
     raise ValueError(f"unsupported AUXILIARY_MODEL_ROUTE: {settings.auxiliary_model_route}")
@@ -506,6 +535,9 @@ def build_translation_model_clients(settings: Settings) -> list[OpenAIStyleModel
             response_format=settings.translation_model_response_format,
             reasoning_effort=settings.translation_model_reasoning_effort,
             extra_headers=extra_headers,
+            translation_output_languages=settings.translation_output_languages,
+            translation_language_labels=settings.translation_language_labels,
+            translation_require_all_languages=settings.translation_require_all_languages,
         )
     ]
 
@@ -520,6 +552,9 @@ def build_translation_model_clients(settings: Settings) -> list[OpenAIStyleModel
                 response_format=settings.translation_model_response_format,
                 reasoning_effort=settings.translation_model_reasoning_effort,
                 extra_headers=extra_headers,
+                translation_output_languages=settings.translation_output_languages,
+                translation_language_labels=settings.translation_language_labels,
+                translation_require_all_languages=settings.translation_require_all_languages,
             )
         )
     return clients
@@ -579,7 +614,16 @@ def system_prompt() -> str:
     )
 
 
-def auxiliary_text_system_prompt() -> str:
+def auxiliary_text_system_prompt(
+    output_languages: tuple[str, ...] = ("zh-Hant", "en"),
+    *,
+    language_labels: dict[str, str] | None = None,
+) -> str:
+    language_labels = language_labels or {}
+    language_descriptions = ", ".join(
+        f"{language} ({language_labels[language]})" if language_labels.get(language) else language
+        for language in output_languages
+    )
     return (
         "You summarize and translate news items for an XAUUSD event radar. "
         "Return only valid JSON. Do not wrap JSON in Markdown. Use Traditional Chinese for Chinese output. "
@@ -589,13 +633,15 @@ def auxiliary_text_system_prompt() -> str:
         "You may classify the item's content taxonomy for timeline filtering only. "
         "Only follow translation_scope. "
         "Return translations as a translations array. Each translation object must contain language, summary, "
-        "and full_translation. Use BCP 47 language codes. Currently include zh-Hant and en. "
+        "and full_translation. Use BCP 47 language codes. "
+        f"Return exactly these output languages when translation_scope.require_all_languages is true: {language_descriptions}. "
         "The zh-Hant summary must be a concise Traditional Chinese news summary, no more than 280 Chinese characters, "
         "and must not copy the full source text. "
         "The en summary must be a concise English news summary, no more than 400 English characters, "
         "and must not copy the full source text. "
-        "If full_translation_required is true, the zh-Hant and en full_translation fields must contain faithful "
-        "full-text translations of the supplied text. If the original text is already English, the en full_translation "
+        "For other requested languages, write a concise news summary in that language and keep it under 400 characters. "
+        "If full_translation_required is true, every requested language's full_translation field must contain a faithful "
+        "full-text translation of the supplied text. If the original text is already English, the en full_translation "
         "may equal the supplied cleaned text. If the original text is already Chinese, the zh-Hant full_translation may equal "
         "the supplied cleaned text. If full_translation_required is false, return null for full_translation in every translation. "
         "Preserve names, places, institutions, numbers, dates, quoted claims, and uncertainty. "
@@ -669,7 +715,23 @@ def classification_json_schema_response_format() -> dict[str, Any]:
     }
 
 
-def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
+def auxiliary_text_json_schema_response_format(
+    output_languages: tuple[str, ...] = ("zh-Hant", "en"),
+    *,
+    require_all_languages: bool = True,
+) -> dict[str, Any]:
+    translation_items: dict[str, Any] = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "language": {"type": "string"},
+            "summary": {"type": ["string", "null"]},
+            "full_translation": {"type": ["string", "null"]},
+        },
+        "required": ["language", "summary", "full_translation"],
+    }
+    if output_languages:
+        translation_items["properties"]["language"]["enum"] = list(output_languages)
     return {
         "type": "json_schema",
         "json_schema": {
@@ -680,18 +742,9 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
                 "properties": {
                     "translations": {
                         "type": "array",
-                        "minItems": 2,
+                        "minItems": len(output_languages) if require_all_languages else 1,
                         "maxItems": 8,
-                        "items": {
-                            "type": "object",
-                            "additionalProperties": False,
-                            "properties": {
-                                "language": {"type": "string"},
-                                "summary": {"type": ["string", "null"]},
-                                "full_translation": {"type": ["string", "null"]},
-                            },
-                            "required": ["language", "summary", "full_translation"],
-                        },
+                        "items": translation_items,
                     },
                     "content_category": {
                         "type": ["string", "null"],
@@ -712,3 +765,33 @@ def auxiliary_text_json_schema_response_format() -> dict[str, Any]:
             },
         },
     }
+
+
+def validate_auxiliary_text_result(
+    result: AuxiliaryTextResult,
+    *,
+    languages: tuple[str, ...],
+    require_all_languages: bool,
+    full_translation_required: bool,
+) -> None:
+    if not require_all_languages:
+        return
+    missing_languages: list[str] = []
+    incomplete_languages: list[str] = []
+    for language in languages:
+        translation = result.translation_for(language)
+        if translation is None:
+            missing_languages.append(language)
+            continue
+        if not translation.summary:
+            incomplete_languages.append(language)
+            continue
+        if full_translation_required and not translation.full_translation:
+            incomplete_languages.append(language)
+    if missing_languages or incomplete_languages:
+        parts: list[str] = []
+        if missing_languages:
+            parts.append(f"missing languages: {', '.join(missing_languages)}")
+        if incomplete_languages:
+            parts.append(f"incomplete languages: {', '.join(incomplete_languages)}")
+        raise ValueError("; ".join(parts))

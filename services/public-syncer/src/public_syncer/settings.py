@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import re
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LANGUAGE_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 
 
 class Settings(BaseSettings):
@@ -20,6 +24,7 @@ class Settings(BaseSettings):
     sync_key_id: str | None = Field(default=None, alias="PUBLIC_SYNC_KEY_ID")
     sync_secret: str | None = Field(default=None, alias="PUBLIC_SYNC_SECRET")
     sync_api_key: str | None = Field(default=None, alias="PUBLIC_SYNC_API_KEY")
+    public_sync_languages_raw: str = Field(default="zh-Hant,en", alias="PUBLIC_SYNC_LANGUAGES")
 
     batch_size: int = Field(default=10, alias="PUBLIC_SYNCER_BATCH_SIZE")
     max_attempts: int = Field(default=5, alias="PUBLIC_SYNCER_MAX_ATTEMPTS")
@@ -36,6 +41,7 @@ class Settings(BaseSettings):
     raw_min_relevance_score: int = Field(default=50, alias="PUBLIC_RAW_MIN_RELEVANCE_SCORE")
     raw_max_original_chars: int = Field(default=4000, alias="PUBLIC_RAW_MAX_ORIGINAL_CHARS")
     raw_max_translation_chars: int = Field(default=8000, alias="PUBLIC_RAW_MAX_TRANSLATION_CHARS")
+    public_raw_sync_languages_raw: str = Field(default="zh-Hant,en", alias="PUBLIC_RAW_SYNC_LANGUAGES")
 
     @field_validator("public_api_base_url", "sync_key_id", "sync_secret", "sync_api_key")
     @classmethod
@@ -92,6 +98,12 @@ class Settings(BaseSettings):
             raise ValueError("value must be > 0")
         return value
 
+    @field_validator("public_sync_languages_raw", "public_raw_sync_languages_raw")
+    @classmethod
+    def validate_language_list_raw(cls, value: str) -> str:
+        parse_language_list(value, env_name="PUBLIC_SYNC_LANGUAGES")
+        return value
+
     @field_validator("provider_timeout_seconds", "poll_interval_seconds")
     @classmethod
     def validate_positive_float(cls, value: float) -> float:
@@ -110,3 +122,29 @@ class Settings(BaseSettings):
         if not self.public_api_base_url:
             raise ValueError("PUBLIC_API_BASE_URL is required when public-syncer raw items are enabled")
         return f"{self.public_api_base_url}{self.public_raw_ingest_path}"
+
+    @property
+    def public_sync_languages(self) -> tuple[str, ...]:
+        return parse_language_list(self.public_sync_languages_raw, env_name="PUBLIC_SYNC_LANGUAGES")
+
+    @property
+    def public_raw_sync_languages(self) -> tuple[str, ...]:
+        return parse_language_list(self.public_raw_sync_languages_raw, env_name="PUBLIC_RAW_SYNC_LANGUAGES")
+
+
+def parse_language_list(value: str | None, *, env_name: str) -> tuple[str, ...]:
+    raw_languages = [item.strip() for item in str(value or "").split(",")]
+    languages: list[str] = []
+    for language in raw_languages:
+        if not language:
+            continue
+        if not LANGUAGE_CODE_RE.match(language):
+            raise ValueError(f"{env_name} contains invalid BCP 47 language code: {language}")
+        if language in languages:
+            raise ValueError(f"{env_name} contains duplicate language code: {language}")
+        languages.append(language)
+    if not languages:
+        raise ValueError(f"{env_name} must contain at least one language code")
+    if len(languages) > 8:
+        raise ValueError(f"{env_name} supports at most 8 languages")
+    return tuple(languages)
