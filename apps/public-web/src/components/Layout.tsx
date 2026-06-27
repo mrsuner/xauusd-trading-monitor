@@ -1,4 +1,5 @@
 import { Coffee, Languages, Menu } from "lucide-react";
+import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { KOFI_URL } from "../pages/SupportPage";
 import {
@@ -28,6 +29,10 @@ export function Layout() {
     { path: "/status", label: t.nav.status },
     { path: "/support", label: t.nav.support }
   ];
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
