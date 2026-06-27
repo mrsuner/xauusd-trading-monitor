@@ -67,8 +67,7 @@ Go 可作為後續備選，但 V1 建議 Python，因為文字處理與模型 SD
 輸出：
 
 - `raw_items.text_clean`，如果 collector 未清洗或需要補齊。
-- `raw_items.summary_zh` / `raw_items.summary_en`，translation-summary layer 回寫雙語摘要，讓 Dashboard 可在 raw item 層直接顯示已處理消息摘要。
-- `raw_items.full_translation_zh` / `raw_items.full_translation_en`，translation-summary layer 回寫雙語全文翻譯，供 raw item detail 閱讀。
+- `raw_item_translations`，translation-summary layer 以 `(raw_item_id, language)` 回寫多語摘要與全文翻譯，讓 Dashboard / public syncer 讀取語言 row。
 - `raw_items.translation_status` 與 translation model metadata。
 - `raw_item_processing` / `processed_items`。
 - `events`。
@@ -128,8 +127,8 @@ dedupe / near-dedupe
   ↓
   Layer 1 translation-summary, best-effort after classification
         - input: original text only
-        - output: summary_zh, summary_en, full_translation_zh, full_translation_en
-        - write raw_items translation fields
+        - output: translations[]
+        - write raw_item_translations rows
 ```
 
 Layer 1 不參與優先級、相關度、claim direction 或 severity 判斷。Layer 2 不使用 Layer 1 的翻譯結果作為 evidence，避免低成本翻譯模型的錯譯影響事件判斷。
@@ -208,8 +207,7 @@ Layer 1: translation-summary
   primary: openai/gpt-oss-20b:free
   fallback: openai/gpt-oss-20b
   output:
-    raw_items.summary_zh / summary_en
-    raw_items.full_translation_zh / full_translation_en
+    raw_item_translations.summary / full_translation by language
     raw_items.content_category / topic_tags / mentioned_actors
 
 Layer 2: classification-reasoning
@@ -219,14 +217,22 @@ Layer 2: classification-reasoning
 
 Layer 1 使用 OpenRouter OpenAI-compatible API。預設先呼叫 `openai/gpt-oss-20b:free`；若 free route 429、timeout、invalid JSON 或其他 transient failure，且 `TRANSLATION_PAID_FALLBACK_ENABLED=true`，則 fallback 到 `openai/gpt-oss-20b`。Paid fallback 在 development 也預設開啟，但 `make dev` 會提供小的 translation budget 避免 backfill 時無限制消耗。
 
-Layer 1 單次 API call 直接產生四項：
+Layer 1 單次 API call 直接產生多語 `translations[]`：
 
 ```json
 {
-  "summary_zh": "繁體中文摘要",
-  "summary_en": "English summary",
-  "full_translation_zh": "繁體中文全文翻譯",
-  "full_translation_en": "English full translation",
+  "translations": [
+    {
+      "language": "zh-Hant",
+      "summary": "繁體中文摘要",
+      "full_translation": "繁體中文全文翻譯"
+    },
+    {
+      "language": "en",
+      "summary": "English summary",
+      "full_translation": "English full translation"
+    }
+  ],
   "content_category": "diplomacy",
   "topic_tags": ["iran", "nuclear", "sanctions"],
   "mentioned_actors": ["Iran", "United States", "State Department"],

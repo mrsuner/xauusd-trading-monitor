@@ -330,10 +330,6 @@ create table raw_items (
   title text,
   text_raw text,
   text_clean text,
-  summary_zh text,
-  summary_en text,
-  full_translation_zh text,
-  full_translation_en text,
   content_category text,
   topic_tags jsonb not null default '[]'::jsonb,
   mentioned_actors jsonb not null default '[]'::jsonb,
@@ -370,7 +366,7 @@ create table raw_items (
 );
 ```
 
-`summary_zh`、`summary_en`、`full_translation_zh` 與 `full_translation_en` 由 `normalizer-classifier` 的 translation-summary layer 回寫，用於 Dashboard 在 raw item 層顯示雙語摘要與全文翻譯。Layer 2 classification-reasoning 不讀這些欄位，避免低成本翻譯模型影響事件判斷。
+Raw item 摘要與全文翻譯保存在 `raw_item_translations`，以 `(raw_item_id, language)` 表示多語輸出。`raw_items` 不再保存固定語言欄位。Layer 2 classification-reasoning 不讀 raw item translation rows，避免低成本翻譯模型影響事件判斷。
 
 `content_category`、`topic_tags` 與 `mentioned_actors` 由 Layer 1 在翻譯摘要時同步回寫，只用於 Timeline taxonomy、filter 與搜尋。這些欄位不代表交易相關性、通知等級或事件嚴重度。
 
