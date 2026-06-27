@@ -13,13 +13,17 @@ export const languageLabels: Record<UiLanguage, string> = {
 };
 
 function runtimeSupportedLanguages(): UiLanguage[] {
-  const configured = parseLanguageList(window.__TICKBASE_NEWS_CONFIG__?.PUBLIC_SUPPORTED_LANGUAGES);
+  const configured = parseLanguageList(
+    window.__TICKBASE_NEWS_CONFIG__?.PUBLIC_SUPPORTED_LANGUAGES ||
+      import.meta.env.VITE_PUBLIC_SUPPORTED_LANGUAGES
+  );
   const supported = configured.filter(isBuiltInLanguage);
   return supported.length > 0 ? supported : [...builtInLanguages];
 }
 
 function runtimeDefaultLanguage(supported: UiLanguage[]): UiLanguage {
-  const configured = window.__TICKBASE_NEWS_CONFIG__?.PUBLIC_DEFAULT_LANGUAGE;
+  const configured =
+    window.__TICKBASE_NEWS_CONFIG__?.PUBLIC_DEFAULT_LANGUAGE || import.meta.env.VITE_PUBLIC_DEFAULT_LANGUAGE;
   if (isBuiltInLanguage(configured) && supported.includes(configured)) {
     return configured;
   }
