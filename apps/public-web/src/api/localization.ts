@@ -85,31 +85,6 @@ export function publicRawItemTranslationRows(item: PublicRawItem): PublicRawItem
     addRawItemTranslation(rows, seen, translation);
   }
 
-  addRawItemTranslation(rows, seen, {
-    language: defaultContentLanguage,
-    summary: item.summary_en,
-    full_translation: item.full_translation_en,
-    is_truncated: item.is_truncated,
-    source_chars: item.source_text_chars,
-    translation_chars: item.translation_chars
-  });
-  addRawItemTranslation(rows, seen, {
-    language: legacyChineseLanguage,
-    summary: item.summary_zh,
-    full_translation: item.full_translation_zh,
-    is_truncated: item.is_truncated,
-    source_chars: item.source_text_chars,
-    translation_chars: item.translation_chars
-  });
-  addRawItemTranslation(rows, seen, {
-    language: item.language,
-    summary: item.summary,
-    full_translation: item.full_translation,
-    is_truncated: item.is_truncated,
-    source_chars: item.source_text_chars,
-    translation_chars: item.translation_chars
-  });
-
   return rows.sort(
     (a, b) => languageSortKey(a.language) - languageSortKey(b.language) || a.language.localeCompare(b.language)
   );

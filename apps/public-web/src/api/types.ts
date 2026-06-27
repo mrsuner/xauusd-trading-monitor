@@ -75,10 +75,6 @@ export interface PublicRawItem {
   original_content: string | null;
   source_language: Language | null;
   media_type: string | null;
-  summary_zh: string | null;
-  summary_en: string | null;
-  full_translation_zh: string | null;
-  full_translation_en: string | null;
   summary: string | null;
   full_translation: string | null;
   language: Language;

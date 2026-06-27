@@ -115,7 +115,7 @@ export function EventDetailPage() {
               <p className="text-sm text-base-content/60">{t.raw.noSupportingItems}</p>
             )}
             {rawItemsQuery.data?.items.map((item) => (
-              <RawItemCard key={item.id} item={item} compact />
+              <RawItemCard key={item.id} item={item} compact showFullTranslation />
             ))}
           </div>
         </section>

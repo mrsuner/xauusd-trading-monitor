@@ -5,6 +5,7 @@ import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import {
   displayCategory,
   formatTime,
+  rawItemFullTranslation,
   rawItemSourceLabel,
   rawItemSummary,
   rawItemTimestamp,
@@ -12,12 +13,21 @@ import {
   relevanceBand
 } from "./format";
 
-export function RawItemCard({ item, compact = false }: { item: PublicRawItem; compact?: boolean }) {
+export function RawItemCard({
+  item,
+  compact = false,
+  showFullTranslation = false
+}: {
+  item: PublicRawItem;
+  compact?: boolean;
+  showFullTranslation?: boolean;
+}) {
   const lang = useLanguage();
   const t = useI18n();
   const to = useLocalizedPath();
   const relevance = relevanceBand(item.relevance_score, t);
   const timestamp = rawItemTimestamp(item);
+  const fullTranslation = rawItemFullTranslation(item, lang);
 
   return (
     <article className="rounded-box border border-base-300 bg-base-200/40 p-4 transition-colors hover:border-primary/40">
@@ -34,6 +44,17 @@ export function RawItemCard({ item, compact = false }: { item: PublicRawItem; co
       </Link>
 
       <p className="mt-2 text-sm leading-6 text-base-content/70">{rawItemSummary(item, t, lang)}</p>
+
+      {showFullTranslation && fullTranslation && (
+        <details className="mt-3 border-t border-base-300/60 pt-3">
+          <summary className="cursor-pointer text-sm font-semibold text-base-content/75 hover:text-primary">
+            {t.raw.fullTranslation}
+          </summary>
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-base-content/70">
+            {fullTranslation}
+          </p>
+        </details>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="badge badge-outline badge-sm font-mono">{displayCategory(item.content_category, t)}</span>
