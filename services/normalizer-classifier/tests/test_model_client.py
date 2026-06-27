@@ -267,10 +267,18 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
         assert headers["X-Title"] == "XAUUSD Event Radar"
         assert json["response_format"] == {"type": "json_object"}
         content = {
-            "summary_zh": "Trump 稱伊朗協議接近完成。",
-            "summary_en": "Trump says an Iran deal is close.",
-            "full_translation_zh": "Trump 表示伊朗協議已接近完成。",
-            "full_translation_en": "Trump says Iran deal is close.",
+            "translations": [
+                {
+                    "language": "zh-Hant",
+                    "summary": "Trump 稱伊朗協議接近完成。",
+                    "full_translation": "Trump 表示伊朗協議已接近完成。",
+                },
+                {
+                    "language": "en",
+                    "summary": "Trump says an Iran deal is close.",
+                    "full_translation": "Trump says Iran deal is close.",
+                },
+            ],
             "content_category": "diplomacy",
             "topic_tags": ["trump", "iran", "nuclear"],
             "mentioned_actors": ["Trump", "Iran"],
@@ -301,9 +309,13 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
 
     assert response.provider == "openrouter_free"
     assert response.model == "free-summary-model"
-    assert response.result.summary_zh == "Trump 稱伊朗協議接近完成。"
-    assert response.result.summary_en == "Trump says an Iran deal is close."
-    assert response.result.full_translation_zh == "Trump 表示伊朗協議已接近完成。"
+    zh_translation = response.result.translation_for("zh-Hant")
+    en_translation = response.result.translation_for("en")
+    assert zh_translation is not None
+    assert en_translation is not None
+    assert zh_translation.summary == "Trump 稱伊朗協議接近完成。"
+    assert en_translation.summary == "Trump says an Iran deal is close."
+    assert zh_translation.full_translation == "Trump 表示伊朗協議已接近完成。"
     assert response.result.content_category == "diplomacy"
     assert response.result.topic_tags == ["trump", "iran", "nuclear"]
     assert response.result.mentioned_actors == ["Trump", "Iran"]
@@ -356,9 +368,13 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
 
     response = await client.summarize_and_translate(raw_item, source, normalized)
 
-    assert response.result.summary_zh == "Trump 稱伊朗協議接近完成。"
-    assert response.result.summary_en == "Trump says an Iran deal is close."
-    assert response.result.full_translation_zh == "Trump 表示伊朗協議已接近完成。"
+    zh_translation = response.result.translation_for("zh-Hant")
+    en_translation = response.result.translation_for("en")
+    assert zh_translation is not None
+    assert en_translation is not None
+    assert zh_translation.summary == "Trump 稱伊朗協議接近完成。"
+    assert en_translation.summary == "Trump says an Iran deal is close."
+    assert zh_translation.full_translation == "Trump 表示伊朗協議已接近完成。"
     assert response.result.translation_for("ja") is not None
 
 
@@ -413,13 +429,13 @@ async def test_openai_style_model_client_requires_configured_translation_languag
         raise AssertionError("expected missing configured language to fail")
 
 
-def test_auxiliary_text_result_backfills_translations_from_legacy_fields() -> None:
+def test_auxiliary_text_result_uses_translations_array() -> None:
     result = AuxiliaryTextResult.model_validate(
         {
-            "summary_zh": "中文摘要",
-            "summary_en": "English summary",
-            "full_translation_zh": "中文全文",
-            "full_translation_en": "English full text",
+            "translations": [
+                {"language": "zh-Hant", "summary": "中文摘要", "full_translation": "中文全文"},
+                {"language": "en", "summary": "English summary", "full_translation": "English full text"},
+            ],
         }
     )
 

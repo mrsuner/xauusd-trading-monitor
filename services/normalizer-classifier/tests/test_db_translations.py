@@ -8,13 +8,13 @@ from normalizer_classifier.db import (
 from normalizer_classifier.models import AuxiliaryTextResult
 
 
-def test_raw_item_translation_rows_include_default_languages_for_legacy_dual_write() -> None:
+def test_raw_item_translation_rows_include_default_languages() -> None:
     result = AuxiliaryTextResult.model_validate(
         {
-            "summary_zh": "中文摘要",
-            "summary_en": "English summary",
-            "full_translation_zh": "中文全文",
-            "full_translation_en": "English full text",
+            "translations": [
+                {"language": "zh-Hant", "summary": "中文摘要", "full_translation": "中文全文"},
+                {"language": "en", "summary": "English summary", "full_translation": "English full text"},
+            ],
         }
     )
 

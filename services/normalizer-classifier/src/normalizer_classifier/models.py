@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class SourceMetadata(BaseModel):
@@ -37,10 +37,6 @@ class RawItem(BaseModel):
     title: str | None = None
     text_raw: str | None = None
     text_clean: str | None = None
-    summary_zh: str | None = None
-    summary_en: str | None = None
-    full_translation_zh: str | None = None
-    full_translation_en: str | None = None
     content_category: str | None = None
     topic_tags: list[str] = Field(default_factory=list)
     mentioned_actors: list[str] = Field(default_factory=list)
@@ -135,75 +131,12 @@ class ClassificationResult(BaseModel):
 
 
 class AuxiliaryTextResult(BaseModel):
-    summary_zh: str | None = None
-    summary_en: str | None = None
-    full_translation_zh: str | None = None
-    full_translation_en: str | None = None
     translations: list[AuxiliaryTranslation] = Field(default_factory=list)
     content_category: str | None = None
     topic_tags: list[str] = Field(default_factory=list)
     mentioned_actors: list[str] = Field(default_factory=list)
     detected_language: str | None = None
     notes: str | None = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_translation_payload(cls, value: Any) -> Any:
-        if not isinstance(value, dict):
-            return value
-
-        payload = dict(value)
-        raw_translations = payload.get("translations")
-        translations: list[dict[str, Any]] = []
-        if isinstance(raw_translations, list):
-            translations = [dict(item) for item in raw_translations if isinstance(item, dict)]
-
-        translations = cls._merge_legacy_translation(
-            translations,
-            language="zh-Hant",
-            summary=payload.get("summary_zh"),
-            full_translation=payload.get("full_translation_zh"),
-        )
-        translations = cls._merge_legacy_translation(
-            translations,
-            language="en",
-            summary=payload.get("summary_en"),
-            full_translation=payload.get("full_translation_en"),
-        )
-        payload["translations"] = translations
-        return payload
-
-    @model_validator(mode="after")
-    def populate_legacy_fields(self) -> "AuxiliaryTextResult":
-        zh = self.translation_for("zh-Hant")
-        en = self.translation_for("en")
-        if zh:
-            self.summary_zh = self.summary_zh or zh.summary
-            self.full_translation_zh = self.full_translation_zh or zh.full_translation
-        if en:
-            self.summary_en = self.summary_en or en.summary
-            self.full_translation_en = self.full_translation_en or en.full_translation
-        return self
-
-    @staticmethod
-    def _merge_legacy_translation(
-        translations: list[dict[str, Any]],
-        *,
-        language: str,
-        summary: Any,
-        full_translation: Any,
-    ) -> list[dict[str, Any]]:
-        if summary is None and full_translation is None:
-            return translations
-        for item in translations:
-            if item.get("language") != language:
-                continue
-            if item.get("summary") is None:
-                item["summary"] = summary
-            if item.get("full_translation") is None:
-                item["full_translation"] = full_translation
-            return translations
-        return [*translations, {"language": language, "summary": summary, "full_translation": full_translation}]
 
     def translation_for(self, language: str) -> AuxiliaryTranslation | None:
         return next((translation for translation in self.translations if translation.language == language), None)

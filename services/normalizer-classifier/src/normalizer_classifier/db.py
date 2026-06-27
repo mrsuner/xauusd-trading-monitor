@@ -454,19 +454,6 @@ class Database:
         result = model_response.result
 
         async with self.cursor() as cur:
-            await cur.execute(
-                """
-                update raw_items
-                set summary_zh = %(summary_zh)s,
-                    updated_at = now()
-                where id = %(raw_item_id)s
-                """,
-                {
-                    "raw_item_id": task.raw_item.id,
-                    "summary_zh": result.summary_zh,
-                },
-            )
-
             if result.is_relevant and result.relevance_score >= relevance_threshold_event:
                 event_id = await self._insert_event(cur, task, normalized, model_response)
                 if result.claim_text:
@@ -521,11 +508,7 @@ class Database:
             await cur.execute(
                 """
                 update raw_items
-                set summary_zh = %(summary_zh)s,
-                    summary_en = %(summary_en)s,
-                    full_translation_zh = %(full_translation_zh)s,
-                    full_translation_en = %(full_translation_en)s,
-                    content_category = %(content_category)s,
+                set content_category = %(content_category)s,
                     topic_tags = %(topic_tags)s,
                     mentioned_actors = %(mentioned_actors)s,
                     translation_status = %(translation_status)s,
@@ -539,10 +522,6 @@ class Database:
                 """,
                 {
                     "raw_item_id": raw_item_id,
-                    "summary_zh": result.summary_zh,
-                    "summary_en": result.summary_en,
-                    "full_translation_zh": result.full_translation_zh,
-                    "full_translation_en": result.full_translation_en,
                     "content_category": content_category,
                     "topic_tags": Jsonb(topic_tags),
                     "mentioned_actors": Jsonb(mentioned_actors),
