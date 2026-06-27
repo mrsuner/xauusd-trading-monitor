@@ -180,16 +180,18 @@ class Database:
         async with self.conn.cursor() as cur:
             await cur.execute(
                 """
-                with candidates as (
+                with eligible as (
                   select
                     r.id as raw_item_id,
+                    coalesce(r.published_at, r.ingested_at) as sort_time,
                     greatest(
                       r.updated_at,
                       r.ingested_at,
                       coalesce(r.translation_updated_at, '-infinity'::timestamptz),
                       coalesce(p.updated_at, '-infinity'::timestamptz),
                       coalesce(translation_state.updated_at, '-infinity'::timestamptz)
-                    ) as source_updated_at
+                    ) as source_updated_at,
+                    state.source_updated_at as previous_source_updated_at
                   from raw_items r
                   join sources s on s.id = r.source_id
                   left join raw_item_processing p on p.raw_item_id = r.id
@@ -228,7 +230,15 @@ class Database:
                       or r.translation_updated_at >= now() - interval '24 hours'
                       or p.updated_at >= now() - interval '24 hours'
                     )
-                  order by coalesce(r.published_at, r.ingested_at) asc
+                ),
+                candidates as (
+                  select
+                    raw_item_id,
+                    source_updated_at
+                  from eligible
+                  where previous_source_updated_at is null
+                     or previous_source_updated_at is distinct from source_updated_at
+                  order by sort_time asc
                   limit %(limit)s
                 )
                 insert into public_raw_item_sync_state (

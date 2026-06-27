@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from public_syncer.db import public_outbox_translations_select_sql, raw_item_translations_select_sql, raw_item_upstream_event_ids_sql
+import inspect
+
+from public_syncer.db import (
+    Database,
+    public_outbox_translations_select_sql,
+    raw_item_translations_select_sql,
+    raw_item_upstream_event_ids_sql,
+)
 
 
 def _compact(sql: str) -> str:
@@ -36,3 +43,16 @@ def test_raw_item_upstream_event_ids_sql_reads_processing_and_events() -> None:
     assert "from events e" in sql
     assert "where r.id = any(e.raw_item_ids)" in sql
     assert "'{}'::uuid[]" in sql
+
+
+def test_refresh_raw_item_sync_candidates_excludes_unchanged_existing_rows_before_limit() -> None:
+    source = inspect.getsource(Database.refresh_raw_item_sync_candidates)
+    sql = _compact(source)
+
+    assert "with eligible as" in sql
+    assert "state.source_updated_at as previous_source_updated_at" in sql
+    assert (
+        "from eligible where previous_source_updated_at is null "
+        "or previous_source_updated_at is distinct from source_updated_at"
+    ) in sql
+    assert "order by sort_time asc limit %(limit)s" in sql
