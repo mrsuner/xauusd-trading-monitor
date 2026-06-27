@@ -154,11 +154,21 @@ def make_raw_item() -> PublicRawItem:
         language="en",
         url="https://example.com/news",
         media_type="none",
-        summary_zh="中文摘要",
-        summary_en="English summary",
-        full_translation_zh="中文全文翻譯",
-        full_translation_en="English full translation",
         translations=[
+            {
+                "language": "zh-Hant",
+                "summary": "中文摘要",
+                "full_translation": "中文全文翻譯",
+                "status": "completed",
+                "input_chars": 120,
+            },
+            {
+                "language": "en",
+                "summary": "English summary",
+                "full_translation": "English full translation",
+                "status": "completed",
+                "input_chars": 120,
+            },
             {
                 "language": "ja",
                 "summary": "日本語要約",
@@ -209,9 +219,29 @@ def test_build_raw_item_payload_is_public_safe() -> None:
     assert payload["title"] == "Raw item title"
     assert "[REDACTED]" in payload["original_content"]
     assert "abcdefghijklmnopqrstuvwxyz123456" not in payload["original_content"]
-    assert payload["summary_zh"] == "中文摘要"
-    assert payload["full_translation_en"] == "English full translation"
+    assert "summary_zh" not in payload
+    assert "summary_en" not in payload
+    assert "full_translation_zh" not in payload
+    assert "full_translation_en" not in payload
     assert payload["translations"] == [
+        {
+            "language": "zh-Hant",
+            "summary": "中文摘要",
+            "full_translation": "中文全文翻譯",
+            "status": "completed",
+            "is_truncated": False,
+            "source_chars": 120,
+            "translation_chars": 6,
+        },
+        {
+            "language": "en",
+            "summary": "English summary",
+            "full_translation": "English full translation",
+            "status": "completed",
+            "is_truncated": False,
+            "source_chars": 120,
+            "translation_chars": 24,
+        },
         {
             "language": "ja",
             "summary": "日本語要約",
@@ -231,7 +261,7 @@ def test_build_raw_item_payload_is_public_safe() -> None:
 def test_build_raw_item_payload_truncates_original_and_translation() -> None:
     item = make_raw_item()
     item.text_clean = "alpha " * 20
-    item.full_translation_en = "bravo " * 20
+    item.translations[1].full_translation = "bravo " * 20
 
     payload = build_raw_item_payload(
         item,
@@ -242,10 +272,12 @@ def test_build_raw_item_payload_truncates_original_and_translation() -> None:
 
     assert len(payload["original_content"]) == 20
     assert payload["original_content"].endswith("…")
-    assert len(payload["full_translation_en"]) <= 25
-    assert payload["full_translation_en"].endswith("…")
+    en_translation = next(translation for translation in payload["translations"] if translation["language"] == "en")
+    assert len(en_translation["full_translation"]) <= 25
+    assert en_translation["full_translation"].endswith("…")
+    assert en_translation["is_truncated"] is True
     assert payload["scrub_metadata"]["original_content_truncated"] is True
-    assert payload["scrub_metadata"]["full_translation_en_truncated"] is True
+    assert "full_translation_en_truncated" not in payload["scrub_metadata"]
 
 
 def test_build_raw_item_payload_filters_non_http_url() -> None:

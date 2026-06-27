@@ -68,10 +68,6 @@ class PublicRawItem(BaseModel):
     language: str | None = None
     url: str | None = None
     media_type: str | None = None
-    summary_zh: str | None = None
-    summary_en: str | None = None
-    full_translation_zh: str | None = None
-    full_translation_en: str | None = None
     translations: list[PublicRawItemTranslation] = Field(default_factory=list)
     translation_status: str | None = None
     translation_input_chars: int | None = None

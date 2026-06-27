@@ -55,14 +55,6 @@ def build_raw_item_payload(
         item.text_clean,
         max_chars=max_original_chars,
     )
-    full_translation_zh, full_translation_zh_truncated, _ = clamp_public_text(
-        item.full_translation_zh,
-        max_chars=max_translation_chars,
-    )
-    full_translation_en, full_translation_en_truncated, _ = clamp_public_text(
-        item.full_translation_en,
-        max_chars=max_translation_chars,
-    )
     return {
         "schema_version": "public_raw_item.v1",
         "idempotency_key": raw_item_idempotency_key_for(item),
@@ -82,10 +74,6 @@ def build_raw_item_payload(
         "original_content": original_content,
         "language": clamp_text(item.language, max_chars=35),
         "media_type": clamp_text(item.media_type, max_chars=40),
-        "summary_zh": item.summary_zh,
-        "summary_en": item.summary_en,
-        "full_translation_zh": full_translation_zh,
-        "full_translation_en": full_translation_en,
         "translations": raw_item_translation_rows(
             item,
             max_translation_chars=max_translation_chars,
@@ -106,8 +94,6 @@ def build_raw_item_payload(
             "source": "raw_items",
             "source_updated_at": item.source_updated_at.isoformat(),
             "original_content_truncated": original_truncated,
-            "full_translation_zh_truncated": full_translation_zh_truncated,
-            "full_translation_en_truncated": full_translation_en_truncated,
             "source_text_chars": source_text_chars,
             "max_original_content_chars": max_original_chars,
             "max_full_translation_chars": max_translation_chars,

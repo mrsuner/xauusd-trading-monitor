@@ -56,3 +56,14 @@ def test_refresh_raw_item_sync_candidates_excludes_unchanged_existing_rows_befor
         "or previous_source_updated_at is distinct from source_updated_at"
     ) in sql
     assert "order by sort_time asc limit %(limit)s" in sql
+
+
+def test_claim_next_raw_item_does_not_select_legacy_translation_fields() -> None:
+    source = inspect.getsource(Database.claim_next_raw_item)
+    sql = _compact(source)
+
+    assert "r.summary_zh" not in sql
+    assert "r.summary_en" not in sql
+    assert "r.full_translation_zh" not in sql
+    assert "r.full_translation_en" not in sql
+    assert "raw_item_translations_select_sql()" in source
