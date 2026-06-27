@@ -12,12 +12,14 @@ def test_raw_item_translation_language_convention() -> None:
     assert RAW_ITEM_DISPLAY_LANGUAGES == ("zh-Hant", "en")
 
 
-def test_event_context_query_reads_raw_item_translation_summaries_with_legacy_fallback() -> None:
+def test_event_context_query_reads_raw_item_translation_summaries_without_legacy_fallback() -> None:
     sql = _compact(_event_context_query())
 
     assert "raw_item_translation_" not in sql
-    assert "coalesce(tr_zh.summary, r.summary_zh) as raw_item_summary_zh" in sql
-    assert "coalesce(tr_en.summary, r.summary_en) as raw_item_summary_en" in sql
+    assert "tr_zh.summary as raw_item_summary_zh" in sql
+    assert "tr_en.summary as raw_item_summary_en" in sql
+    assert "r.summary_zh" not in sql
+    assert "r.summary_en" not in sql
     assert (
         "left join raw_item_translations tr_zh on tr_zh.raw_item_id = r.id "
         "and tr_zh.language = 'zh-Hant'"
@@ -28,4 +30,4 @@ def test_event_context_query_reads_raw_item_translation_summaries_with_legacy_fa
 def test_event_context_query_groups_translation_summaries_for_topic_aggregation() -> None:
     sql = _compact(_event_context_query())
 
-    assert "r.summary_en, tr_zh.summary, tr_en.summary, r.text_clean" in sql
+    assert "tr_zh.summary, tr_en.summary, r.text_clean" in sql

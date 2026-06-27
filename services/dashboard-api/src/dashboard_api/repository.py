@@ -672,10 +672,6 @@ def build_raw_items_query(filters: dict[str, Any]) -> QueryBuilder:
         (
             "r.title",
             "r.text_clean",
-            "r.summary_zh",
-            "r.summary_en",
-            "r.full_translation_zh",
-            "r.full_translation_en",
             "translation_search.search_text",
             "r.text_raw",
             "r.topic_tags::text",
@@ -847,7 +843,7 @@ def build_processing_pipeline_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_equal("s.source_group", "source_group", filters.get("source_group"))
     builder.add_equal("s.priority", "priority", filters.get("priority"))
     builder.add_search(
-        ("r.title", "r.text_clean", "r.summary_zh", "r.summary_en", "translation_search.search_text", "r.text_raw", "s.name"),
+        ("r.title", "r.text_clean", "translation_search.search_text", "r.text_raw", "s.name"),
         "q",
         filters.get("q"),
     )

@@ -121,7 +121,11 @@ def test_raw_items_query_includes_translation_rows() -> None:
     assert "tr_zh.language = 'zh-Hant'" in sql
     assert "left join raw_item_translations tr_en" in sql
     assert "coalesce(translations.items, '[]'::jsonb) as translations" in sql
-    assert "coalesce(tr_zh.summary, r.summary_zh) as summary_zh" in sql
+    assert "tr_zh.summary as summary_zh" in sql
+    assert "r.summary_zh" not in sql
+    assert "r.summary_en" not in sql
+    assert "r.full_translation_zh" not in sql
+    assert "r.full_translation_en" not in sql
     assert "translation_search.search_text ilike %(q)s" in sql
     assert "translation_search.search_text" in count_sql
     assert "rt.summary" in sql
@@ -153,7 +157,9 @@ def test_processing_pipeline_query_uses_translation_rows_for_display_and_search(
     assert "raw_item_translation_" not in count_sql
     assert "left join raw_item_translations tr_zh" in sql
     assert "tr_zh.language = 'zh-Hant'" in sql
-    assert "coalesce(tr_zh.summary, r.summary_zh) as summary_zh" in sql
+    assert "tr_zh.summary as summary_zh" in sql
+    assert "r.summary_zh" not in sql
+    assert "r.summary_en" not in sql
     assert "coalesce(translations.items, '[]'::jsonb) as translations" in sql
     assert "translation_search.search_text ilike %(q)s" in sql
     assert "translation_search.search_text" in count_sql

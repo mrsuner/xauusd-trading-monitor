@@ -15,8 +15,8 @@ def raw_item_translation_summary_select_sql(
     indent: str = "                  ",
 ) -> str:
     return (
-        f"{indent}coalesce({zh_alias}.summary, {raw_alias}.summary_zh) as {zh_output_alias},\n"
-        f"{indent}coalesce({en_alias}.summary, {raw_alias}.summary_en) as {en_output_alias},"
+        f"{indent}{zh_alias}.summary as {zh_output_alias},\n"
+        f"{indent}{en_alias}.summary as {en_output_alias},"
     )
 
 

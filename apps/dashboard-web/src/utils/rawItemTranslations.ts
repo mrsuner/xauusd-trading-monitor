@@ -5,10 +5,6 @@ const ZH_HANT = "zh-Hant";
 
 type RawItemTranslationSource = {
   translations?: RawItemTranslation[];
-  summary_zh?: string | null;
-  summary_en?: string | null;
-  full_translation_zh?: string | null;
-  full_translation_en?: string | null;
   text_clean?: string | null;
   text_raw?: string | null;
   title?: string | null;
@@ -48,17 +44,14 @@ function translationFor(item: RawItemTranslationSource, language: string): RawIt
 }
 
 function summaryForLanguage(item: RawItemTranslationSource, language: string): string | undefined {
-  const translated = text(translationFor(item, language)?.summary);
-  if (translated) return translated;
-  return language === ZH_HANT ? text(item.summary_zh) : text(item.summary_en);
+  return text(translationFor(item, language)?.summary);
 }
 
 function fullTranslationForLanguage(item: RawItemTranslationSource, language: string): string | undefined {
   const translated = text(translationFor(item, language)?.full_translation);
   const summary = summaryForLanguage(item, language);
   if (translated && !sameText(translated, summary)) return translated;
-  const legacyFullTranslation = language === ZH_HANT ? text(item.full_translation_zh) : text(item.full_translation_en);
-  return sameText(legacyFullTranslation, summary) ? undefined : legacyFullTranslation;
+  return undefined;
 }
 
 export function rawItemSummary(item: RawItemTranslationSource, language?: string | null): string | undefined {

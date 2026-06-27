@@ -78,8 +78,6 @@ def _event_context_query() -> str:
                   r.id,
                   r.title,
                   r.url,
-                  r.summary_zh,
-                  r.summary_en,
 {raw_item_translation_group_by_sql()}
                   r.text_clean,
                   r.text_raw
