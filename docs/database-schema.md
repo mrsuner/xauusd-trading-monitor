@@ -936,10 +936,6 @@ public.x
 create table public_outbox (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references events(id) on delete cascade,
-  public_title_zh text,
-  public_summary_zh text,
-  public_title_en text,
-  public_summary_en text,
   public_source_links jsonb not null default '[]'::jsonb,
   severity text not null default 'B',
   relevance_score smallint,
@@ -996,6 +992,7 @@ create index public_outbox_generated_idx
 ### 11.6.4 發布邊界
 
 - `public_outbox` 只保存 public-safe payload，不保存完整 `text_raw`。
+- 公共文案保存在 `public_outbox_translations`，以 `(public_outbox_id, language)` 表示不同語言；`public_outbox` 不再保存固定語言文案欄位。
 - `approved_for_public = true` 是所有公共出口的必要條件。
 - 不同平台各自使用獨立 status、retry count、error 與 provider response，避免 Telegram Channel、X 與 public web sync 互相影響。
 - Publisher 不應讀取 raw item 原文來補寫內容；若 payload 不足，應回到 `event-router` 修正。

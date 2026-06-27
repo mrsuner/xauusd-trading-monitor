@@ -902,10 +902,6 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
         select
           p.id,
           p.event_id,
-          p.public_title_zh,
-          p.public_summary_zh,
-          p.public_title_en,
-          p.public_summary_en,
           coalesce(translations.items, '[]'::jsonb) as translations,
           p.public_source_links,
           p.severity,
@@ -957,10 +953,6 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
     builder.add_lte("p.created_at", "created_to", filters.get("created_to"))
     builder.add_search(
         (
-            "p.public_title_zh",
-            "p.public_summary_zh",
-            "p.public_title_en",
-            "p.public_summary_en",
             "translation_search.search_text",
             "e.title",
             "e.summary_zh",

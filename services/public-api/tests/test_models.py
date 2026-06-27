@@ -25,6 +25,20 @@ def test_public_event_ingest_request_normalizes_taxonomy() -> None:
     assert payload.mentioned_actors == ["Trump"]
 
 
+def test_public_event_ingest_request_rejects_legacy_translation_fields() -> None:
+    with pytest.raises(ValidationError):
+        PublicEventIngestRequest.model_validate(
+            {
+                "schema_version": "public_event.v1",
+                "idempotency_key": "event:1:v1",
+                "upstream_event_id": str(uuid4()),
+                "severity": "A",
+                "public_summary_zh": "legacy summary",
+                "translations": [{"language": "zh-Hant", "summary": "中文摘要"}],
+            }
+        )
+
+
 def test_public_event_ingest_request_accepts_translation_rows() -> None:
     payload = PublicEventIngestRequest.model_validate(
         {

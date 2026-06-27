@@ -2,7 +2,6 @@ import type { Language, PublicEvent, PublicEventTranslation, PublicRawItem, Publ
 import { supportedLanguages } from "../i18n/languages";
 
 export const defaultContentLanguage = "en";
-export const legacyChineseLanguage = "zh-Hant";
 const contentLanguagePriority = supportedLanguages as readonly Language[];
 
 export function normalizeContentLanguage(lang: Language | null | undefined): Language {
@@ -33,8 +32,6 @@ export function publicEventTranslationRows(event: PublicEvent): PublicEventTrans
     addTranslation(rows, seen, translation.language, translation.title, translation.summary);
   }
 
-  addTranslation(rows, seen, defaultContentLanguage, event.public_title_en, event.public_summary_en);
-  addTranslation(rows, seen, legacyChineseLanguage, event.public_title_zh, event.public_summary_zh);
   addTranslation(rows, seen, event.language, event.title, event.summary);
 
   return rows.sort(

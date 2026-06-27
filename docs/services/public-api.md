@@ -110,10 +110,6 @@ Request body：
   "severity": "A",
   "relevance_score": 88,
   "confirmation_state": "partially_confirmed",
-  "public_title_zh": "...",
-  "public_summary_zh": "...",
-  "public_title_en": "...",
-  "public_summary_en": "...",
   "translations": [
     {
       "language": "en",
@@ -237,11 +233,7 @@ Response 應適合 TanStack Query：
           "title": "Fed rhetoric turns more hawkish",
           "summary": "Fed-linked remarks emphasized persistent inflation..."
         }
-      ],
-      "public_title_zh": "...",
-      "public_summary_zh": "...",
-      "public_title_en": "...",
-      "public_summary_en": "..."
+      ]
     }
   ],
   "page": 1,
@@ -266,10 +258,6 @@ create table public_events (
   severity text not null,
   relevance_score smallint,
   confirmation_state text,
-  public_title_zh text,
-  public_summary_zh text,
-  public_title_en text,
-  public_summary_en text,
   public_source_links jsonb not null default '[]'::jsonb,
   topic_tags text[] not null default '{}'::text[],
   content_category text,

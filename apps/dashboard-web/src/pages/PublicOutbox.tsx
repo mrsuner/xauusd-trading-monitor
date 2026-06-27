@@ -33,26 +33,14 @@ function translationFor(item: PublicOutboxItem, language?: string | null) {
   return translations.find((candidate) => candidate.title || candidate.summary);
 }
 
-function legacyTitleFor(item: PublicOutboxItem, language?: string | null) {
-  return language?.startsWith("zh")
-    ? item.public_title_zh || item.public_title_en
-    : item.public_title_en || item.public_title_zh;
-}
-
-function legacySummaryFor(item: PublicOutboxItem, language?: string | null) {
-  return language?.startsWith("zh")
-    ? item.public_summary_zh || item.public_summary_en
-    : item.public_summary_en || item.public_summary_zh;
-}
-
 function titleFor(item: PublicOutboxItem, language?: string | null) {
   const translation = translationFor(item, language);
-  return translation?.title || legacyTitleFor(item, language) || item.event_title || translation?.summary || legacySummaryFor(item, language);
+  return translation?.title || item.event_title || translation?.summary;
 }
 
 function summaryFor(item: PublicOutboxItem, language?: string | null) {
   const translation = translationFor(item, language);
-  return translation?.summary || legacySummaryFor(item, language) || item.event_summary_zh;
+  return translation?.summary || item.event_summary_zh;
 }
 
 function channelState(item: PublicOutboxItem, channel: ChannelKey) {

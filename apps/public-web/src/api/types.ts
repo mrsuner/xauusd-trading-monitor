@@ -35,10 +35,6 @@ export interface PublicEvent {
   language: Language;
   available_languages: Language[];
   translations?: PublicEventTranslation[];
-  public_title_zh: string | null;
-  public_summary_zh: string | null;
-  public_title_en: string | null;
-  public_summary_en: string | null;
   public_source_links: PublicSourceLink[];
   topic_tags: string[];
   content_category: string | null;

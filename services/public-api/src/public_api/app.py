@@ -379,10 +379,8 @@ async def _authorize_ingest(
 
 
 def _validate_public_text_lengths(payload: PublicEventIngestRequest, settings: Settings) -> None:
-    title_fields = [payload.public_title_zh, payload.public_title_en]
-    title_fields.extend(translation.title for translation in payload.translations)
-    summary_fields = [payload.public_summary_zh, payload.public_summary_en]
-    summary_fields.extend(translation.summary for translation in payload.translations)
+    title_fields = [translation.title for translation in payload.translations]
+    summary_fields = [translation.summary for translation in payload.translations]
     if settings.max_title_chars:
         for value in title_fields:
             if value and len(value) > settings.max_title_chars:

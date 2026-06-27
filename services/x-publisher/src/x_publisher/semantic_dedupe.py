@@ -182,10 +182,8 @@ def serialize_item(item: PublicOutboxItem) -> dict[str, Any]:
     return {
         "id": str(item.id),
         "event_id": str(item.event_id),
-        "title_zh": title_for(item),
-        "summary_zh": summary_for(item),
-        "title_en": item.public_title_en,
-        "summary_en": item.public_summary_en,
+        "title": title_for(item),
+        "summary": summary_for(item),
         "severity": item.severity,
         "confirmation_state": item.confirmation_state,
         "topic_tags": item.topic_tags,

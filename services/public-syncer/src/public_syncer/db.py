@@ -317,14 +317,10 @@ class Database:
                 where p.id = claimed.id
                   and e.id = p.event_id
                 returning
-                  p.id,
-                  p.event_id,
-                  p.public_title_zh,
-                  p.public_summary_zh,
-                  p.public_title_en,
-                  p.public_summary_en,
-                  {public_outbox_translations_select_sql()} as translations,
-                  p.public_source_links,
+	                  p.id,
+	                  p.event_id,
+	                  {public_outbox_translations_select_sql()} as translations,
+	                  p.public_source_links,
                   p.severity,
                   p.relevance_score,
                   p.confirmation_state,

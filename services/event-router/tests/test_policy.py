@@ -151,8 +151,6 @@ def test_public_website_title_falls_back_when_raw_title_is_full_text() -> None:
 
     assert public_website.queued is True
     assert public_website.public_outbox is not None
-    assert public_website.public_outbox.public_title_zh == "IRAN_NUCLEAR"
-    assert public_website.public_outbox.public_title_en is None
     assert [(row.language, row.title) for row in public_website.public_outbox.translations] == [
         ("zh-Hant", "IRAN_NUCLEAR")
     ]
@@ -171,10 +169,6 @@ def test_public_outbox_preserves_english_public_content() -> None:
 
     assert public_website.queued is True
     assert public_website.public_outbox is not None
-    assert public_website.public_outbox.public_title_en == "Fed rhetoric turns more hawkish"
-    assert public_website.public_outbox.public_summary_en == (
-        "Fed-linked remarks emphasized persistent inflation and policy restraint."
-    )
     assert [(row.language, row.title, row.summary) for row in public_website.public_outbox.translations] == [
         ("zh-Hant", "Fed rhetoric turns more hawkish", "測試事件摘要。"),
         (
@@ -229,7 +223,6 @@ def test_public_outbox_summary_falls_back_to_raw_item_translation_summary() -> N
 
     assert public_website.queued is True
     assert public_website.public_outbox is not None
-    assert public_website.public_outbox.public_summary_zh == "Raw item translation summary."
     assert public_website.public_outbox.translations[0].summary == "Raw item translation summary."
 
 
@@ -242,8 +235,6 @@ def test_public_outbox_does_not_copy_chinese_title_into_english_field() -> None:
 
     assert public_website.queued is True
     assert public_website.public_outbox is not None
-    assert public_website.public_outbox.public_title_zh == "伊朗談判出現新進展"
-    assert public_website.public_outbox.public_title_en is None
     assert [row.language for row in public_website.public_outbox.translations] == ["zh-Hant"]
 
 

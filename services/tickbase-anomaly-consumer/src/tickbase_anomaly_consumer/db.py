@@ -192,29 +192,52 @@ class Database:
 
             # 4) public Telegram channel (S/A only).
             if mapped.to_public:
-                await cur.execute(
-                    """
-                    insert into public_outbox (
-                        event_id, public_title_zh, public_summary_zh, severity,
-                        relevance_score, confirmation_state, topic_tags,
-                        approved_for_public, publish_status_telegram,
-                        publish_status_web, publish_status_x
-                    ) values (
-                        %(event_id)s, %(title)s, %(summary)s, %(severity)s,
-                        %(relevance_score)s, 'confirmed', %(topic_tags)s,
-                        true, 'pending', 'skipped', 'skipped'
-                    )
-                    on conflict (event_id) do nothing
-                    """,
-                    {
-                        "event_id": event_uuid,
-                        "title": mapped.title_zh,
-                        "summary": mapped.summary_zh,
-                        "severity": mapped.severity,
-                        "relevance_score": mapped.relevance_score,
-                        "topic_tags": mapped.topic_tags,
-                    },
-                )
+	                await cur.execute(
+	                    """
+	                    insert into public_outbox (
+	                        event_id, severity,
+	                        relevance_score, confirmation_state, topic_tags,
+	                        approved_for_public, publish_status_telegram,
+	                        publish_status_web, publish_status_x
+	                    ) values (
+	                        %(event_id)s, %(severity)s,
+	                        %(relevance_score)s, 'confirmed', %(topic_tags)s,
+	                        true, 'pending', 'skipped', 'skipped'
+	                    )
+	                    on conflict (event_id) do nothing
+	                    returning id
+	                    """,
+	                    {
+	                        "event_id": event_uuid,
+	                        "severity": mapped.severity,
+	                        "relevance_score": mapped.relevance_score,
+	                        "topic_tags": mapped.topic_tags,
+	                    },
+	                )
+	                outbox = await cur.fetchone()
+	                if outbox is None:
+	                    await cur.execute("select id from public_outbox where event_id = %(event_id)s", {"event_id": event_uuid})
+	                    outbox = await cur.fetchone()
+	                if outbox is not None:
+	                    await cur.execute(
+	                        """
+	                        insert into public_outbox_translations (
+	                            public_outbox_id, language, title, summary, status
+	                        ) values (
+	                            %(public_outbox_id)s, 'zh-Hant', %(title)s, %(summary)s, 'approved'
+	                        )
+	                        on conflict (public_outbox_id, language) do update
+	                        set title = excluded.title,
+	                            summary = excluded.summary,
+	                            status = excluded.status,
+	                            updated_at = now()
+	                        """,
+	                        {
+	                            "public_outbox_id": outbox["id"],
+	                            "title": mapped.title_zh,
+	                            "summary": mapped.summary_zh,
+	                        },
+	                    )
 
         await self.conn.commit()
         return True

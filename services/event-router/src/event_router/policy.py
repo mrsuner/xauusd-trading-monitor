@@ -313,23 +313,19 @@ def build_public_outbox_draft(
     links: list[dict[str, str | None]] = []
     if event.raw_item.url:
         links.append({"source_name": event.source.name, "url": event.raw_item.url})
-    public_title_zh = public_outbox_title(event)
-    public_summary_zh = build_public_outbox_summary(event)
-    public_title_en = public_outbox_title_en(event)
-    public_summary_en = event.summary_en or event.raw_item.summary_en
+    zh_title = public_outbox_title(event)
+    zh_summary = build_public_outbox_summary(event)
+    en_title = public_outbox_title_en(event)
+    en_summary = event.summary_en or event.raw_item.summary_en
     return PublicOutboxDraft(
         event_id=event.id,
-        public_title_zh=public_title_zh,
-        public_summary_zh=public_summary_zh,
-        public_title_en=public_title_en,
-        public_summary_en=public_summary_en,
         translations=public_outbox_translations(
             event=event,
             languages=languages,
-            zh_title=public_title_zh,
-            zh_summary=public_summary_zh,
-            en_title=public_title_en,
-            en_summary=public_summary_en,
+            zh_title=zh_title,
+            zh_summary=zh_summary,
+            en_title=en_title,
+            en_summary=en_summary,
         ),
         public_source_links=links,
         severity=event.severity,

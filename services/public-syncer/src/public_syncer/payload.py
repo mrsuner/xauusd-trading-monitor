@@ -24,10 +24,6 @@ def build_payload(
         "severity": item.severity,
         "relevance_score": item.relevance_score,
         "confirmation_state": item.confirmation_state,
-        "public_title_zh": clamp_text(item.public_title_zh, max_chars=MAX_PUBLIC_TITLE_CHARS),
-        "public_summary_zh": item.public_summary_zh,
-        "public_title_en": clamp_text(item.public_title_en, max_chars=MAX_PUBLIC_TITLE_CHARS),
-        "public_summary_en": item.public_summary_en,
         "translations": public_translation_rows(item, sync_languages=sync_languages),
         "public_source_links": sanitize_source_links(item.public_source_links),
         "topic_tags": item.topic_tags,
@@ -129,44 +125,7 @@ def public_translation_rows(
         and (translation.title or translation.summary)
         and (translation.status is None or translation.status == "approved")
     ]
-    if rows or has_allowed_translation_rows:
-        return rows
-
-    fallback_rows: list[dict[str, str | None]] = []
-    for language in sync_languages:
-        if language == PUBLIC_LANGUAGE_ZH_HANT:
-            add_public_translation_row(
-                fallback_rows,
-                language=PUBLIC_LANGUAGE_ZH_HANT,
-                title=item.public_title_zh,
-                summary=item.public_summary_zh,
-            )
-        elif language == PUBLIC_LANGUAGE_EN:
-            add_public_translation_row(
-                fallback_rows,
-                language=PUBLIC_LANGUAGE_EN,
-                title=item.public_title_en,
-                summary=item.public_summary_en,
-            )
-    return fallback_rows
-
-
-def add_public_translation_row(
-    rows: list[dict[str, str | None]],
-    *,
-    language: str,
-    title: str | None,
-    summary: str | None,
-) -> None:
-    if not title and not summary:
-        return
-    rows.append(
-        {
-            "language": language,
-            "title": clamp_text(title, max_chars=MAX_PUBLIC_TITLE_CHARS),
-            "summary": summary,
-        }
-    )
+    return rows if rows or has_allowed_translation_rows else []
 
 
 def clamp_text(value: str | None, *, max_chars: int) -> str | None:

@@ -210,6 +210,8 @@ class PublicRawItemIngestRequest(BaseModel):
 
 
 class PublicEventIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     schema_version: str
     idempotency_key: str = Field(min_length=1, max_length=300)
     upstream_event_id: UUID
@@ -218,10 +220,6 @@ class PublicEventIngestRequest(BaseModel):
     severity: str
     relevance_score: int | None = Field(default=None, ge=0, le=100)
     confirmation_state: str | None = None
-    public_title_zh: str | None = None
-    public_summary_zh: str | None = None
-    public_title_en: str | None = None
-    public_summary_en: str | None = None
     translations: list[PublicEventTranslationInput] = Field(default_factory=list)
     public_source_links: list[PublicSourceLink] = Field(default_factory=list)
     topic_tags: list[str] = Field(default_factory=list)
@@ -282,10 +280,6 @@ class PublicEventListItem(BaseModel):
     language: str
     available_languages: list[str]
     translations: list[dict[str, Any]] = Field(default_factory=list)
-    public_title_zh: str | None
-    public_summary_zh: str | None
-    public_title_en: str | None
-    public_summary_en: str | None
     public_source_links: list[dict[str, Any]]
     topic_tags: list[str]
     content_category: str | None

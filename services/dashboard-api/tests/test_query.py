@@ -221,11 +221,14 @@ def test_public_outbox_query_filters_public_flag_and_search() -> None:
     count_sql = builder.count_sql()
 
     assert "p.approved_for_public = %(approved_for_public)s" in sql
-    assert "p.public_title_zh ilike %(q)s" in sql
     assert "translation_search.search_text ilike %(q)s" in sql
     assert "from public_outbox_translations pot" in sql
     assert "from public_outbox_translations pot" in count_sql
     assert "e.title ilike %(q)s" in sql
+    assert "p.public_title_zh" not in sql
+    assert "p.public_summary_zh" not in sql
+    assert "p.public_title_en" not in sql
+    assert "p.public_summary_en" not in sql
     assert builder.params["approved_for_public"] is True
     assert builder.params["q"] == "%gold%"
 

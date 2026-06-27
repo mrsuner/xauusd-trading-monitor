@@ -354,10 +354,6 @@ class Database:
                 """
                 insert into public_outbox (
                   event_id,
-                  public_title_zh,
-                  public_summary_zh,
-                  public_title_en,
-                  public_summary_en,
                   public_source_links,
                   severity,
                   relevance_score,
@@ -370,10 +366,6 @@ class Database:
                 )
                 values (
                   %(event_id)s,
-                  %(public_title_zh)s,
-                  %(public_summary_zh)s,
-                  %(public_title_en)s,
-                  %(public_summary_en)s,
                   %(public_source_links)s,
                   %(severity)s,
                   %(relevance_score)s,
@@ -385,11 +377,7 @@ class Database:
                   %(publish_status_x)s
                 )
                 on conflict (event_id) do update
-                set public_title_zh = coalesce(excluded.public_title_zh, public_outbox.public_title_zh),
-                    public_summary_zh = coalesce(excluded.public_summary_zh, public_outbox.public_summary_zh),
-                    public_title_en = coalesce(excluded.public_title_en, public_outbox.public_title_en),
-                    public_summary_en = coalesce(excluded.public_summary_en, public_outbox.public_summary_en),
-                    public_source_links = case
+                set public_source_links = case
                       when jsonb_array_length(excluded.public_source_links) > 0
                       then excluded.public_source_links
                       else public_outbox.public_source_links

@@ -358,10 +358,6 @@ export type PublicOutboxTranslation = {
 export type PublicOutboxItem = {
   id: string;
   event_id: string;
-  public_title_zh?: string | null;
-  public_summary_zh?: string | null;
-  public_title_en?: string | null;
-  public_summary_en?: string | null;
   translations?: PublicOutboxTranslation[];
   public_source_links: SourceLink[];
   severity: string;

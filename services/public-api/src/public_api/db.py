@@ -149,10 +149,6 @@ class PublicRepository:
             "severity": payload.severity,
             "relevance_score": payload.relevance_score,
             "confirmation_state": payload.confirmation_state,
-            "public_title_zh": payload.public_title_zh,
-            "public_summary_zh": payload.public_summary_zh,
-            "public_title_en": payload.public_title_en,
-            "public_summary_en": payload.public_summary_en,
             "public_source_links": Jsonb([link.model_dump(mode="json") for link in payload.public_source_links]),
             "topic_tags": payload.topic_tags,
             "content_category": payload.content_category,
@@ -171,10 +167,6 @@ class PublicRepository:
                   severity,
                   relevance_score,
                   confirmation_state,
-                  public_title_zh,
-                  public_summary_zh,
-                  public_title_en,
-                  public_summary_en,
                   public_source_links,
                   topic_tags,
                   content_category,
@@ -190,10 +182,6 @@ class PublicRepository:
                   %(severity)s,
                   %(relevance_score)s,
                   %(confirmation_state)s,
-                  %(public_title_zh)s,
-                  %(public_summary_zh)s,
-                  %(public_title_en)s,
-                  %(public_summary_en)s,
                   %(public_source_links)s,
                   %(topic_tags)s,
                   %(content_category)s,
@@ -208,10 +196,6 @@ class PublicRepository:
                     severity = excluded.severity,
                     relevance_score = excluded.relevance_score,
                     confirmation_state = excluded.confirmation_state,
-                    public_title_zh = excluded.public_title_zh,
-                    public_summary_zh = excluded.public_summary_zh,
-                    public_title_en = excluded.public_title_en,
-                    public_summary_en = excluded.public_summary_en,
                     public_source_links = excluded.public_source_links,
                     topic_tags = excluded.topic_tags,
                     content_category = excluded.content_category,
@@ -728,10 +712,6 @@ class PublicRepository:
                   severity,
                   relevance_score,
                   confirmation_state,
-                  public_title_zh,
-                  public_summary_zh,
-                  public_title_en,
-                  public_summary_en,
                   public_source_links,
                   topic_tags,
                   content_category,
@@ -777,10 +757,6 @@ class PublicRepository:
                   severity,
                   relevance_score,
                   confirmation_state,
-                  public_title_zh,
-                  public_summary_zh,
-                  public_title_en,
-                  public_summary_en,
                   public_source_links,
                   topic_tags,
                   content_category,
@@ -879,13 +855,7 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
     if filters.get("q"):
         clauses.append(
             f"""
-            (
-              public_title_zh ilike %(q)s
-              or public_summary_zh ilike %(q)s
-              or public_title_en ilike %(q)s
-              or public_summary_en ilike %(q)s
-              or {public_event_translation_search_exists_sql()}
-            )
+            ({public_event_translation_search_exists_sql()})
             """
         )
         params["q"] = f"%{filters['q']}%"
@@ -1005,8 +975,6 @@ def public_event_translation_rows(payload: PublicEventIngestRequest) -> list[dic
             "summary": summary,
         }
 
-    add_row(language=PUBLIC_LANGUAGE_ZH_HANT, title=payload.public_title_zh, summary=payload.public_summary_zh)
-    add_row(language=PUBLIC_LANGUAGE_EN, title=payload.public_title_en, summary=payload.public_summary_en)
     for translation in payload.translations:
         add_row(language=translation.language, title=translation.title, summary=translation.summary)
     return list(rows_by_language.values())
@@ -1237,18 +1205,6 @@ def _public_translation_rows(
         normalized_language = language.strip()
         rows.append({"language": normalized_language, "title": title, "summary": summary})
         seen.add(normalized_language)
-
-    for language, title_key, summary_key in (
-        (PUBLIC_LANGUAGE_EN, "public_title_en", "public_summary_en"),
-        (PUBLIC_LANGUAGE_ZH_HANT, "public_title_zh", "public_summary_zh"),
-    ):
-        if language in seen:
-            continue
-        title = _optional_string(row.get(title_key))
-        summary = _optional_string(row.get(summary_key))
-        if title or summary:
-            rows.append({"language": language, "title": title, "summary": summary})
-            seen.add(language)
 
     return sorted(rows, key=lambda item: _language_sort_key(item["language"], language_priority=language_priority))
 

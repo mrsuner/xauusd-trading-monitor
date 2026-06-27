@@ -16,8 +16,8 @@ def make_item() -> PublicOutboxItem:
         {
             "id": uuid4(),
             "event_id": uuid4(),
-            "public_title_zh": "Title",
-            "public_summary_zh": "Summary",
+            "title": "Title",
+            "summary": "Summary",
             "public_source_links": [{"source_name": "Source", "url": "https://example.com"}],
             "severity": "A",
             "generated_at": datetime.now(timezone.utc),

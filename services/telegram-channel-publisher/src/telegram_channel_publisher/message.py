@@ -23,16 +23,14 @@ def compact_text(value: str | None, *, limit: int) -> str:
 
 def title_for(item: PublicOutboxItem) -> str:
     return (
-        item.public_title_zh
-        or item.public_title_en
-        or first_sentence(item.public_summary_zh)
-        or first_sentence(item.public_summary_en)
+        item.title
+        or first_sentence(item.summary)
         or "Public event update"
     )
 
 
 def summary_for(item: PublicOutboxItem) -> str:
-    return item.public_summary_zh or item.public_summary_en or "No public summary available."
+    return item.summary or "No public summary available."
 
 
 def first_sentence(value: str | None) -> str | None:

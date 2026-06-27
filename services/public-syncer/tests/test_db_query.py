@@ -67,3 +67,14 @@ def test_claim_next_raw_item_does_not_select_legacy_translation_fields() -> None
     assert "r.full_translation_zh" not in sql
     assert "r.full_translation_en" not in sql
     assert "raw_item_translations_select_sql()" in source
+
+
+def test_claim_next_public_event_does_not_select_legacy_translation_fields() -> None:
+    source = inspect.getsource(Database.claim_next_item)
+    sql = _compact(source)
+
+    assert "p.public_title_zh" not in sql
+    assert "p.public_summary_zh" not in sql
+    assert "p.public_title_en" not in sql
+    assert "p.public_summary_en" not in sql
+    assert "public_outbox_translations_select_sql()" in source

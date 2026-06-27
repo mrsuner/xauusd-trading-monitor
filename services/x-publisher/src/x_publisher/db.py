@@ -151,13 +151,25 @@ class Database:
                 from claimed
                 where p.id = claimed.id
                 returning
-                  p.id,
-                  p.event_id,
-                  p.public_title_zh,
-                  p.public_summary_zh,
-                  p.public_title_en,
-                  p.public_summary_en,
-                  p.public_source_links,
+	                  p.id,
+	                  p.event_id,
+	                  (
+	                    select pot.title
+	                    from public_outbox_translations pot
+	                    where pot.public_outbox_id = p.id
+	                      and pot.language = 'zh-Hant'
+	                      and pot.status = 'approved'
+	                    limit 1
+	                  ) as title,
+	                  (
+	                    select pot.summary
+	                    from public_outbox_translations pot
+	                    where pot.public_outbox_id = p.id
+	                      and pot.language = 'zh-Hant'
+	                      and pot.status = 'approved'
+	                    limit 1
+	                  ) as summary,
+	                  p.public_source_links,
                   p.severity,
                   p.relevance_score,
                   p.confirmation_state,
@@ -189,13 +201,25 @@ class Database:
             await cur.execute(
                 """
                 select
-                  p.id,
-                  p.event_id,
-                  p.public_title_zh,
-                  p.public_summary_zh,
-                  p.public_title_en,
-                  p.public_summary_en,
-                  p.public_source_links,
+	                  p.id,
+	                  p.event_id,
+	                  (
+	                    select pot.title
+	                    from public_outbox_translations pot
+	                    where pot.public_outbox_id = p.id
+	                      and pot.language = 'zh-Hant'
+	                      and pot.status = 'approved'
+	                    limit 1
+	                  ) as title,
+	                  (
+	                    select pot.summary
+	                    from public_outbox_translations pot
+	                    where pot.public_outbox_id = p.id
+	                      and pot.language = 'zh-Hant'
+	                      and pot.status = 'approved'
+	                    limit 1
+	                  ) as summary,
+	                  p.public_source_links,
                   p.severity,
                   p.relevance_score,
                   p.confirmation_state,

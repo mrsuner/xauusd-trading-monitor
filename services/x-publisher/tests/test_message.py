@@ -11,8 +11,8 @@ def make_item(**overrides: object) -> PublicOutboxItem:
     data = {
         "id": uuid4(),
         "event_id": uuid4(),
-        "public_title_zh": "伊朗強硬派否認 Trump 的核協議說法",
-        "public_summary_zh": "市場先交易樂觀預期，但伊朗安全系統尚未確認，反轉風險升高。",
+        "title": "伊朗強硬派否認 Trump 的核協議說法",
+        "summary": "市場先交易樂觀預期，但伊朗安全系統尚未確認，反轉風險升高。",
         "public_source_links": [{"source_name": "Tasnim", "url": "https://example.com/news"}],
         "severity": "S",
         "relevance_score": 92,
@@ -47,8 +47,8 @@ def test_build_post_uses_public_payload_and_source_attribution_without_url() -> 
 
 def test_build_post_uses_machine_key_title_only_for_hashtags() -> None:
     item = make_item(
-        public_title_zh="sanctions_diplomacy",
-        public_summary_zh="塔斯尼姆轉載一份所謂伊朗與美國的諒解備忘錄全文，內容涉及停火、解除制裁及後續談判安排。",
+        title="sanctions_diplomacy",
+        summary="塔斯尼姆轉載一份所謂伊朗與美國的諒解備忘錄全文，內容涉及停火、解除制裁及後續談判安排。",
         topic_tags=[],
     )
 
@@ -62,7 +62,7 @@ def test_build_post_uses_machine_key_title_only_for_hashtags() -> None:
 
 
 def test_build_post_truncates_to_limit() -> None:
-    item = make_item(public_summary_zh="重大消息。" * 100)
+    item = make_item(summary="重大消息。" * 100)
 
     post = build_post(item, limit=180)
 
@@ -72,8 +72,8 @@ def test_build_post_truncates_to_limit() -> None:
 
 def test_build_post_strips_urls_from_public_text() -> None:
     item = make_item(
-        public_title_zh="Fed headline https://example.com/title",
-        public_summary_zh="Market watching https://example.com/body for confirmation.",
+        title="Fed headline https://example.com/title",
+        summary="Market watching https://example.com/body for confirmation.",
         public_source_links=[{"source_name": "Source https://example.com/source", "url": "https://example.com/news"}],
     )
 
@@ -88,10 +88,8 @@ def test_build_post_strips_urls_from_public_text() -> None:
 
 def test_build_post_does_not_fallback_to_english_public_copy() -> None:
     item = make_item(
-        public_title_zh=None,
-        public_summary_zh=None,
-        public_title_en="English nuclear headline",
-        public_summary_en="Market is watching the headline.",
+        title=None,
+        summary=None,
         translations=[{"language": "ja", "title": "Japanese website title", "summary": "Japanese website summary."}],
     )
 

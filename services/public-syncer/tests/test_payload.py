@@ -13,11 +13,8 @@ def make_item() -> PublicOutboxItem:
     return PublicOutboxItem(
         id=uuid4(),
         event_id=event_id,
-        public_title_zh="標題",
-        public_summary_zh="摘要",
-        public_title_en="Title",
-        public_summary_en="Summary",
         translations=[
+            {"language": "zh-Hant", "title": "標題", "summary": "摘要", "status": "approved"},
             {"language": "en", "title": "Title from row", "summary": "Summary from row", "status": "approved"},
             {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約", "status": "approved"},
         ],
@@ -45,11 +42,8 @@ def test_build_payload_is_public_safe() -> None:
 
     assert payload["schema_version"] == "public_event.v1"
     assert payload["upstream_event_id"] == str(item.event_id)
-    assert payload["public_title_zh"] == "標題"
-    assert payload["public_summary_zh"] == "摘要"
-    assert payload["public_title_en"] == "Title"
-    assert payload["public_summary_en"] == "Summary"
     assert payload["translations"] == [
+        {"language": "zh-Hant", "title": "標題", "summary": "摘要"},
         {"language": "en", "title": "Title from row", "summary": "Summary from row"},
         {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
     ]
@@ -58,31 +52,26 @@ def test_build_payload_is_public_safe() -> None:
     ]
     assert payload["route_metadata"]["public_outbox_id"] == str(item.id)
     assert "available_languages" not in payload
+    assert "public_title_zh" not in payload
+    assert "public_summary_zh" not in payload
+    assert "public_title_en" not in payload
+    assert "public_summary_en" not in payload
 
 
-def test_build_payload_preserves_missing_language_fields() -> None:
+def test_build_payload_preserves_empty_translation_rows() -> None:
     item = make_item()
-    item.public_title_zh = None
-    item.public_summary_zh = None
     item.translations = []
 
     payload = build_payload(item)
 
-    assert payload["public_title_zh"] is None
-    assert payload["public_summary_zh"] is None
-    assert payload["public_title_en"] == "Title"
-    assert payload["public_summary_en"] == "Summary"
-    assert payload["translations"] == [{"language": "en", "title": "Title", "summary": "Summary"}]
+    assert payload["translations"] == []
 
 
-def test_public_translation_rows_fall_back_to_legacy_fields() -> None:
+def test_public_translation_rows_do_not_fallback_without_rows() -> None:
     item = make_item()
     item.translations = []
 
-    assert public_translation_rows(item) == [
-        {"language": "zh-Hant", "title": "標題", "summary": "摘要"},
-        {"language": "en", "title": "Title", "summary": "Summary"},
-    ]
+    assert public_translation_rows(item) == []
 
 
 def test_public_translation_rows_prefer_translation_rows_without_changing_idempotency() -> None:
@@ -90,6 +79,7 @@ def test_public_translation_rows_prefer_translation_rows_without_changing_idempo
 
     assert idempotency_key_for(item) == f"event:{item.event_id}:v1"
     assert public_translation_rows(item, sync_languages=("zh-Hant", "en", "ja")) == [
+        {"language": "zh-Hant", "title": "標題", "summary": "摘要"},
         {"language": "en", "title": "Title from row", "summary": "Summary from row"},
         {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
     ]
@@ -99,6 +89,7 @@ def test_public_translation_rows_respects_sync_languages() -> None:
     item = make_item()
 
     assert public_translation_rows(item, sync_languages=("zh-Hant", "en")) == [
+        {"language": "zh-Hant", "title": "標題", "summary": "摘要"},
         {"language": "en", "title": "Title from row", "summary": "Summary from row"},
     ]
 

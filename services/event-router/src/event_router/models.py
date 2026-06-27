@@ -103,10 +103,6 @@ class PublicOutboxTranslation(BaseModel):
 
 class PublicOutboxDraft(BaseModel):
     event_id: UUID
-    public_title_zh: str | None = None
-    public_summary_zh: str | None = None
-    public_title_en: str | None = None
-    public_summary_en: str | None = None
     translations: list[PublicOutboxTranslation] = Field(default_factory=list)
     public_source_links: list[dict[str, Any]] = Field(default_factory=list)
     severity: str

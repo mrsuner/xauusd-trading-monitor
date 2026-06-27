@@ -31,16 +31,15 @@ def event_row(**overrides: object) -> dict[str, object]:
         "severity": "A",
         "relevance_score": 88,
         "confirmation_state": "confirmed",
-        "public_title_zh": "中文標題",
-        "public_summary_zh": "中文摘要",
-        "public_title_en": "English title",
-        "public_summary_en": "English summary",
         "public_source_links": [],
         "topic_tags": ["fed"],
         "content_category": "macro_policy",
         "mentioned_actors": ["Federal Reserve"],
         "route_metadata": {},
-        "translations": [],
+        "translations": [
+            {"language": "en", "title": "English title", "summary": "English summary"},
+            {"language": "zh-Hant", "title": "中文標題", "summary": "中文摘要"},
+        ],
     }
     row.update(overrides)
     return row
@@ -125,7 +124,6 @@ def test_shape_public_event_defaults_to_english() -> None:
         {"language": "en", "title": "English title", "summary": "English summary"},
         {"language": "zh-Hant", "title": "中文標題", "summary": "中文摘要"},
     ]
-    assert event["public_title_zh"] == "中文標題"
 
 
 def test_shape_public_event_selects_chinese() -> None:
@@ -139,7 +137,7 @@ def test_shape_public_event_selects_chinese() -> None:
 
 def test_shape_public_event_falls_back_to_chinese_when_english_missing() -> None:
     event = shape_public_event(
-        event_row(public_title_en=None, public_summary_en=None),
+        event_row(translations=[{"language": "zh-Hant", "title": "中文標題", "summary": "中文摘要"}]),
         lang="en",
     )
 
@@ -171,7 +169,7 @@ def test_shape_public_event_selects_arbitrary_translation_language() -> None:
     assert event["title"] == "日本語タイトル"
     assert event["summary"] == "日本語要約"
     assert event["language"] == "ja"
-    assert event["available_languages"] == ["en", "zh-Hant", "ja"]
+    assert event["available_languages"] == ["en", "ja"]
 
 
 def test_shape_public_event_falls_back_to_english_when_requested_missing() -> None:
@@ -188,16 +186,12 @@ def test_shape_public_event_falls_back_to_english_when_requested_missing() -> No
     assert event["title"] == "English row title"
     assert event["summary"] == "English row summary"
     assert event["language"] == "en"
-    assert event["available_languages"] == ["en", "zh-Hant", "ja"]
+    assert event["available_languages"] == ["en", "ja"]
 
 
 def test_shape_public_event_falls_back_to_available_language_when_english_missing() -> None:
     event = shape_public_event(
         event_row(
-            public_title_en=None,
-            public_summary_en=None,
-            public_title_zh=None,
-            public_summary_zh=None,
             translations=[
                 {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
             ],
@@ -215,6 +209,7 @@ def test_shape_public_event_uses_configured_default_language_and_priority() -> N
     event = shape_public_event(
         event_row(
             translations=[
+                {"language": "zh-Hant", "title": "中文標題", "summary": "中文摘要"},
                 {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
                 {"language": "th", "title": "หัวข้อภาษาไทย", "summary": "สรุปภาษาไทย"},
             ]
@@ -227,7 +222,7 @@ def test_shape_public_event_uses_configured_default_language_and_priority() -> N
     assert event["title"] == "中文標題"
     assert event["summary"] == "中文摘要"
     assert event["language"] == "zh-Hant"
-    assert event["available_languages"] == ["zh-Hant", "en", "th", "ja"]
+    assert event["available_languages"] == ["zh-Hant", "th", "ja"]
 
 
 def test_shape_public_event_falls_back_per_field() -> None:
@@ -273,17 +268,17 @@ def test_build_filters_searches_translation_rows() -> None:
     assert params["q"] == "%日本語%"
 
 
-def test_public_event_translation_rows_use_legacy_fields() -> None:
+def test_public_event_translation_rows_use_payload_translations() -> None:
     payload = PublicEventIngestRequest.model_validate(
         {
             "schema_version": "public_event.v1",
             "idempotency_key": "event:1:v1",
             "upstream_event_id": str(uuid4()),
             "severity": "A",
-            "public_title_zh": "中文標題",
-            "public_summary_zh": "中文摘要",
-            "public_title_en": "English title",
-            "public_summary_en": "English summary",
+            "translations": [
+                {"language": "zh-Hant", "title": "中文標題", "summary": "中文摘要"},
+                {"language": "en", "title": "English title", "summary": "English summary"},
+            ],
         }
     )
 
@@ -295,16 +290,15 @@ def test_public_event_translation_rows_use_legacy_fields() -> None:
     ]
 
 
-def test_public_event_translation_rows_prefer_payload_translations() -> None:
+def test_public_event_translation_rows_deduplicate_by_language() -> None:
     payload = PublicEventIngestRequest.model_validate(
         {
             "schema_version": "public_event.v1",
             "idempotency_key": "event:1:v1",
             "upstream_event_id": str(uuid4()),
             "severity": "A",
-            "public_title_en": "Legacy English title",
-            "public_summary_en": "Legacy English summary",
             "translations": [
+                {"language": "en", "title": "Initial English title", "summary": "Initial English summary"},
                 {"language": "en", "title": "Updated English title", "summary": "Updated English summary"},
                 {"language": "ja", "title": "日本語タイトル", "summary": "日本語要約"},
             ],

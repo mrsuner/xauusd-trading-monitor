@@ -15,8 +15,8 @@ def make_item(**overrides: object) -> PublicOutboxItem:
     data = {
         "id": uuid4(),
         "event_id": uuid4(),
-        "public_title_zh": "IRGC 聲稱攻擊美軍基地",
-        "public_summary_zh": "IRGC聲稱對科威特與巴林的美軍基地及第五艦隊設施發動打擊。",
+        "title": "IRGC 聲稱攻擊美軍基地",
+        "summary": "IRGC聲稱對科威特與巴林的美軍基地及第五艦隊設施發動打擊。",
         "public_source_links": [{"source_name": "Press TV", "url": "https://example.com/news"}],
         "severity": "S",
         "confirmation_state": "unconfirmed",

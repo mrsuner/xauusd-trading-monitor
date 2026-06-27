@@ -11,8 +11,8 @@ def make_item(**overrides: object) -> PublicOutboxItem:
     data = {
         "id": uuid4(),
         "event_id": uuid4(),
-        "public_title_zh": "伊朗強硬派否認 Trump 的核協議說法",
-        "public_summary_zh": "市場先交易樂觀預期，但伊朗安全系統尚未確認，反轉風險升高。",
+        "title": "伊朗強硬派否認 Trump 的核協議說法",
+        "summary": "市場先交易樂觀預期，但伊朗安全系統尚未確認，反轉風險升高。",
         "public_source_links": [{"source_name": "Tasnim", "url": "https://example.com/news"}],
         "severity": "S",
         "relevance_score": 92,
@@ -25,7 +25,7 @@ def make_item(**overrides: object) -> PublicOutboxItem:
 
 
 def test_build_html_message_escapes_content() -> None:
-    item = make_item(public_title_zh="Deal <close> & unconfirmed")
+    item = make_item(title="Deal <close> & unconfirmed")
 
     message = build_message(item, parse_mode="HTML", limit=3900)
 
@@ -43,19 +43,17 @@ def test_build_plain_message_includes_url() -> None:
     assert "1. Tasnim https://example.com/news" in message
 
 
-def test_build_message_uses_legacy_channel_copy_not_translation_rows() -> None:
+def test_build_message_does_not_fallback_to_non_channel_copy() -> None:
     item = make_item(
-        public_title_zh=None,
-        public_summary_zh=None,
-        public_title_en="English channel headline",
-        public_summary_en="English channel summary.",
+        title=None,
+        summary=None,
         translations=[{"language": "ja", "title": "Japanese website title", "summary": "Japanese website summary."}],
     )
 
     message = build_message(item, parse_mode="plain", limit=3900)
 
-    assert "English channel headline" in message
-    assert "English channel summary." in message
+    assert "Public event update" in message
+    assert "No public summary available." in message
     assert "Japanese website title" not in message
     assert "Japanese website summary" not in message
 
