@@ -2,13 +2,17 @@ import { useLocation, useParams } from "react-router-dom";
 
 import { defaultLanguage, supportedLanguageSet, type UiLanguage } from "./languages";
 import { en, type Dictionary } from "./locales/en";
+import { ja } from "./locales/ja";
+import { th } from "./locales/th";
 import { zhHant } from "./locales/zh-Hant";
 export { defaultLanguage, languageLabels, supportedLanguages } from "./languages";
 export type { Dictionary, UiLanguage };
 
 export const dictionaries = {
   en,
-  "zh-Hant": zhHant
+  "zh-Hant": zhHant,
+  ja,
+  th
 } satisfies Record<UiLanguage, Dictionary>;
 
 export function isLanguage(value: string | undefined): value is UiLanguage {
