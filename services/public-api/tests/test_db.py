@@ -66,10 +66,6 @@ def raw_item_row(**overrides: object) -> dict[str, object]:
         "original_content": "Original content",
         "source_language": "en",
         "media_type": "none",
-        "summary_zh": "中文摘要",
-        "summary_en": "English summary",
-        "full_translation_zh": "中文全文翻譯",
-        "full_translation_en": "English full translation",
         "content_category": "macro_policy",
         "topic_tags": ["fed"],
         "mentioned_actors": ["Federal Reserve"],
@@ -83,7 +79,26 @@ def raw_item_row(**overrides: object) -> dict[str, object]:
         "source_text_chars": 100,
         "translation_chars": 120,
         "scrub_metadata": {},
-        "translations": [],
+        "translations": [
+            {
+                "language": "en",
+                "summary": "English summary",
+                "full_translation": "English full translation",
+                "status": None,
+                "is_truncated": False,
+                "source_chars": 100,
+                "translation_chars": 120,
+            },
+            {
+                "language": "zh-Hant",
+                "summary": "中文摘要",
+                "full_translation": "中文全文翻譯",
+                "status": None,
+                "is_truncated": False,
+                "source_chars": 100,
+                "translation_chars": 120,
+            },
+        ],
     }
     row.update(overrides)
     return row
@@ -354,7 +369,7 @@ def test_shape_public_raw_item_selects_arbitrary_translation_language() -> None:
     assert item["summary"] == "日本語要約"
     assert item["full_translation"] == "日本語全文"
     assert item["language"] == "ja"
-    assert item["available_languages"] == ["en", "zh-Hant", "ja"]
+    assert item["available_languages"] == ["ja"]
 
 
 def test_public_raw_item_translations_select_sql_reads_translation_rows() -> None:
@@ -389,17 +404,26 @@ def test_build_raw_item_filters_searches_translation_rows_and_event_link() -> No
     assert params["min_relevance_score"] == 50
 
 
-def test_public_raw_item_translation_rows_use_legacy_fields() -> None:
+def test_public_raw_item_translation_rows_use_payload_translations() -> None:
     payload = PublicRawItemIngestRequest.model_validate(
         {
             "schema_version": "public_raw_item.v1",
             "idempotency_key": "raw_item:1:v1",
             "upstream_raw_item_id": str(uuid4()),
             "title": "Title",
-            "summary_zh": "中文摘要",
-            "summary_en": "English summary",
-            "full_translation_en": "English full translation",
-            "scrub_metadata": {"source_text_chars": 300},
+            "translations": [
+                {
+                    "language": "zh-Hant",
+                    "summary": "中文摘要",
+                    "source_chars": 300,
+                },
+                {
+                    "language": "en",
+                    "summary": "English summary",
+                    "full_translation": "English full translation",
+                    "source_chars": 300,
+                },
+            ],
         }
     )
 
@@ -418,8 +442,6 @@ def test_public_raw_item_translation_rows_prefer_payload_translations() -> None:
             "idempotency_key": "raw_item:1:v1",
             "upstream_raw_item_id": str(uuid4()),
             "title": "Title",
-            "summary_en": "Legacy English summary",
-            "full_translation_en": "Legacy English full translation",
             "translations": [
                 {
                     "language": "en",

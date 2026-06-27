@@ -395,10 +395,8 @@ def _validate_public_text_lengths(payload: PublicEventIngestRequest, settings: S
 
 def _validate_public_raw_item_lengths(payload: PublicRawItemIngestRequest, settings: Settings) -> None:
     title_fields = [payload.title]
-    summary_fields = [payload.summary_zh, payload.summary_en]
-    full_translation_fields = [payload.full_translation_zh, payload.full_translation_en]
-    summary_fields.extend(translation.summary for translation in payload.translations)
-    full_translation_fields.extend(translation.full_translation for translation in payload.translations)
+    summary_fields = [translation.summary for translation in payload.translations]
+    full_translation_fields = [translation.full_translation for translation in payload.translations]
     if settings.max_title_chars:
         for value in title_fields:
             if value and len(value) > settings.max_title_chars:

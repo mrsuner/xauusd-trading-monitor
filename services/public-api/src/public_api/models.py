@@ -125,6 +125,8 @@ class PublicRawItemClassificationInput(BaseModel):
 
 
 class PublicRawItemIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     schema_version: str
     idempotency_key: str = Field(min_length=1, max_length=300)
     upstream_raw_item_id: UUID
@@ -137,10 +139,6 @@ class PublicRawItemIngestRequest(BaseModel):
     original_content: str | None = None
     language: str | None = None
     media_type: str | None = None
-    summary_zh: str | None = None
-    summary_en: str | None = None
-    full_translation_zh: str | None = None
-    full_translation_en: str | None = None
     translations: list[PublicRawItemTranslationInput] = Field(default_factory=list)
     classification: PublicRawItemClassificationInput = Field(default_factory=PublicRawItemClassificationInput)
     content_category: str | None = None
@@ -161,10 +159,6 @@ class PublicRawItemIngestRequest(BaseModel):
         "original_content",
         "language",
         "media_type",
-        "summary_zh",
-        "summary_en",
-        "full_translation_zh",
-        "full_translation_en",
         "content_category",
     )
     @classmethod
@@ -210,7 +204,7 @@ class PublicRawItemIngestRequest(BaseModel):
 
     @model_validator(mode="after")
     def require_public_content(self) -> PublicRawItemIngestRequest:
-        if not self.title and not self.original_content and not self.summary_zh and not self.summary_en and not self.translations:
+        if not self.title and not self.original_content and not self.translations:
             raise ValueError("raw item requires public display content")
         return self
 

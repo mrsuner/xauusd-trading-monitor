@@ -104,7 +104,6 @@ def test_public_raw_item_ingest_request_normalizes_public_fields() -> None:
             "title": " Title ",
             "original_content": " Clean content ",
             "language": " en ",
-            "summary_zh": " 中文摘要 ",
             "topic_tags": [" Iran ", "iran", "Gold"],
             "mentioned_actors": ["Fed", " fed "],
             "upstream_event_ids": [str(event_id), str(event_id)],
@@ -131,6 +130,19 @@ def test_public_raw_item_ingest_request_normalizes_public_fields() -> None:
     assert [(item.language, item.summary, item.full_translation, item.status) for item in payload.translations] == [
         ("zh-Hant", "翻譯摘要", "全文翻譯", "completed")
     ]
+
+
+def test_public_raw_item_ingest_request_rejects_legacy_translation_fields() -> None:
+    with pytest.raises(ValidationError):
+        PublicRawItemIngestRequest.model_validate(
+            {
+                "schema_version": "public_raw_item.v1",
+                "idempotency_key": "raw_item:1:v1",
+                "upstream_raw_item_id": str(uuid4()),
+                "title": "Title",
+                "summary_zh": "中文摘要",
+            }
+        )
 
 
 def test_public_raw_item_ingest_request_rejects_unsupported_schema() -> None:

@@ -310,10 +310,6 @@ class PublicRepository:
             "original_content": payload.original_content,
             "language": payload.language,
             "media_type": payload.media_type,
-            "summary_zh": payload.summary_zh,
-            "summary_en": payload.summary_en,
-            "full_translation_zh": payload.full_translation_zh,
-            "full_translation_en": payload.full_translation_en,
             "content_category": payload.content_category,
             "topic_tags": payload.topic_tags,
             "mentioned_actors": payload.mentioned_actors,
@@ -351,10 +347,6 @@ class PublicRepository:
                   original_content,
                   language,
                   media_type,
-                  summary_zh,
-                  summary_en,
-                  full_translation_zh,
-                  full_translation_en,
                   content_category,
                   topic_tags,
                   mentioned_actors,
@@ -386,10 +378,6 @@ class PublicRepository:
                   %(original_content)s,
                   %(language)s,
                   %(media_type)s,
-                  %(summary_zh)s,
-                  %(summary_en)s,
-                  %(full_translation_zh)s,
-                  %(full_translation_en)s,
                   %(content_category)s,
                   %(topic_tags)s,
                   %(mentioned_actors)s,
@@ -420,10 +408,6 @@ class PublicRepository:
                     original_content = excluded.original_content,
                     language = excluded.language,
                     media_type = excluded.media_type,
-                    summary_zh = excluded.summary_zh,
-                    summary_en = excluded.summary_en,
-                    full_translation_zh = excluded.full_translation_zh,
-                    full_translation_en = excluded.full_translation_en,
                     content_category = excluded.content_category,
                     topic_tags = excluded.topic_tags,
                     mentioned_actors = excluded.mentioned_actors,
@@ -610,10 +594,6 @@ class PublicRepository:
                   original_content,
                   language as source_language,
                   media_type,
-                  summary_zh,
-                  summary_en,
-                  full_translation_zh,
-                  full_translation_en,
                   content_category,
                   topic_tags,
                   mentioned_actors,
@@ -675,10 +655,6 @@ class PublicRepository:
                   original_content,
                   language as source_language,
                   media_type,
-                  summary_zh,
-                  summary_en,
-                  full_translation_zh,
-                  full_translation_en,
                   content_category,
                   topic_tags,
                   mentioned_actors,
@@ -958,10 +934,6 @@ def _build_raw_item_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
             (
               title ilike %(q)s
               or original_content ilike %(q)s
-              or summary_zh ilike %(q)s
-              or summary_en ilike %(q)s
-              or full_translation_zh ilike %(q)s
-              or full_translation_en ilike %(q)s
               or source_name ilike %(q)s
               or {public_raw_item_translation_search_exists_sql()}
             )
@@ -1115,24 +1087,6 @@ def public_raw_item_translation_rows(payload: PublicRawItemIngestRequest) -> lis
             "translation_chars": translation_chars,
         }
 
-    add_row(
-        language=PUBLIC_LANGUAGE_ZH_HANT,
-        summary=payload.summary_zh,
-        full_translation=payload.full_translation_zh,
-        status=None,
-        is_truncated=bool(payload.scrub_metadata.get("full_translation_zh_truncated")),
-        source_chars=_optional_int(payload.scrub_metadata.get("source_text_chars")),
-        translation_chars=len(payload.full_translation_zh) if payload.full_translation_zh else None,
-    )
-    add_row(
-        language=PUBLIC_LANGUAGE_EN,
-        summary=payload.summary_en,
-        full_translation=payload.full_translation_en,
-        status=None,
-        is_truncated=bool(payload.scrub_metadata.get("full_translation_en_truncated")),
-        source_chars=_optional_int(payload.scrub_metadata.get("source_text_chars")),
-        translation_chars=len(payload.full_translation_en) if payload.full_translation_en else None,
-    )
     for translation in payload.translations:
         add_row(
             language=translation.language,
@@ -1331,28 +1285,6 @@ def _public_raw_item_translation_rows(
         )
         seen.add(normalized_language)
 
-    for language, summary_key, full_translation_key in (
-        (PUBLIC_LANGUAGE_EN, "summary_en", "full_translation_en"),
-        (PUBLIC_LANGUAGE_ZH_HANT, "summary_zh", "full_translation_zh"),
-    ):
-        if language in seen:
-            continue
-        summary = _optional_string(row.get(summary_key))
-        full_translation = _optional_string(row.get(full_translation_key))
-        if summary or full_translation:
-            rows.append(
-                {
-                    "language": language,
-                    "summary": summary,
-                    "full_translation": full_translation,
-                    "status": None,
-                    "is_truncated": bool(row.get("is_truncated")),
-                    "source_chars": _optional_int(row.get("source_text_chars")),
-                    "translation_chars": _optional_int(row.get("translation_chars")),
-                }
-            )
-            seen.add(language)
-
     return sorted(rows, key=lambda item: _language_sort_key(item["language"], language_priority=language_priority))
 
 
@@ -1411,9 +1343,6 @@ def _optional_int(value: Any) -> int | None:
 
 def _max_translation_chars(payload: PublicRawItemIngestRequest) -> int | None:
     candidates: list[int] = []
-    for value in (payload.full_translation_zh, payload.full_translation_en):
-        if value:
-            candidates.append(len(value))
     for translation in payload.translations:
         if translation.translation_chars is not None:
             candidates.append(translation.translation_chars)
