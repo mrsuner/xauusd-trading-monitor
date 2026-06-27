@@ -1,4 +1,4 @@
-import { Coffee, Languages, Menu } from "lucide-react";
+import { ChevronDown, Coffee, Languages, Menu } from "lucide-react";
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { KOFI_URL } from "../pages/SupportPage";
@@ -141,22 +141,37 @@ function isNavActive(path: string, linkSearch: string | undefined, currentPath: 
 function LanguageSwitcher() {
   const location = useLocation();
   const lang = useLanguage();
+  const t = useI18n();
   const currentPath = stripLanguagePrefix(location.pathname);
 
   return (
-    <div className="join hidden sm:inline-flex" aria-label="Language switcher">
-      {supportedLanguages.map((language) => (
-        <Link
-          key={language}
-          to={localizedPath(language, currentPath, location.search)}
-          className={`btn join-item btn-xs ${language === lang ? "btn-primary" : "btn-ghost"}`}
-          aria-current={language === lang ? "page" : undefined}
-          title={`${languageLabels[language]}`}
-        >
-          <Languages className="h-3.5 w-3.5" />
-          {languageLabels[language]}
-        </Link>
-      ))}
+    <div className="dropdown dropdown-end hidden sm:block">
+      <button
+        tabIndex={0}
+        className="btn btn-ghost btn-sm min-w-28 justify-between gap-2"
+        aria-label={t.nav.language}
+        title={t.nav.language}
+      >
+        <Languages className="h-4 w-4" />
+        <span className="truncate">{languageLabels[lang]}</span>
+        <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+      <ul
+        tabIndex={0}
+        className="menu dropdown-content z-50 mt-3 w-40 rounded-box border border-base-300 bg-base-200 p-2 shadow-lg"
+      >
+        {supportedLanguages.map((language) => (
+          <li key={language}>
+            <Link
+              to={localizedPath(language, currentPath, location.search)}
+              className={language === lang ? "active" : undefined}
+              aria-current={language === lang ? "page" : undefined}
+            >
+              {languageLabels[language]}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
