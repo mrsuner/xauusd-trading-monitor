@@ -72,6 +72,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://news.thetickbase.com}
       DEFAULT_PAGE_SIZE: ${DEFAULT_PAGE_SIZE:-20}
       MAX_PAGE_SIZE: ${MAX_PAGE_SIZE:-100}
+      PUBLIC_DEFAULT_LANGUAGE: ${PUBLIC_DEFAULT_LANGUAGE:-en}
+      PUBLIC_LANGUAGE_PRIORITY: ${PUBLIC_LANGUAGE_PRIORITY:-en,zh-Hant}
       LOG_LEVEL: ${LOG_LEVEL}
       TZ: ${TZ}
     ports:
