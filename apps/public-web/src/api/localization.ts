@@ -1,7 +1,9 @@
 import type { Language, PublicEvent, PublicEventTranslation, PublicRawItem, PublicRawItemTranslation } from "./types";
+import { supportedLanguages } from "../i18n/languages";
 
 export const defaultContentLanguage = "en";
 export const legacyChineseLanguage = "zh-Hant";
+const contentLanguagePriority = supportedLanguages as readonly Language[];
 
 export function normalizeContentLanguage(lang: Language | null | undefined): Language {
   const normalized = String(lang ?? "").trim();
@@ -230,11 +232,6 @@ function rawItemTranslationValue(
 }
 
 function languageSortKey(language: Language): number {
-  if (language === defaultContentLanguage) {
-    return 0;
-  }
-  if (language === legacyChineseLanguage) {
-    return 1;
-  }
-  return 2;
+  const priority = contentLanguagePriority.indexOf(language);
+  return priority >= 0 ? priority : contentLanguagePriority.length;
 }
