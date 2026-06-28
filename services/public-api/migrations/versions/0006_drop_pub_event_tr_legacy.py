@@ -1,7 +1,7 @@
 """drop public event legacy translation columns
 
-Revision ID: 0006_drop_public_event_legacy_translation_columns
-Revises: 0005_drop_public_raw_item_legacy_translation_columns
+Revision ID: 0006_drop_pub_event_tr_legacy
+Revises: 0005_drop_pub_raw_item_tr_legacy
 Create Date: 2026-06-27 20:10:00.000000
 """
 
@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from alembic import op
 
-revision = "0006_drop_public_event_legacy_translation_columns"
-down_revision = "0005_drop_public_raw_item_legacy_translation_columns"
+revision = "0006_drop_pub_event_tr_legacy"
+down_revision = "0005_drop_pub_raw_item_tr_legacy"
 branch_labels = None
 depends_on = None
 

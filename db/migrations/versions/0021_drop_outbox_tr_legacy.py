@@ -1,7 +1,7 @@
 """drop public outbox legacy translation columns
 
-Revision ID: 0021_drop_public_outbox_legacy_translation_columns
-Revises: 0020_drop_raw_item_legacy_translation_columns
+Revision ID: 0021_drop_outbox_tr_legacy
+Revises: 0020_drop_raw_item_tr_legacy
 Create Date: 2026-06-27 20:10:00.000000
 """
 
@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from alembic import op
 
-revision = "0021_drop_public_outbox_legacy_translation_columns"
-down_revision = "0020_drop_raw_item_legacy_translation_columns"
+revision = "0021_drop_outbox_tr_legacy"
+down_revision = "0020_drop_raw_item_tr_legacy"
 branch_labels = None
 depends_on = None
 

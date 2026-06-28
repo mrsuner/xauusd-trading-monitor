@@ -1,16 +1,16 @@
-"""drop raw item legacy translation columns
+"""backfill raw item translation rows from legacy fields
 
-Revision ID: 0020_drop_raw_item_legacy_translation_columns
-Revises: 0019_backfill_raw_item_translation_rows
-Create Date: 2026-06-27 19:20:00.000000
+Revision ID: 0019_raw_item_tr_backfill
+Revises: 0018_public_raw_item_sync_state
+Create Date: 2026-06-27 18:20:00.000000
 """
 
 from __future__ import annotations
 
 from alembic import op
 
-revision = "0020_drop_raw_item_legacy_translation_columns"
-down_revision = "0019_backfill_raw_item_translation_rows"
+revision = "0019_raw_item_tr_backfill"
+down_revision = "0018_public_raw_item_sync_state"
 branch_labels = None
 depends_on = None
 
@@ -106,14 +106,7 @@ def upgrade() -> None:
             updated_at = greatest(raw_item_translations.updated_at, excluded.updated_at)
         """
     )
-    op.execute("alter table raw_items drop column if exists summary_zh")
-    op.execute("alter table raw_items drop column if exists summary_en")
-    op.execute("alter table raw_items drop column if exists full_translation_zh")
-    op.execute("alter table raw_items drop column if exists full_translation_en")
 
 
 def downgrade() -> None:
-    op.execute("alter table raw_items add column if not exists summary_zh text")
-    op.execute("alter table raw_items add column if not exists summary_en text")
-    op.execute("alter table raw_items add column if not exists full_translation_zh text")
-    op.execute("alter table raw_items add column if not exists full_translation_en text")
+    pass
