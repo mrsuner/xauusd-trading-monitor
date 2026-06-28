@@ -1,7 +1,7 @@
 import { ChevronDown, Coffee, Languages, Menu } from "lucide-react";
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { KOFI_URL } from "../pages/SupportPage";
+import { useSupportUrl } from "../config/support";
 import {
   languageLabels,
   localizedPath,
@@ -19,6 +19,7 @@ export function Layout() {
   const lang = useLanguage();
   const t = useI18n();
   const to = useLocalizedPath();
+  const supportUrl = useSupportUrl();
   const currentPath = stripLanguagePrefix(location.pathname);
   const navLinks = [
     { path: "/events", label: t.nav.latest },
@@ -61,7 +62,7 @@ export function Layout() {
             <LanguageSwitcher />
             <ThemeToggle />
             <a
-              href={KOFI_URL}
+              href={supportUrl}
               target="_blank"
               className="btn btn-primary btn-sm hidden sm:inline-flex"
               rel="noreferrer"

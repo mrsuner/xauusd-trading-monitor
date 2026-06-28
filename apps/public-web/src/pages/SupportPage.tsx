@@ -1,11 +1,11 @@
 import { Coffee, Heart } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
+import { useSupportUrl } from "../config/support";
 import { useI18n } from "../i18n";
-
-export const KOFI_URL = "https://ko-fi.com/alphablue";
 
 export function SupportPage() {
   const t = useI18n();
+  const supportUrl = useSupportUrl();
 
   return (
     <>
@@ -38,7 +38,7 @@ export function SupportPage() {
             </h2>
             <p className="mt-3 leading-7 text-base-content/70">{t.support.ctaBody}</p>
             <a
-              href={KOFI_URL}
+              href={supportUrl}
               target="_blank"
               rel="noreferrer"
               className="btn btn-primary mt-5"
