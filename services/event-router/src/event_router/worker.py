@@ -69,6 +69,18 @@ class EventRouter:
             routed += 1
             self._handled_count += 1
             logger.info("event_routed event_id=%s", event.id)
+        if self.settings.public_outbox_translation_enrichment_enabled and self.settings.enable_public_website_route:
+            enriched_count, requeued_count = await self.db.enrich_public_outbox_translations(
+                languages=self.settings.public_outbox_languages,
+                limit=self.settings.public_outbox_translation_enrichment_batch_size,
+                lookback_hours=self.settings.public_outbox_translation_enrichment_lookback_hours,
+            )
+            if enriched_count:
+                logger.info(
+                    "public_outbox_translations_enriched enriched_count=%s requeued_count=%s",
+                    enriched_count,
+                    requeued_count,
+                )
         return routed
 
     async def _apply_route_result(self, result: RouteResult) -> None:

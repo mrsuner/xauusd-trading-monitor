@@ -16,6 +16,9 @@ def test_settings_validate_backfill_mode() -> None:
     assert settings.public_x_a_relevance_threshold == 85
     assert settings.public_outbox_languages == ("zh-Hant", "en")
     assert settings.public_outbox_default_language == "en"
+    assert settings.public_outbox_translation_enrichment_enabled is True
+    assert settings.public_outbox_translation_enrichment_batch_size == 100
+    assert settings.public_outbox_translation_enrichment_lookback_hours == 72
 
 
 def test_settings_accepts_public_outbox_languages() -> None:
@@ -23,9 +26,15 @@ def test_settings_accepts_public_outbox_languages() -> None:
         DATABASE_URL="postgresql://example",
         PUBLIC_OUTBOX_LANGUAGES="zh-Hant,en,th,ja",
         PUBLIC_OUTBOX_DEFAULT_LANGUAGE="en",
+        PUBLIC_OUTBOX_TRANSLATION_ENRICHMENT_ENABLED=False,
+        PUBLIC_OUTBOX_TRANSLATION_ENRICHMENT_BATCH_SIZE=25,
+        PUBLIC_OUTBOX_TRANSLATION_ENRICHMENT_LOOKBACK_HOURS=12,
     )
 
     assert settings.public_outbox_languages == ("zh-Hant", "en", "th", "ja")
+    assert settings.public_outbox_translation_enrichment_enabled is False
+    assert settings.public_outbox_translation_enrichment_batch_size == 25
+    assert settings.public_outbox_translation_enrichment_lookback_hours == 12
 
 
 def test_settings_reject_invalid_backfill_mode() -> None:

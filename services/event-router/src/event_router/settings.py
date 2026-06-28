@@ -37,6 +37,18 @@ class Settings(BaseSettings):
     public_x_a_relevance_threshold: int = Field(default=90, alias="PUBLIC_X_A_RELEVANCE_THRESHOLD")
     public_outbox_languages_raw: str = Field(default="zh-Hant,en", alias="PUBLIC_OUTBOX_LANGUAGES")
     public_outbox_default_language: str = Field(default="en", alias="PUBLIC_OUTBOX_DEFAULT_LANGUAGE")
+    public_outbox_translation_enrichment_enabled: bool = Field(
+        default=True,
+        alias="PUBLIC_OUTBOX_TRANSLATION_ENRICHMENT_ENABLED",
+    )
+    public_outbox_translation_enrichment_batch_size: int = Field(
+        default=100,
+        alias="PUBLIC_OUTBOX_TRANSLATION_ENRICHMENT_BATCH_SIZE",
+    )
+    public_outbox_translation_enrichment_lookback_hours: int = Field(
+        default=72,
+        alias="PUBLIC_OUTBOX_TRANSLATION_ENRICHMENT_LOOKBACK_HOURS",
+    )
 
     @field_validator(
         "event_lookback_minutes",
@@ -49,6 +61,8 @@ class Settings(BaseSettings):
         "public_website_threshold",
         "public_x_threshold",
         "public_x_a_relevance_threshold",
+        "public_outbox_translation_enrichment_batch_size",
+        "public_outbox_translation_enrichment_lookback_hours",
     )
     @classmethod
     def validate_non_negative_int(cls, value: int) -> int:

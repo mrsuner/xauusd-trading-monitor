@@ -84,6 +84,117 @@ def _event_context_query() -> str:
                 """
 
 
+def public_outbox_translation_enrichment_sql() -> str:
+    return """
+                with configured_languages(language) as (
+                  select unnest(%(languages)s::text[])
+                ),
+                primary_raw_items as (
+                  select
+                    p.id as public_outbox_id,
+                    p.generated_at,
+                    raw_refs.raw_item_id
+                  from public_outbox p
+                  join events e on e.id = p.event_id
+                  join lateral (
+                    select raw_item_id
+                    from unnest(e.raw_item_ids) with ordinality as raw_items(raw_item_id, position)
+                    order by position
+                    limit 1
+                  ) raw_refs on true
+                  where p.approved_for_public = true
+                    and (
+                      %(lookback_hours)s <= 0
+                      or p.generated_at >= now() - (%(lookback_hours)s * interval '1 hour')
+                    )
+                ),
+                candidate_outboxes as (
+                  select pri.public_outbox_id, pri.generated_at, pri.raw_item_id
+                  from primary_raw_items pri
+                  where exists (
+                    select 1
+                    from configured_languages languages
+                    join raw_item_translations rit
+                      on rit.raw_item_id = pri.raw_item_id
+                     and rit.language = languages.language
+                     and rit.status in ('completed', 'completed_truncated')
+                     and nullif(btrim(rit.summary), '') is not null
+                    left join public_outbox_translations pot
+                      on pot.public_outbox_id = pri.public_outbox_id
+                     and pot.language = languages.language
+                    where pot.id is null
+                       or (
+                         pot.title is null
+                         and pot.summary is distinct from nullif(btrim(rit.summary), '')
+                         and rit.updated_at > pot.updated_at
+                       )
+                  )
+                  order by pri.generated_at asc
+                  limit %(limit)s
+                ),
+                translation_candidates as (
+                  select
+                    candidate_outboxes.public_outbox_id,
+                    languages.language,
+                    null::text as title,
+                    nullif(btrim(rit.summary), '') as summary,
+                    'approved'::text as status
+                  from candidate_outboxes
+                  join configured_languages languages on true
+                  join raw_item_translations rit
+                    on rit.raw_item_id = candidate_outboxes.raw_item_id
+                   and rit.language = languages.language
+                   and rit.status in ('completed', 'completed_truncated')
+                   and nullif(btrim(rit.summary), '') is not null
+                ),
+                upserted as (
+                  insert into public_outbox_translations (
+                    public_outbox_id,
+                    language,
+                    title,
+                    summary,
+                    status
+                  )
+                  select
+                    public_outbox_id,
+                    language,
+                    title,
+                    summary,
+                    status
+                  from translation_candidates
+                  on conflict (public_outbox_id, language) do update
+                  set title = coalesce(public_outbox_translations.title, excluded.title),
+                      summary = excluded.summary,
+                      status = excluded.status,
+                      updated_at = now()
+                  where public_outbox_translations.title is null
+                    and public_outbox_translations.summary is distinct from excluded.summary
+                  returning public_outbox_id
+                ),
+                distinct_upserted as (
+                  select distinct public_outbox_id
+                  from upserted
+                ),
+                requeued as (
+                  update public_outbox p
+                  set publish_status_web = 'pending',
+                      retry_count_web = 0,
+                      last_error_web = null,
+                      next_retry_web_at = null,
+                      locked_by_web = null,
+                      locked_at_web = null,
+                      updated_at = now()
+                  from distinct_upserted
+                  where p.id = distinct_upserted.public_outbox_id
+                    and p.publish_status_web in ('sent', 'skipped', 'failed')
+                  returning p.id
+                )
+                select
+                  (select count(*)::integer from distinct_upserted) as enriched_count,
+                  (select count(*)::integer from requeued) as requeued_count
+                """
+
+
 def _positive_int_env(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or raw == "":
@@ -271,6 +382,30 @@ class Database:
             topic_tags=list(row["topic_tags"] or []),
         )
         return event
+
+    async def enrich_public_outbox_translations(
+        self,
+        *,
+        languages: tuple[str, ...],
+        limit: int,
+        lookback_hours: int,
+    ) -> tuple[int, int]:
+        if not languages or limit <= 0:
+            return 0, 0
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                public_outbox_translation_enrichment_sql(),
+                {
+                    "languages": list(languages),
+                    "limit": limit,
+                    "lookback_hours": lookback_hours,
+                },
+            )
+            row = await cur.fetchone()
+        await self.conn.commit()
+        if not row:
+            return 0, 0
+        return int(row["enriched_count"] or 0), int(row["requeued_count"] or 0)
 
     async def alert_channel_stats(self, *, source_id: Any, channel: str) -> AlertChannelStats:
         async with self.conn.cursor() as cur:
