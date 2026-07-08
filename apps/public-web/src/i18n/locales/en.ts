@@ -283,7 +283,10 @@ export const en = {
     market: "Market",
     domestic_politics: "Domestic Politics",
     economy: "Economy",
-    technology: "Technology"
+    technology: "Technology",
+    routine: "Routine",
+    social: "Social",
+    other: "Other"
   } as Record<string, string>
 };
 

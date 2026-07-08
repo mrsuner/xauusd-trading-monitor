@@ -269,6 +269,9 @@ export const ja = {
     market: "市場",
     domestic_politics: "国内政治",
     economy: "経済",
-    technology: "テクノロジー"
+    technology: "テクノロジー",
+    routine: "ルーティン",
+    social: "社会",
+    other: "その他"
   }
 } satisfies Dictionary;

@@ -269,6 +269,9 @@ export const th = {
     market: "ตลาด",
     domestic_politics: "การเมืองในประเทศ",
     economy: "เศรษฐกิจ",
-    technology: "เทคโนโลยี"
+    technology: "เทคโนโลยี",
+    routine: "กิจวัตร",
+    social: "สังคม",
+    other: "อื่นๆ"
   }
 } satisfies Dictionary;

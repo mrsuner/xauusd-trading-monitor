@@ -265,6 +265,9 @@ export const zhHant = {
     market: "市場",
     domestic_politics: "國內政治",
     economy: "經濟",
-    technology: "科技"
+    technology: "科技",
+    routine: "日常",
+    social: "社會",
+    other: "其他"
   }
 } satisfies Dictionary;
