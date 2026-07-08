@@ -255,5 +255,16 @@ export const zhHant = {
     watch: "觀察",
     info: "資訊",
     uncategorized: "未分類"
+  },
+  categories: {
+    diplomacy: "外交",
+    military: "軍事",
+    sanctions: "制裁",
+    fed: "Fed",
+    energy: "能源",
+    market: "市場",
+    domestic_politics: "國內政治",
+    economy: "經濟",
+    technology: "科技"
   }
 } satisfies Dictionary;

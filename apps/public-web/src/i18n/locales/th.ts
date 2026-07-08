@@ -259,5 +259,16 @@ export const th = {
     watch: "เฝ้าดู",
     info: "ข้อมูล",
     uncategorized: "ไม่จัดหมวดหมู่"
+  },
+  categories: {
+    diplomacy: "การทูต",
+    military: "การทหาร",
+    sanctions: "มาตรการคว่ำบาตร",
+    fed: "Fed",
+    energy: "พลังงาน",
+    market: "ตลาด",
+    domestic_politics: "การเมืองในประเทศ",
+    economy: "เศรษฐกิจ",
+    technology: "เทคโนโลยี"
   }
 } satisfies Dictionary;

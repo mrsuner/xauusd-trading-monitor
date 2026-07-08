@@ -314,6 +314,7 @@ class Database:
                     retry_count_web = p.retry_count_web + 1,
                     last_error_web = null
                 from claimed, events e
+                left join raw_items ri on ri.id = e.raw_item_ids[1]
                 where p.id = claimed.id
                   and e.id = p.event_id
                 returning
@@ -324,6 +325,8 @@ class Database:
                   p.severity,
                   p.relevance_score,
                   p.confirmation_state,
+                  e.event_type,
+                  ri.content_category,
                   p.topic_tags,
                   p.retry_count_web,
                   p.generated_at,

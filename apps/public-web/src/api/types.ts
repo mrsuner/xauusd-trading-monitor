@@ -30,6 +30,7 @@ export interface PublicEvent {
   severity: Severity;
   relevance_score: number | null;
   confirmation_state: ConfirmationState | null;
+  event_type: string | null;
   title: string | null;
   summary: string | null;
   language: Language;

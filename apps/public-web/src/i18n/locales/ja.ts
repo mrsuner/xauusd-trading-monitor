@@ -259,5 +259,16 @@ export const ja = {
     watch: "注視",
     info: "情報",
     uncategorized: "未分類"
+  },
+  categories: {
+    diplomacy: "外交",
+    military: "軍事",
+    sanctions: "制裁",
+    fed: "Fed",
+    energy: "エネルギー",
+    market: "市場",
+    domestic_politics: "国内政治",
+    economy: "経済",
+    technology: "テクノロジー"
   }
 } satisfies Dictionary;

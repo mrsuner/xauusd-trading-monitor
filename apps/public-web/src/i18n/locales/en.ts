@@ -273,7 +273,18 @@ export const en = {
     watch: "Watch",
     info: "Info",
     uncategorized: "uncategorized"
-  }
+  },
+  categories: {
+    diplomacy: "Diplomacy",
+    military: "Military",
+    sanctions: "Sanctions",
+    fed: "Fed",
+    energy: "Energy",
+    market: "Market",
+    domestic_politics: "Domestic Politics",
+    economy: "Economy",
+    technology: "Technology"
+  } as Record<string, string>
 };
 
 export type Dictionary = typeof en;

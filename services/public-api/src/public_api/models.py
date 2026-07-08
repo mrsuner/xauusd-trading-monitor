@@ -220,6 +220,7 @@ class PublicEventIngestRequest(BaseModel):
     severity: str
     relevance_score: int | None = Field(default=None, ge=0, le=100)
     confirmation_state: str | None = None
+    event_type: str | None = None
     translations: list[PublicEventTranslationInput] = Field(default_factory=list)
     public_source_links: list[PublicSourceLink] = Field(default_factory=list)
     topic_tags: list[str] = Field(default_factory=list)
@@ -255,7 +256,7 @@ class PublicEventIngestRequest(BaseModel):
     def normalize_text_list(cls, value: list[str]) -> list[str]:
         return normalize_public_text_list(value)
 
-    @field_validator("content_category")
+    @field_validator("content_category", "event_type")
     @classmethod
     def normalize_category(cls, value: str | None) -> str | None:
         if value is None:
@@ -275,6 +276,7 @@ class PublicEventListItem(BaseModel):
     severity: str
     relevance_score: int | None
     confirmation_state: str | None
+    event_type: str | None
     title: str | None
     summary: str | None
     language: str

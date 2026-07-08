@@ -34,6 +34,35 @@ export function eventTitle(event: PublicEvent, t: Dictionary = dictionaries.en, 
   return localizedPublicEventValue(translations, "title", lang) || event.title || t.format.untitled;
 }
 
+/**
+ * Returns the event's real headline, or null when the upstream pipeline fell back
+ * to using the machine event_type as the title (no human-facing headline exists).
+ */
+export function eventHeadline(event: PublicEvent, lang: Language = "en"): string | null {
+  const translations = publicEventTranslationRows(event);
+  const raw = localizedPublicEventValue(translations, "title", lang) || event.title;
+  if (!raw) {
+    return null;
+  }
+  const headline = raw.trim();
+  if (!headline) {
+    return null;
+  }
+  if (event.event_type && headline === event.event_type.trim()) {
+    return null;
+  }
+  return headline;
+}
+
+/** Machine event type (e.g. "geopolitical_military_escalation") rendered as a readable tag. */
+export function eventTypeTag(eventType: string | null): string | null {
+  if (!eventType) {
+    return null;
+  }
+  const label = eventType.trim().replaceAll("_", " ");
+  return label || null;
+}
+
 export function eventSummary(event: PublicEvent, t: Dictionary = dictionaries.en, lang: Language = "en"): string {
   const translations = publicEventTranslationRows(event);
   return localizedPublicEventValue(translations, "summary", lang) || event.summary || t.format.noSummary;
@@ -92,11 +121,15 @@ export function relevanceBand(score: number | null, t: Dictionary = dictionaries
   return { label: t.format.info, className: "badge-ghost" };
 }
 
+export function categoryLabel(category: string, t: Dictionary = dictionaries.en): string {
+  return t.categories[category] || category.replaceAll("_", " ");
+}
+
 export function displayCategory(category: string | null, t: Dictionary = dictionaries.en): string {
   if (!category) {
     return t.format.uncategorized;
   }
-  return category.replaceAll("_", " ");
+  return categoryLabel(category, t);
 }
 
 export function sourceLabel(source: PublicSourceLink, t: Dictionary = dictionaries.en): string {

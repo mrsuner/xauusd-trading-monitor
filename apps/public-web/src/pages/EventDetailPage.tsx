@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { getEvent, listRawItems } from "../api/client";
-import { ConfirmationBadge, SeverityBadge } from "../components/Badges";
+import { SeverityBadge } from "../components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import {
-  displayCategory,
+  categoryLabel,
+  eventHeadline,
   eventSummary,
   eventTimestamp,
-  eventTitle,
+  eventTypeTag,
   formatFullTime,
   relevanceBand,
   sourceBackground,
@@ -69,18 +70,20 @@ export function EventDetailPage() {
 
   const relevance = relevanceBand(event.relevance_score, t);
   const timestamp = eventTimestamp(event);
+  const typeTag = eventTypeTag(event.event_type);
+  const heroTitle = eventHeadline(event, lang) ?? typeTag ?? t.format.untitled;
 
   return (
     <>
       <PageHeader
         eyebrow={t.detail.eyebrow}
-        title={eventTitle(event, t, lang)}
+        title={heroTitle}
         body={eventSummary(event, t, lang)}
         aside={
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
               <SeverityBadge severity={event.severity} />
-              <ConfirmationBadge state={event.confirmation_state} />
+              {typeTag && <span className="badge badge-primary badge-outline badge-sm font-mono">{typeTag}</span>}
               <span className={`badge badge-sm ${relevance.className}`}>{relevance.label}</span>
             </div>
             <div className="mt-4 space-y-2 text-sm text-base-content/65">
@@ -88,10 +91,12 @@ export function EventDetailPage() {
                 <span className="font-semibold text-base-content">{t.detail.eventTime}</span>{" "}
                 {formatFullTime(timestamp, lang, t)}
               </p>
-              <p>
-                <span className="font-semibold text-base-content">{t.detail.category}</span>{" "}
-                {displayCategory(event.content_category, t)}
-              </p>
+              {event.content_category && (
+                <p>
+                  <span className="font-semibold text-base-content">{t.detail.category}</span>{" "}
+                  {categoryLabel(event.content_category, t)}
+                </p>
+              )}
             </div>
           </div>
         }

@@ -24,10 +24,11 @@ def build_payload(
         "severity": item.severity,
         "relevance_score": item.relevance_score,
         "confirmation_state": item.confirmation_state,
+        "event_type": clamp_text(item.event_type, max_chars=80),
         "translations": public_translation_rows(item, sync_languages=sync_languages),
         "public_source_links": sanitize_source_links(item.public_source_links),
         "topic_tags": item.topic_tags,
-        "content_category": None,
+        "content_category": clamp_text(item.content_category, max_chars=80),
         "mentioned_actors": [],
         "route_metadata": {
             "source": "public_outbox",

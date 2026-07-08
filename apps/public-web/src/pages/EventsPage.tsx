@@ -6,6 +6,7 @@ import { listCategories, listEvents, listTags, getOverviewStats } from "../api/c
 import type { EventFilters } from "../api/types";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { EventCard } from "../components/EventCard";
+import { categoryLabel } from "../components/format";
 import { PageHeader } from "../components/PageHeader";
 import { StatsStrip } from "../components/StatsStrip";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
@@ -22,7 +23,6 @@ export function EventsPage() {
   const filters = useMemo<EventFilters>(
     () => ({
       severity: searchParams.get("severity") ?? undefined,
-      confirmation_state: searchParams.get("confirmation_state") ?? undefined,
       tag: searchParams.get("tag") ?? undefined,
       category: searchParams.get("category") ?? undefined,
       q: searchParams.get("q") ?? undefined,
@@ -90,7 +90,7 @@ export function EventsPage() {
             <SlidersHorizontal className="h-4 w-4 text-primary" />
             {t.events.filters}
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-[1.1fr_repeat(4,minmax(0,0.7fr))]">
+          <div className="mt-4 grid gap-3 md:grid-cols-[1.1fr_repeat(3,minmax(0,0.7fr))]">
             <form onSubmit={submitSearch} className="join w-full">
               <label className="input join-item input-bordered flex min-w-0 flex-1 items-center gap-2">
                 <Search className="h-4 w-4 text-base-content/40" />
@@ -121,19 +121,6 @@ export function EventsPage() {
 
             <select
               className="select select-bordered w-full"
-              value={filters.confirmation_state ?? ""}
-              onChange={(event) => updateFilter("confirmation_state", event.target.value)}
-              aria-label={t.events.ariaConfirmation}
-            >
-              <option value="">{t.events.allConfirmation}</option>
-              <option value="confirmed">{t.events.confirmationOptions.confirmed}</option>
-              <option value="partially_confirmed">{t.events.confirmationOptions.partially_confirmed}</option>
-              <option value="unconfirmed">{t.events.confirmationOptions.unconfirmed}</option>
-              <option value="contradicted">{t.events.confirmationOptions.contradicted}</option>
-            </select>
-
-            <select
-              className="select select-bordered w-full"
               value={filters.category ?? ""}
               onChange={(event) => updateFilter("category", event.target.value)}
               aria-label={t.events.ariaCategory}
@@ -141,7 +128,7 @@ export function EventsPage() {
               <option value="">{t.events.allCategories}</option>
               {(categoriesQuery.data ?? []).map((item) => (
                 <option key={item.category} value={item.category}>
-                  {item.category} ({item.count})
+                  {categoryLabel(item.category, t)} ({item.count})
                 </option>
               ))}
             </select>

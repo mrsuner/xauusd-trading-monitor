@@ -2,12 +2,13 @@ import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { PublicEvent } from "../api/types";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
-import { ConfirmationBadge, SeverityBadge } from "./Badges";
+import { SeverityBadge } from "./Badges";
 import {
-  displayCategory,
+  categoryLabel,
+  eventHeadline,
   eventSummary,
   eventTimestamp,
-  eventTitle,
+  eventTypeTag,
   formatTime,
   relevanceBand,
   sourceBackground,
@@ -20,26 +21,36 @@ export function EventCard({ event }: { event: PublicEvent }) {
   const to = useLocalizedPath();
   const relevance = relevanceBand(event.relevance_score, t);
   const timestamp = eventTimestamp(event);
+  const headline = eventHeadline(event, lang);
+  const summary = eventSummary(event, t, lang);
+  const typeTag = eventTypeTag(event.event_type);
 
   return (
     <article className="rounded-box border border-base-300 bg-base-200/40 p-4 transition-colors hover:border-primary/40 sm:p-5">
       <div className="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
         <SeverityBadge severity={event.severity} />
-        <ConfirmationBadge state={event.confirmation_state} />
         <span className={`badge badge-sm ${relevance.className}`}>{relevance.label}</span>
         <span className="font-mono">{formatTime(timestamp, lang, t)}</span>
       </div>
 
-      <Link to={to(`/events/${event.id}`)} className="mt-4 block">
-        <h2 className="text-lg font-semibold leading-7 text-base-content hover:text-primary">
-          {eventTitle(event, t, lang)}
-        </h2>
-      </Link>
-
-      <p className="mt-2 text-sm leading-6 text-base-content/70">{eventSummary(event, t, lang)}</p>
+      {headline ? (
+        <>
+          <Link to={to(`/events/${event.id}`)} className="mt-4 block">
+            <h2 className="text-lg font-semibold leading-7 text-base-content hover:text-primary">{headline}</h2>
+          </Link>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">{summary}</p>
+        </>
+      ) : (
+        <Link to={to(`/events/${event.id}`)} className="mt-4 block">
+          <p className="text-base font-medium leading-7 text-base-content/90 hover:text-primary">{summary}</p>
+        </Link>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="badge badge-outline badge-sm font-mono">{displayCategory(event.content_category, t)}</span>
+        {typeTag && <span className="badge badge-primary badge-outline badge-sm font-mono">{typeTag}</span>}
+        {event.content_category && (
+          <span className="badge badge-outline badge-sm font-mono">{categoryLabel(event.content_category, t)}</span>
+        )}
         {event.topic_tags.slice(0, 6).map((tag) => (
           <Link key={tag} to={to(`/tags/${encodeURIComponent(tag)}`)} className="badge badge-ghost badge-sm font-mono">
             #{tag}

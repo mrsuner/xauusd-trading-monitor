@@ -22,6 +22,8 @@ class PublicOutboxItem(BaseModel):
     severity: str
     relevance_score: int | None = None
     confirmation_state: str | None = None
+    event_type: str | None = None
+    content_category: str | None = None
     topic_tags: list[str] = Field(default_factory=list)
     retry_count_web: int = 0
     generated_at: datetime
