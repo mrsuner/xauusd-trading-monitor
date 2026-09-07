@@ -1,6 +1,10 @@
 # Multilingual Translation Configuration Implementation Plan
 
-狀態：規劃文件，尚未實作。
+Status: Mixed historical plan and proposed follow-up. Several row-based translation
+migrations and runtime paths already exist; this document is not proof of live
+migration state. The 2026-09-07 retirement review below supersedes earlier guidance
+to retain legacy fields indefinitely. No development or deployment is authorized.
+
 
 目標：把目前固定輸出 `zh-Hant` 與 `en` 的翻譯流程改成可由 `.env` 配置的多語言輸出。近期目標語言為 Traditional Chinese、English、Thai、Japanese；後續可新增更多 BCP 47 language code，而不需要新增 DB 欄位或大幅重寫 public sync contract。
 
@@ -1039,3 +1043,14 @@ Implementation is considered complete when:
 - Missing language fallback is deterministic and tested.
 - Existing `en` and `zh-Hant` behavior remains backward compatible.
 - Unit tests pass for normalizer, event-router, public-syncer, and public-api.
+
+
+## 13. Legacy event-summary retirement (superseded planning location)
+
+On 2026-09-07 the user accepted extracting this work into an independent refactor
+that must complete before new News implementation. Its scope, target data model,
+migration, acceptance, and rollback now live exclusively in the
+[standalone retirement plan](../../../docs/plans/2026-09-07-legacy-event-summary-retirement.md).
+
+Earlier instructions in this historical document to retain legacy fields indefinitely
+are superseded by that plan. This pointer is not implementation or deployment evidence.
