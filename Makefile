@@ -3,7 +3,7 @@ SHELL := /bin/bash
 DEV_ENV ?= infra/.env.dev
 DEV_COMPOSE := docker compose --env-file $(DEV_ENV) -f infra/docker-compose.dev.yml
 
-.PHONY: dev dev-stop dev-status dev-logs dev-db dev-migrate compose-config test web-build public-web-build docker-build docker-push docker-build-push prod-up
+.PHONY: dev dev-stop dev-status dev-logs dev-db dev-migrate event-translations-backfill event-translations-verify compose-config test web-build public-web-build docker-build docker-push docker-build-push prod-up
 
 dev:
 	@infra/scripts/dev-up.sh "$(DEV_ENV)"
@@ -22,6 +22,12 @@ dev-db:
 
 dev-migrate:
 	@set -a; source "$(DEV_ENV)"; set +a; uv run --group db alembic -c db/alembic.ini upgrade head
+
+event-translations-backfill:
+	@set -a; source "$(DEV_ENV)"; set +a; uv run --group db python db/tools/event_translations.py backfill
+
+event-translations-verify:
+	@set -a; source "$(DEV_ENV)"; set +a; uv run --group db python db/tools/event_translations.py verify
 
 compose-config:
 	@docker compose --env-file infra/.env.example -f infra/docker-compose.prod.yml config >/dev/null
