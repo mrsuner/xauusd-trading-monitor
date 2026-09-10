@@ -11,6 +11,12 @@ return [
     'supported_languages' => $languages,
     'default_language' => env('NOTIFICATION_DEFAULT_LANGUAGE', 'zh-Hant'),
     'initial_paid_cap' => (int) env('NOTIFICATION_INITIAL_PAID_CAP', 100),
+    'channel_fingerprint_key' => env('NOTIFICATION_CHANNEL_FINGERPRINT_KEY'),
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'link_ttl_minutes' => 10,
+    ],
     'horizon_allowed_ips' => array_values(array_filter(array_map(
         'trim',
         explode(',', (string) env('HORIZON_ALLOWED_IPS', '127.0.0.1,::1')),
