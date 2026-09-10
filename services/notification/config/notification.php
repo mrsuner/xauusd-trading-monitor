@@ -36,6 +36,13 @@ return [
         'dispatch_stale_seconds' => 120,
         'http_backoff_seconds' => [30, 120, 300, 600],
     ],
+    'digest' => [
+        'topics' => ['geopolitics', 'monetary', 'energy', 'macro_data'],
+        'retention_days' => 90,
+        'input_limit' => 20,
+        'freeze_minute' => 15,
+        'deadline_minute' => 60,
+    ],
     'horizon_allowed_ips' => array_values(array_filter(array_map(
         'trim',
         explode(',', (string) env('HORIZON_ALLOWED_IPS', '127.0.0.1,::1')),

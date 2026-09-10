@@ -6,6 +6,7 @@ use App\Enums\Severity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Subscriber extends Model
 {
@@ -45,5 +46,10 @@ class Subscriber extends Model
     public function channels(): HasMany
     {
         return $this->hasMany(Channel::class);
+    }
+
+    public function digestPreference(): HasOne
+    {
+        return $this->hasOne(DigestPreference::class);
     }
 }
