@@ -17,6 +17,17 @@ return [
         'bot_username' => env('TELEGRAM_BOT_USERNAME'),
         'link_ttl_minutes' => 10,
     ],
+    'account' => [
+        'base_url' => env('ACCOUNT_INTERNAL_URL'),
+        'secret' => env('NEWS_INTERNAL_SECRET'),
+        'access_cache_seconds' => 60,
+    ],
+    'scan' => [
+        'interval_seconds' => 10,
+        'batch_size' => 100,
+        'freshness_minutes' => 60,
+        'future_tolerance_minutes' => 5,
+    ],
     'horizon_allowed_ips' => array_values(array_filter(array_map(
         'trim',
         explode(',', (string) env('HORIZON_ALLOWED_IPS', '127.0.0.1,::1')),
