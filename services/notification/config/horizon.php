@@ -98,7 +98,8 @@ return [
 
     'waits' => [
         'redis:news-match' => 60,
-        'redis:news-telegram' => 60,
+        'redis:news-telegram-high' => 60,
+        'redis:news-telegram-standard' => 60,
     ],
 
     /*
@@ -214,13 +215,29 @@ return [
             'balanceCooldown' => 3,
             'nice' => 0,
         ],
-        'news-telegram' => [
+        'news-telegram-high' => [
             'connection' => 'redis',
-            'queue' => ['news-telegram'],
+            'queue' => ['news-telegram-high'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'minProcesses' => 1,
-            'maxProcesses' => 4,
+            'maxProcesses' => 3,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 0,
+            'timeout' => 25,
+            'balanceMaxShift' => 1,
+            'balanceCooldown' => 3,
+            'nice' => 0,
+        ],
+        'news-telegram-standard' => [
+            'connection' => 'redis',
+            'queue' => ['news-telegram-standard'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'minProcesses' => 1,
+            'maxProcesses' => 1,
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
@@ -235,12 +252,14 @@ return [
     'environments' => [
         'production' => [
             'news-match' => [],
-            'news-telegram' => [],
+            'news-telegram-high' => [],
+            'news-telegram-standard' => [],
         ],
 
         'local' => [
             'news-match' => [],
-            'news-telegram' => [],
+            'news-telegram-high' => [],
+            'news-telegram-standard' => [],
         ],
     ],
 

@@ -11,6 +11,7 @@ return [
     'supported_languages' => $languages,
     'default_language' => env('NOTIFICATION_DEFAULT_LANGUAGE', 'zh-Hant'),
     'initial_paid_cap' => (int) env('NOTIFICATION_INITIAL_PAID_CAP', 100),
+    'admission_enabled' => (bool) env('NOTIFICATION_ADMISSION_ENABLED', false),
     'channel_fingerprint_key' => env('NOTIFICATION_CHANNEL_FINGERPRINT_KEY'),
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
@@ -27,6 +28,13 @@ return [
         'batch_size' => 100,
         'freshness_minutes' => 60,
         'future_tolerance_minutes' => 5,
+    ],
+    'public_origin' => env('NEWS_PUBLIC_ORIGIN', 'https://news.thetickbase.com'),
+    'delivery' => [
+        'max_provider_attempts' => 5,
+        'lock_seconds' => 45,
+        'dispatch_stale_seconds' => 120,
+        'http_backoff_seconds' => [30, 120, 300, 600],
     ],
     'horizon_allowed_ips' => array_values(array_filter(array_map(
         'trim',

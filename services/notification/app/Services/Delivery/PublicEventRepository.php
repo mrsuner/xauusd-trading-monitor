@@ -8,6 +8,23 @@ use Illuminate\Support\Facades\DB;
 
 class PublicEventRepository
 {
+    public function findVisible(string $id): ?PublicEventData
+    {
+        $tags = DB::getDriverName() === 'pgsql'
+            ? DB::raw('to_json(pe.topic_tags)::text as topic_tags_json')
+            : 'pe.topic_tags as topic_tags_json';
+        $row = DB::table($this->table('public_events').' as pe')
+            ->select([
+                'pe.id', 'pe.upstream_event_id', 'pe.received_at', 'pe.event_time',
+                'pe.generated_at', 'pe.severity', 'pe.content_category', $tags,
+            ])
+            ->where('pe.id', $id)
+            ->where('pe.is_visible', true)
+            ->first();
+
+        return $row === null ? null : $this->hydrate($row);
+    }
+
     /** @return list<PublicEventData> */
     public function recent(CarbonImmutable $startedAt, CarbonImmutable $now, int $limit): array
     {
@@ -43,22 +60,27 @@ class PublicEventRepository
                 continue;
             }
 
-            $events[] = new PublicEventData(
-                id: (string) $row->id,
-                upstreamEventId: $upstreamId,
-                receivedAt: $receivedAt,
-                effectiveEventTime: $effectiveTime,
-                severity: (string) $row->severity,
-                category: $row->content_category === null ? null : (string) $row->content_category,
-                tags: $this->decodeList($row->topic_tags_json),
-                summaries: $this->summaries((string) $row->id),
-            );
+            $events[] = $this->hydrate($row);
             if (count($events) >= $limit) {
                 break;
             }
         }
 
         return $events;
+    }
+
+    private function hydrate(object $row): PublicEventData
+    {
+        return new PublicEventData(
+            id: (string) $row->id,
+            upstreamEventId: (string) $row->upstream_event_id,
+            receivedAt: CarbonImmutable::parse($row->received_at, 'UTC'),
+            effectiveEventTime: CarbonImmutable::parse($row->event_time ?? $row->generated_at ?? $row->received_at, 'UTC'),
+            severity: (string) $row->severity,
+            category: $row->content_category === null ? null : (string) $row->content_category,
+            tags: $this->decodeList($row->topic_tags_json),
+            summaries: $this->summaries((string) $row->id),
+        );
     }
 
     /** @return array<string, string> */

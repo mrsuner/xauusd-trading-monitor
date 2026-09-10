@@ -24,6 +24,7 @@ class EventScanner
         private EventMatcher $matcher,
         private AccountAccessClient $access,
         private ContentSchedule $contentSchedule,
+        private DeliveryDispatcher $dispatcher,
     ) {}
 
     /** @return array{events: int, deliveries: int, unresolved: int, dry_run: bool} */
@@ -51,6 +52,13 @@ class EventScanner
             $result = $this->fanOut($event, $catalog, $now, $dryRun);
             $stats['deliveries'] += $result['deliveries'];
             $stats['unresolved'] += $result['unresolved'];
+        }
+
+        if (! $dryRun) {
+            RuntimeState::query()->updateOrCreate(
+                ['key' => 'scanner'],
+                ['value' => ['last_scan_at' => $now->toIso8601String(), 'stats' => $stats]],
+            );
         }
 
         return $stats;
@@ -103,13 +111,15 @@ class EventScanner
                     continue;
                 }
 
-                $created += Delivery::query()->insertOrIgnore([
-                    'id' => (string) Str::uuid(),
+                $deliveryId = (string) Str::uuid();
+                $inserted = Delivery::query()->insertOrIgnore([
+                    'id' => $deliveryId,
                     'subscriber_id' => $subscriber->id,
                     'channel_id' => $channel->id,
                     'upstream_event_id' => $event->upstreamEventId,
                     'public_event_id' => $event->id,
                     'channel_type' => $channel->type,
+                    'priority' => $event->severity === 'S' ? 'high' : 'standard',
                     'subscriber_revision' => $subscriber->revision,
                     'channel_revision' => $channel->revision,
                     'status' => DeliveryStatus::Pending->value,
@@ -119,6 +129,10 @@ class EventScanner
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
+                $created += $inserted;
+                if ($inserted === 1) {
+                    $this->dispatcher->dispatch(Delivery::query()->findOrFail($deliveryId));
+                }
             }
         }
 
@@ -142,7 +156,7 @@ class EventScanner
     private function startedAt(CarbonImmutable $now): CarbonImmutable
     {
         $state = RuntimeState::query()->firstOrCreate(
-            ['key' => 'notification'],
+            ['key' => 'notification_started'],
             ['value' => ['started_at' => $now->toIso8601String()]],
         );
 

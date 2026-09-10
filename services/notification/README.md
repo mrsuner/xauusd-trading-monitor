@@ -12,6 +12,11 @@ tables in the `notify` schema, and uses a dedicated Redis instance for Laravel H
 - Horizon is limited to configured operator IP addresses
 - News checkout remains disabled until the capacity phase passes
 
+Live jobs use `news-match`, `news-telegram-high`, and
+`news-telegram-standard`. Three high-priority workers serve S events while one
+reserved standard worker prevents A/B/C starvation; all workers still share the
+same bot and per-chat rate limits.
+
 ## Local checks
 
 ```bash

@@ -71,6 +71,7 @@ return new class extends Migration
             $table->uuid('upstream_event_id');
             $table->uuid('public_event_id');
             $table->string('channel_type', 24);
+            $table->enum('priority', ['high', 'standard'])->default('standard');
             $table->unsignedBigInteger('subscriber_revision');
             $table->unsignedBigInteger('channel_revision');
             $table->enum('status', ['pending', 'sending', 'sent', 'retry', 'failed', 'canceled', 'expired'])->default('pending');

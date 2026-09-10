@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Delivery;
 
+use App\Jobs\SendTelegramDelivery;
 use App\Models\RuntimeState;
 use App\Models\Subscriber;
 use App\Services\Delivery\EventScanner;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -27,6 +29,7 @@ class EventScannerTest extends TestCase
         $this->now = CarbonImmutable::parse('2026-09-11T12:00:00Z');
         CarbonImmutable::setTestNow($this->now);
         Cache::flush();
+        Queue::fake();
         config([
             'notification.enabled' => true,
             'notification.dry_run' => false,
@@ -35,7 +38,7 @@ class EventScannerTest extends TestCase
         ]);
         $this->createPublicTables();
         RuntimeState::query()->create([
-            'key' => 'notification',
+            'key' => 'notification_started',
             'value' => ['started_at' => $this->now->subMinutes(10)->toIso8601String()],
         ]);
     }
@@ -71,6 +74,8 @@ class EventScannerTest extends TestCase
         ]);
         self::assertNotNull(DB::table('event_receipts')->value('processed_at'));
         Http::assertSentCount(1);
+        Queue::assertPushed(SendTelegramDelivery::class, fn (SendTelegramDelivery $job): bool => $job->deliveryId === DB::table('deliveries')->value('id'));
+        Queue::assertPushedOn('news-telegram-standard', SendTelegramDelivery::class);
     }
 
     public function test_unknown_access_remains_unresolved_without_blocking_later_retry(): void
@@ -93,6 +98,18 @@ class EventScannerTest extends TestCase
         $retry = app(EventScanner::class)->scan();
         self::assertSame(1, $retry['deliveries']);
         self::assertNotNull(DB::table('event_receipts')->value('processed_at'));
+    }
+
+    public function test_s_delivery_uses_reserved_high_priority_queue(): void
+    {
+        $this->subscriber((string) Str::ulid());
+        $this->event(severity: 'S');
+        Http::fake(['*' => Http::response(['data' => ['news' => ['access_allowed' => true]]])]);
+
+        app(EventScanner::class)->scan();
+
+        $this->assertDatabaseHas('deliveries', ['priority' => 'high']);
+        Queue::assertPushedOn('news-telegram-high', SendTelegramDelivery::class);
     }
 
     public function test_inactive_access_is_resolved_without_delivery(): void

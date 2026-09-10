@@ -210,6 +210,29 @@ class ChannelService
         });
     }
 
+    public function revokeForMissingAccount(string $subscriberId): void
+    {
+        DB::transaction(function () use ($subscriberId): void {
+            Channel::query()->where('subscriber_id', $subscriberId)->lockForUpdate()->get()
+                ->each(function (Channel $channel): void {
+                    $channel->fill([
+                        'enabled' => false,
+                        'verified' => false,
+                        'enabled_from' => null,
+                        'encrypted_target' => null,
+                        'target_fingerprint' => null,
+                        'target_hint' => null,
+                        'link_code_hash' => null,
+                        'link_expires_at' => null,
+                        'last_error_code' => 'account_missing',
+                    ]);
+                    $channel->revision++;
+                    $channel->save();
+                    $this->cancelPending($channel->id, 'account_missing');
+                });
+        });
+    }
+
     /** @return array<string, mixed> */
     private function serialize(Channel $channel): array
     {
