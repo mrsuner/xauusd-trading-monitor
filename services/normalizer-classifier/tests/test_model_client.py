@@ -17,6 +17,7 @@ from normalizer_classifier.model_client import (
 )
 from normalizer_classifier.models import AuxiliaryTextResult, ClassificationResult, NormalizedItem, RawItem, SourceMetadata
 from normalizer_classifier.settings import Settings
+from normalizer_classifier.taxonomy import CategoryOption, TagOption, TaxonomyContext
 
 
 def make_objects() -> tuple[RawItem, SourceMetadata, NormalizedItem]:
@@ -57,6 +58,9 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
         assert url == "https://api.example.test/v1/chat/completions"
         assert headers["Authorization"] == "Bearer test-key"
         assert json["response_format"] == {"type": "json_object"}
+        user_payload = json_module.loads(json["messages"][1]["content"])
+        assert user_payload["taxonomy_context"]["content_categories"][0]["key"] == "diplomacy"
+        assert user_payload["taxonomy_context"]["known_topic_tags"][0]["key"] == "iran"
         content = {
             "is_relevant": True,
             "relevance_score": 82,
@@ -68,6 +72,8 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
                 {"language": "zh-Hant", "summary": "Trump 表示伊朗協議接近完成。"},
                 {"language": "en", "summary": "Trump says an Iran deal is close."},
             ],
+            "content_category": "diplomacy",
+            "topic_tags": ["iran", "nuclear"],
             "actors": ["Trump", "Iran"],
             "xauusd_impact_channel": ["safe_haven"],
             "requires_confirmation": True,
@@ -94,13 +100,23 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
         reasoning_effort="none",
     )
 
-    response = await client.classify(raw_item, source, normalized)
+    response = await client.classify(
+        raw_item,
+        source,
+        normalized,
+        taxonomy_context=TaxonomyContext(
+            categories=[CategoryOption(key="diplomacy", label_en="Diplomacy")],
+            tags=[TagOption(key="iran", label="Iran")],
+        ),
+    )
 
     assert response.provider == "cloud_small"
     assert response.model == "test-model"
     assert response.result.is_relevant is True
     assert response.result.relevance_score == 82
     assert response.result.summaries[0].language == "zh-Hant"
+    assert response.result.content_category == "diplomacy"
+    assert response.result.topic_tags == ["iran", "nuclear"]
 
 
 async def test_openai_style_model_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
@@ -283,9 +299,6 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
                     "full_translation": "Trump says Iran deal is close.",
                 },
             ],
-            "content_category": "diplomacy",
-            "topic_tags": ["trump", "iran", "nuclear"],
-            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }
@@ -320,9 +333,6 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     assert zh_translation.summary == "Trump 稱伊朗協議接近完成。"
     assert en_translation.summary == "Trump says an Iran deal is close."
     assert zh_translation.full_translation == "Trump 表示伊朗協議已接近完成。"
-    assert response.result.content_category == "diplomacy"
-    assert response.result.topic_tags == ["trump", "iran", "nuclear"]
-    assert response.result.mentioned_actors == ["Trump", "Iran"]
 
 
 async def test_openai_style_model_client_parses_auxiliary_translations_array(monkeypatch) -> None:
@@ -345,9 +355,6 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
                     "full_translation": "トランプ氏はイラン合意が近いと述べた。",
                 },
             ],
-            "content_category": "diplomacy",
-            "topic_tags": ["trump", "iran"],
-            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }
@@ -399,9 +406,6 @@ async def test_openai_style_model_client_requires_configured_translation_languag
                     "full_translation": "Trump says Iran deal is close.",
                 },
             ],
-            "content_category": "diplomacy",
-            "topic_tags": ["trump", "iran"],
-            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }

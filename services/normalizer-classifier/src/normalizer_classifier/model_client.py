@@ -80,7 +80,15 @@ class OpenAIStyleModelClient:
         self.translation_language_labels = translation_language_labels or {}
         self.translation_require_all_languages = translation_require_all_languages
 
-    async def classify(self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem) -> ModelResponse:
+    async def classify(
+        self,
+        raw_item: RawItem,
+        source: SourceMetadata,
+        normalized: NormalizedItem,
+        *,
+        taxonomy_context: TaxonomyContext | None = None,
+    ) -> ModelResponse:
+        taxonomy_context = taxonomy_context or TaxonomyContext()
         payload = {
             "model": self.model,
             "temperature": 0,
@@ -108,6 +116,20 @@ class OpenAIStyleModelClient:
                             "rule_prefilter": {
                                 "keyword_score": normalized.keyword_score,
                                 "matched_keywords": normalized.matched_keywords,
+                            },
+                            "taxonomy_context": {
+                                "content_categories": [
+                                    {
+                                        "key": category.key,
+                                        "label_en": category.label_en,
+                                        "description": category.description,
+                                    }
+                                    for category in taxonomy_context.categories
+                                ],
+                                "known_topic_tags": [
+                                    {"key": tag.key, "label": tag.label, "tag_type": tag.tag_type}
+                                    for tag in taxonomy_context.tags[:80]
+                                ],
                             },
                         },
                         ensure_ascii=False,
@@ -180,7 +202,6 @@ class OpenAIStyleModelClient:
         truncated: bool = False,
         taxonomy_context: TaxonomyContext | None = None,
     ) -> AuxiliaryModelResponse:
-        taxonomy_context = taxonomy_context or TaxonomyContext()
         payload = {
             "model": self.model,
             "temperature": 0,
@@ -210,20 +231,6 @@ class OpenAIStyleModelClient:
                                 "truncated_input": truncated,
                                 "output_languages": list(self.translation_output_languages),
                                 "require_all_languages": self.translation_require_all_languages,
-                            },
-                            "taxonomy_context": {
-                                "content_categories": [
-                                    {
-                                        "key": category.key,
-                                        "label_en": category.label_en,
-                                        "description": category.description,
-                                    }
-                                    for category in taxonomy_context.categories
-                                ],
-                                "known_topic_tags": [
-                                    {"key": tag.key, "label": tag.label, "tag_type": tag.tag_type}
-                                    for tag in taxonomy_context.tags[:80]
-                                ],
                             },
                             "raw_item": {
                                 "title": raw_item.title,
@@ -603,12 +610,15 @@ def system_prompt() -> str:
         "Include exactly one zh-Hant summary and optionally one en summary. "
         "The zh-Hant summary must be concise, no more than 280 Chinese characters, and must not copy the full source text. "
         "The en summary must be concise, no more than 400 English characters, and must not copy the full source text. "
+        "content_category must be one enabled taxonomy_context.content_categories key; use other when no key fits. "
+        "topic_tags must contain 0-12 lowercase slugs. Prefer known_topic_tags and do not invent a subscription status. "
         "Decide whether the item is relevant to gold through safe_haven, real_rate, inflation, dollar, "
         "liquidity, oil, sanctions, geopolitics, or Fed expectations. "
         "The JSON schema is: "
         '{"is_relevant": boolean, "relevance_score": 0-100, "event_type": string, '
         '"source_stance": string|null, "claim_direction": "confirm|deny|warn|escalate|deescalate|neutral|unknown", '
-        '"claim_text": string|null, "summaries": [{"language": "zh-Hant|en", "summary": string}], "actors": string[], '
+        '"claim_text": string|null, "summaries": [{"language": "zh-Hant|en", "summary": string}], '
+        '"content_category": string, "topic_tags": string[], "actors": string[], '
         '"xauusd_impact_channel": string[], "requires_confirmation": boolean, "confidence": 0-100|null, '
         '"reason": string|null, "region": string|null, "primary_actor": string|null, '
         '"secondary_actor": string|null, "market_relevance": string|null}.'
@@ -631,7 +641,6 @@ def auxiliary_text_system_prompt(
         "Do not provide trading instructions, entries, stop loss, take profit, position sizing, buy, sell, long, "
         "short, bullish, or bearish recommendations. Do not predict market direction. "
         "Do not decide whether a message is important, relevant, urgent, official, or market moving. "
-        "You may classify the item's content taxonomy for timeline filtering only. "
         "Only follow translation_scope. "
         "Return translations as a translations array. Each translation object must contain language, summary, "
         "and full_translation. Use BCP 47 language codes. "
@@ -646,19 +655,11 @@ def auxiliary_text_system_prompt(
         "may equal the supplied cleaned text. If the original text is already Chinese, the zh-Hant full_translation may equal "
         "the supplied cleaned text. If full_translation_required is false, return null for full_translation in every translation. "
         "Preserve names, places, institutions, numbers, dates, quoted claims, and uncertainty. "
-        "content_category must be one of the enabled taxonomy_context.content_categories keys. "
-        "If no controlled category fits, use other. Use routine for ordinary schedules, ceremonies, interviews, "
-        "lifestyle, or non-policy background pieces when that category is available. "
-        "topic_tags must contain 0-12 short lowercase topic slugs useful for filtering. Prefer known_topic_tags keys "
-        "when they fit, but you may add new short topic tags when needed. "
-        "mentioned_actors must contain 0-12 named people, countries, agencies, military units, institutions, or "
-        "organizations explicitly mentioned in the item. "
         "If truncated_input is true, mention in notes that full translation is based on truncated input. "
         "Do not add facts that are not in the input. "
         "The JSON schema is: "
         '{"translations": [{"language": string, "summary": string|null, "full_translation": string|null}], '
-        '"content_category": string|null, "topic_tags": string[], '
-        '"mentioned_actors": string[], "detected_language": string|null, "notes": string|null}.'
+        '"detected_language": string|null, "notes": string|null}.'
     )
 
 
@@ -694,6 +695,8 @@ def classification_json_schema_response_format() -> dict[str, Any]:
                             "required": ["language", "summary"],
                         },
                     },
+                    "content_category": {"type": "string"},
+                    "topic_tags": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
                     "actors": {"type": "array", "items": {"type": "string"}},
                     "xauusd_impact_channel": {"type": "array", "items": {"type": "string"}},
                     "requires_confirmation": {"type": "boolean"},
@@ -712,6 +715,8 @@ def classification_json_schema_response_format() -> dict[str, Any]:
                     "claim_direction",
                     "claim_text",
                     "summaries",
+                    "content_category",
+                    "topic_tags",
                     "actors",
                     "xauusd_impact_channel",
                     "requires_confirmation",
@@ -758,19 +763,11 @@ def auxiliary_text_json_schema_response_format(
                         "maxItems": 8,
                         "items": translation_items,
                     },
-                    "content_category": {
-                        "type": ["string", "null"],
-                    },
-                    "topic_tags": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
-                    "mentioned_actors": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
                     "detected_language": {"type": ["string", "null"]},
                     "notes": {"type": ["string", "null"]},
                 },
                 "required": [
                     "translations",
-                    "content_category",
-                    "topic_tags",
-                    "mentioned_actors",
                     "detected_language",
                     "notes",
                 ],

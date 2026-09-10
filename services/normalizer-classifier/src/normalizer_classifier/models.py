@@ -124,6 +124,8 @@ class ClassificationResult(BaseModel):
     claim_direction: str = "unknown"
     claim_text: str | None = None
     summaries: list[EventSummary]
+    content_category: str | None = None
+    topic_tags: list[str] = Field(default_factory=list)
     actors: list[str] = Field(default_factory=list)
     xauusd_impact_channel: list[str] = Field(default_factory=list)
     requires_confirmation: bool = True
@@ -154,28 +156,12 @@ class ClassificationResult(BaseModel):
 
 class AuxiliaryTextResult(BaseModel):
     translations: list[AuxiliaryTranslation] = Field(default_factory=list)
-    content_category: str | None = None
-    topic_tags: list[str] = Field(default_factory=list)
-    mentioned_actors: list[str] = Field(default_factory=list)
     detected_language: str | None = None
     notes: str | None = None
 
     def translation_for(self, language: str) -> AuxiliaryTranslation | None:
         return next((translation for translation in self.translations if translation.language == language), None)
 
-    @field_validator("topic_tags", "mentioned_actors", mode="before")
-    @classmethod
-    def normalize_string_list(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if not isinstance(value, list):
-            return []
-        normalized: list[str] = []
-        for item in value:
-            text = str(item).strip()
-            if text and text not in normalized:
-                normalized.append(text[:120])
-        return normalized[:12]
 
 
 class ModelResponse(BaseModel):

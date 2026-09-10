@@ -73,12 +73,19 @@ class NormalizerClassifierWorker:
                     logger.info("deferred raw_item_id=%s reason=model_call_budget_reached", task.raw_item.id)
                     continue
 
-                model_response = await self.model_client.classify(task.raw_item, task.source, normalized)
+                taxonomy_context = await self.db.get_taxonomy_context()
+                model_response = await self.model_client.classify(
+                    task.raw_item,
+                    task.source,
+                    normalized,
+                    taxonomy_context=taxonomy_context,
+                )
                 event_id = await self.db.complete_processed(
                     task=task,
                     normalized=normalized,
                     model_response=model_response,
                     relevance_threshold_event=self.settings.relevance_threshold_event,
+                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.insert_ai_model_call(
                     usage=model_response.usage,
@@ -160,7 +167,6 @@ class NormalizerClassifierWorker:
         text, truncated = self._translation_input_text(task.source, normalized.text_clean)
         full_translation_required = task.source.translation_policy == "full" or task.source.always_full_translate
         last_error = None
-        taxonomy_context = await self.db.get_taxonomy_context()
 
         for index, client in enumerate(self.translation_model_clients):
             is_paid_fallback = index > 0
@@ -178,14 +184,12 @@ class NormalizerClassifierWorker:
                     full_translation_required=full_translation_required,
                     input_text=text,
                     truncated=truncated,
-                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.update_translation_result(
                     raw_item_id=task.raw_item.id,
                     response=response,
                     status="completed_truncated" if truncated else "completed",
                     input_chars=len(text),
-                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.insert_ai_model_call(
                     usage=response.usage,
