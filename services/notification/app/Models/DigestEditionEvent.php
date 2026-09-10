@@ -10,5 +10,12 @@ class DigestEditionEvent extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['public_event_id', 'upstream_event_id', 'position'];
+    protected $fillable = ['public_event_id', 'upstream_event_id', 'position', 'input_payload'];
+
+    protected $primaryKey = null;
+
+    protected function casts(): array
+    {
+        return ['input_payload' => 'array'];
+    }
 }

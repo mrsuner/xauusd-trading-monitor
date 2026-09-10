@@ -37,11 +37,21 @@ return [
         'http_backoff_seconds' => [30, 120, 300, 600],
     ],
     'digest' => [
+        'enabled' => (bool) env('DIGEST_ENABLED', false),
         'topics' => ['geopolitics', 'monetary', 'energy', 'macro_data'],
         'retention_days' => 90,
         'input_limit' => 20,
         'freeze_minute' => 15,
         'deadline_minute' => 60,
+        'prompt_version' => 'shared-digest.v1',
+        'model' => [
+            'provider' => env('DIGEST_MODEL_PROVIDER', 'openrouter'),
+            'base_url' => env('DIGEST_MODEL_BASE_URL', 'https://openrouter.ai/api/v1'),
+            'api_key' => env('DIGEST_MODEL_API_KEY'),
+            'name' => env('DIGEST_MODEL_NAME'),
+            'timeout_seconds' => (int) env('DIGEST_MODEL_TIMEOUT_SECONDS', 60),
+            'max_output_tokens' => (int) env('DIGEST_MODEL_MAX_OUTPUT_TOKENS', 1800),
+        ],
     ],
     'horizon_allowed_ips' => array_values(array_filter(array_map(
         'trim',
