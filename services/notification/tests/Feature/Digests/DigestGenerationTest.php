@@ -31,6 +31,8 @@ class DigestGenerationTest extends TestCase
             $table->timestampTz('event_time')->nullable();
             $table->timestampTz('public_content_ready_at')->nullable();
             $table->timestampTz('invalidated_at')->nullable();
+            $table->string('invalidation_kind')->nullable();
+            $table->string('invalidation_reason')->nullable();
             $table->json('route_metadata');
             $table->boolean('is_visible')->default(true);
         });

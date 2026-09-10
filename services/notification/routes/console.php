@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\FreezeDailyDigests;
+use App\Jobs\MaintainDigests;
 use App\Jobs\ReconcileDeliveryLedger;
 use App\Jobs\SampleNotificationCapacity;
 use App\Jobs\ScanPublicEvents;
@@ -30,5 +31,10 @@ Schedule::job(new SampleNotificationCapacity)
 Schedule::job(new FreezeDailyDigests)
     ->dailyAt('00:15')
     ->timezone('UTC')
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('notification.digest.enabled', false));
+
+Schedule::job(new MaintainDigests)
+    ->everyMinute()
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('notification.digest.enabled', false));

@@ -23,6 +23,11 @@ class DigestGenerator
 
             return null;
         }
+        if (($invalidation = $this->invalidation($edition)) !== null) {
+            $this->invalidate($edition, $invalidation);
+
+            return null;
+        }
 
         $edition->update([
             'status' => 'generating',
@@ -42,6 +47,11 @@ class DigestGenerator
                 $this->model->generate($edition->topic, 'zh-Hant', $events, $english),
                 $allowedIds,
             );
+            if (($invalidation = $this->invalidation($edition)) !== null) {
+                $this->invalidate($edition, $invalidation);
+
+                return null;
+            }
             $sourceHash = hash('sha256', json_encode($english, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
 
             DB::transaction(function () use ($editionId, $english, $traditionalChinese, $sourceHash): void {
@@ -105,5 +115,25 @@ class DigestGenerator
         $message = preg_replace('/[^a-z0-9_]+/', '_', strtolower($exception->getMessage())) ?? '';
 
         return substr(trim($message, '_') ?: 'digest_generation_failed', 0, 255);
+    }
+
+    private function invalidation(DigestEdition $edition): ?object
+    {
+        $table = DB::getDriverName() === 'pgsql' ? 'public.public_events' : 'public_events';
+
+        return DB::table($table)->whereIn('id', $edition->events->pluck('public_event_id'))
+            ->whereNotNull('invalidated_at')->orderBy('invalidated_at')->first([
+                'invalidated_at', 'invalidation_kind', 'invalidation_reason',
+            ]);
+    }
+
+    private function invalidate(DigestEdition $edition, object $invalidation): void
+    {
+        $edition->update([
+            'status' => 'invalidated',
+            'invalidated_at' => $invalidation->invalidated_at,
+            'invalidation_kind' => $invalidation->invalidation_kind,
+            'invalidation_reason' => $invalidation->invalidation_reason,
+        ]);
     }
 }
