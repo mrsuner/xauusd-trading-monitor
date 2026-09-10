@@ -326,6 +326,7 @@ class PublicEventIngestRequest(BaseModel):
             raise ValueError("severity must be S, A, B, or C")
         return value
 
+
     @field_validator("confirmation_state")
     @classmethod
     def validate_confirmation_state(cls, value: str | None) -> str | None:
@@ -347,6 +348,38 @@ class PublicEventIngestRequest(BaseModel):
             return None
         normalized = value.strip()
         return normalized[:80] or None
+
+
+class PublicEventInvalidationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: str
+    idempotency_key: str = Field(min_length=1, max_length=300)
+    kind: str
+    reason: str = Field(min_length=1, max_length=500)
+    occurred_at: datetime
+
+    @field_validator("schema_version")
+    @classmethod
+    def validate_schema_version(cls, value: str) -> str:
+        if value != "public_event_invalidation.v1":
+            raise ValueError("unsupported schema_version")
+        return value
+
+    @field_validator("kind")
+    @classmethod
+    def validate_kind(cls, value: str) -> str:
+        if value not in {"withdrawal", "material_correction"}:
+            raise ValueError("unsupported invalidation kind")
+        return value
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_reason(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("reason is required")
+        return normalized
 
 
 class PublicEventListItem(BaseModel):

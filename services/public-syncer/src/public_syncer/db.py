@@ -351,6 +351,8 @@ class Database:
                   e.event_type,
                   ri.content_category,
                   p.topic_tags,
+                  e.primary_domain,
+                  e.matched_domains,
                   p.retry_count_web,
                   p.generated_at,
                   e.event_time

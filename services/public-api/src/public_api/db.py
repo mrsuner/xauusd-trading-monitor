@@ -13,6 +13,7 @@ from psycopg.types.json import Jsonb
 from .models import (
     LANGUAGE_CODE_RE,
     PublicEventIngestRequest,
+    PublicEventInvalidationRequest,
     PublicRawItemIngestRequest,
     SubscriptionCatalogIngestRequest,
 )
@@ -23,6 +24,13 @@ logger = logging.getLogger(__name__)
 DEFAULT_PUBLIC_LANGUAGE = "en"
 PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
 PUBLIC_LANGUAGE_EN = "en"
+
+
+def public_event_has_summary(translation_rows: list[dict[str, Any]]) -> bool:
+    return any(
+        isinstance(row.get("summary"), str) and bool(row["summary"].strip())
+        for row in translation_rows
+    )
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -245,6 +253,15 @@ class PublicRepository:
                     """,
                     translation_rows,
                 )
+                if public_event_has_summary(translation_rows):
+                    await cur.execute(
+                        """
+                        update public_events
+                        set public_content_ready_at = coalesce(public_content_ready_at, now())
+                        where id = %(public_event_id)s
+                        """,
+                        {"public_event_id": row["id"]},
+                    )
             await cur.execute(
                 """
                 insert into public_ingest_requests (
@@ -649,6 +666,82 @@ class PublicRepository:
             "status": status,
             "revision": payload.revision,
             "idempotency_key": payload.idempotency_key,
+        }
+
+    async def invalidate_event(
+        self,
+        upstream_event_id: UUID,
+        payload: PublicEventInvalidationRequest,
+        *,
+        raw_body: bytes,
+        key_id: str | None,
+        nonce: str | None,
+    ) -> dict[str, Any] | None:
+        request_hash = body_sha256(raw_body)
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select id, invalidated_at
+                from public_events
+                where upstream_event_id = %(upstream_event_id)s
+                order by received_at
+                limit 1
+                for update
+                """,
+                {"upstream_event_id": upstream_event_id},
+            )
+            event = await cur.fetchone()
+            if event is None:
+                await self.db.conn.rollback()
+                return None
+
+            duplicate = event["invalidated_at"] is not None
+            if not duplicate:
+                await cur.execute(
+                    """
+                    update public_events
+                    set is_visible = false,
+                        invalidated_at = %(invalidated_at)s,
+                        invalidation_kind = %(invalidation_kind)s,
+                        invalidation_reason = %(invalidation_reason)s,
+                        updated_at = now()
+                    where id = %(public_event_id)s
+                    """,
+                    {
+                        "public_event_id": event["id"],
+                        "invalidated_at": payload.occurred_at,
+                        "invalidation_kind": payload.kind,
+                        "invalidation_reason": payload.reason,
+                    },
+                )
+            request_status = "duplicate" if duplicate else "accepted"
+            await cur.execute(
+                """
+                insert into public_ingest_requests (
+                  ingest_kind, idempotency_key, upstream_event_id, public_event_id,
+                  request_hash, key_id, nonce, status
+                ) values (
+                  'event_invalidation', %(idempotency_key)s, %(upstream_event_id)s,
+                  %(public_event_id)s, %(request_hash)s, %(key_id)s, %(nonce)s, %(status)s
+                )
+                on conflict do nothing
+                """,
+                {
+                    "idempotency_key": payload.idempotency_key,
+                    "upstream_event_id": upstream_event_id,
+                    "public_event_id": event["id"],
+                    "request_hash": request_hash,
+                    "key_id": key_id,
+                    "nonce": nonce,
+                    "status": request_status,
+                },
+            )
+        await self.db.conn.commit()
+        return {
+            "status": request_status,
+            "public_event_id": str(event["id"]),
+            "upstream_event_id": str(upstream_event_id),
+            "kind": payload.kind,
         }
 
     async def get_subscription_catalog(self) -> dict[str, Any]:

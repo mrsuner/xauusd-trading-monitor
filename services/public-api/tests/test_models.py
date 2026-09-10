@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from public_api.models import (
     PublicEventIngestRequest,
+    PublicEventInvalidationRequest,
     PublicRawItemIngestRequest,
     SubscriptionCatalogIngestRequest,
     SubscriptionCategoryInput,
@@ -50,6 +51,32 @@ def test_subscription_catalog_accepts_matching_content_revision() -> None:
 
     assert payload.categories[0].key == "fed"
     assert payload.tags[0].label_zh == "通膨"
+
+
+def test_event_invalidation_accepts_only_explicit_lifecycle_kinds() -> None:
+    payload = PublicEventInvalidationRequest.model_validate(
+        {
+            "schema_version": "public_event_invalidation.v1",
+            "idempotency_key": f"event_invalidation:{uuid4()}:withdrawal",
+            "kind": "withdrawal",
+            "reason": "  Source withdrew the report.  ",
+            "occurred_at": "2026-09-11T00:30:00Z",
+        }
+    )
+
+    assert payload.kind == "withdrawal"
+    assert payload.reason == "Source withdrew the report."
+
+    with pytest.raises(ValidationError, match="unsupported invalidation kind"):
+        PublicEventInvalidationRequest.model_validate(
+            {
+                "schema_version": "public_event_invalidation.v1",
+                "idempotency_key": "event_invalidation:test:edit",
+                "kind": "ordinary_edit",
+                "reason": "Copy edit",
+                "occurred_at": "2026-09-11T00:30:00Z",
+            }
+        )
 
 
 def test_subscription_catalog_rejects_tampered_content() -> None:

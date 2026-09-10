@@ -26,6 +26,8 @@ def make_item() -> PublicOutboxItem:
         relevance_score=80,
         confirmation_state="confirmed",
         topic_tags=["Iran", "Gold"],
+        primary_domain="geopolitics",
+        matched_domains=["geopolitics", "energy"],
         retry_count_web=1,
         generated_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
     )
@@ -51,6 +53,8 @@ def test_build_payload_is_public_safe() -> None:
         {"url": "https://example.com/news", "source_name": "Example", "label": "Example"}
     ]
     assert payload["route_metadata"]["public_outbox_id"] == str(item.id)
+    assert payload["route_metadata"]["primary_domain"] == "geopolitics"
+    assert payload["route_metadata"]["matched_domains"] == ["energy", "geopolitics"]
     assert "available_languages" not in payload
     assert "public_title_zh" not in payload
     assert "public_summary_zh" not in payload

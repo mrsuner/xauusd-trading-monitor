@@ -7,6 +7,7 @@ from public_api.db import (
     _build_filters,
     _build_raw_item_filters,
     normalize_public_language,
+    public_event_has_summary,
     public_event_translation_rows,
     public_event_translation_search_exists_sql,
     public_event_translations_select_sql,
@@ -17,6 +18,11 @@ from public_api.db import (
     shape_public_raw_item,
 )
 from public_api.models import PublicEventIngestRequest, PublicRawItemIngestRequest
+
+
+def test_public_event_readiness_requires_a_nonempty_summary() -> None:
+    assert public_event_has_summary([{"language": "en", "summary": "Ready"}]) is True
+    assert public_event_has_summary([{"language": "en", "summary": "  "}, {"language": "ja", "title": "Title"}]) is False
 
 
 def event_row(**overrides: object) -> dict[str, object]:
