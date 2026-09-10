@@ -13,9 +13,17 @@ tables in the `notify` schema, and uses a dedicated Redis instance for Laravel H
 - News checkout remains disabled until the capacity phase passes
 
 Live jobs use `news-match`, `news-telegram-high`, and
-`news-telegram-standard`. Three high-priority workers serve S events while one
-reserved standard worker prevents A/B/C starvation; all workers still share the
-same bot and per-chat rate limits.
+`news-telegram-standard`. Shared digests use isolated `news-digest-generate` and
+`news-digest-deliver` workers with lower process priority. Three high-priority
+workers serve S events while one reserved standard worker prevents A/B/C
+starvation; all Telegram workers still share the same bot and per-chat limits.
+
+The production Compose file keeps every notification container behind the explicit
+`notifications` profile. Provision the `notify` schema and restricted role with
+`infra/postgres/notification-role.sql`, then supply a root-owned `notification.env`.
+The role owns `notify` and receives read-only access to `public`; it does not own or
+write public event tables. Enabling the profile does not enable delivery:
+`NOTIFICATION_ENABLED` and `DIGEST_ENABLED` remain separate closed-by-default gates.
 
 ## Local checks
 
