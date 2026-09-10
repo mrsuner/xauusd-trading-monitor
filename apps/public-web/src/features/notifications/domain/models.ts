@@ -44,6 +44,43 @@ export interface ChannelDto {
   revision: number;
 }
 
+export type DigestTopic = "geopolitics" | "monetary" | "energy" | "macro_data";
+
+export interface DigestPreferences {
+  enabled: boolean;
+  topics: DigestTopic[];
+  revision: number;
+  effectiveFrom: string | null;
+}
+
+export interface DigestPreferencesDto {
+  enabled: boolean;
+  topics: DigestTopic[];
+  revision: number;
+  effective_from: string | null;
+}
+
+export interface DigestEditionDto {
+  id: string;
+  topic: DigestTopic;
+  window_start: string;
+  window_end: string;
+  status: "ready" | "language_unavailable" | "invalidated";
+  language: DeliveryLanguage | null;
+  title: string | null;
+  published_at: string | null;
+  coverage_truncated: boolean;
+  invalidation_kind: string | null;
+  invalidation_reason: string | null;
+  overview?: string | null;
+  developments?: Array<{ text: string; event_ids: string[] }> | null;
+  event_ids?: string[];
+}
+
+export function mapDigestPreferences(dto: DigestPreferencesDto): DigestPreferences {
+  return { enabled: dto.enabled, topics: dto.topics, revision: dto.revision, effectiveFrom: dto.effective_from };
+}
+
 export function mapPreferences(dto: PreferencesDto): NotificationPreferences {
   return {
     masterEnabled: dto.master_enabled,

@@ -1,5 +1,5 @@
-import type { ChannelDto, NewsAccess, NotificationPreferences, PreferencesDto } from "./models";
-import { mapChannel, mapPreferences, preferencesDto } from "./models";
+import type { ChannelDto, DeliveryLanguage, DigestEditionDto, DigestPreferences, DigestPreferencesDto, DigestTopic, NewsAccess, NotificationPreferences, PreferencesDto } from "./models";
+import { mapChannel, mapDigestPreferences, mapPreferences, preferencesDto } from "./models";
 
 const runtimeConfig = window.__TICKBASE_NEWS_CONFIG__ ?? {};
 const accountApiBaseUrl =
@@ -58,6 +58,29 @@ export async function setTelegramEnabled(enabled: boolean) {
 
 export async function unlinkTelegram(): Promise<void> {
   await request<null>("/news/channels/telegram", { method: "DELETE" });
+}
+
+export async function getDigestPreferences(): Promise<{ access: NewsAccess; preferences: DigestPreferences; availableTopics: DigestTopic[] }> {
+  const body = await request<{ data: { access: NewsAccess; preferences: DigestPreferencesDto; available_topics: DigestTopic[] } }>("/news/digest-preferences");
+  return { access: body.data.access, preferences: mapDigestPreferences(body.data.preferences), availableTopics: body.data.available_topics };
+}
+
+export async function saveDigestPreferences(input: Pick<DigestPreferences, "enabled" | "topics">): Promise<DigestPreferences> {
+  const body = await request<{ data: { preferences: DigestPreferencesDto } }>("/news/digest-preferences", {
+    method: "PUT",
+    body: { enabled: input.enabled, topics: input.topics }
+  });
+  return mapDigestPreferences(body.data.preferences);
+}
+
+export async function getDigests(language: DeliveryLanguage): Promise<DigestEditionDto[]> {
+  const body = await request<{ data: DigestEditionDto[] }>(`/news/digests?language=${encodeURIComponent(language)}`);
+  return body.data;
+}
+
+export async function getDigest(id: string, language: DeliveryLanguage): Promise<DigestEditionDto> {
+  const body = await request<{ data: DigestEditionDto }>(`/news/digests/${encodeURIComponent(id)}?language=${encodeURIComponent(language)}`);
+  return body.data;
 }
 
 interface RequestOptions {

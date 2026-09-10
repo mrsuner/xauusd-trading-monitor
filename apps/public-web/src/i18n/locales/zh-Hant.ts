@@ -10,6 +10,7 @@ export const zhHant = {
     status: "狀態",
     support: "支持",
     notifications: "通知",
+    digests: "每日摘要",
     supportCta: "支持",
     language: "語言",
     tickbaseHome: "TickBase News 首頁",

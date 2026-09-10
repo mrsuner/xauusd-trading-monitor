@@ -14,6 +14,8 @@ import { StatusPage } from "./pages/StatusPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TagPage } from "./pages/TagPage";
 import { NotificationSettingsPage } from "./features/notifications/ui/NotificationSettingsPage";
+import { DigestDetailPage } from "./features/notifications/ui/DigestDetailPage";
+import { DigestsPage } from "./features/notifications/ui/DigestsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +38,8 @@ const router = createBrowserRouter([
   { path: "/status", element: <LegacyRedirect /> },
   { path: "/support", element: <LegacyRedirect /> },
   { path: "/notifications", element: <LegacyRedirect /> },
+  { path: "/digests", element: <LegacyRedirect /> },
+  { path: "/digests/:digestId", element: <LegacyRedirect /> },
   {
     path: "/:lang",
     element: <LanguageLayout />,
@@ -49,7 +53,9 @@ const router = createBrowserRouter([
       { path: "about", element: <AboutPage /> },
       { path: "status", element: <StatusPage /> },
       { path: "support", element: <SupportPage /> },
-      { path: "notifications", element: <NotificationSettingsPage /> }
+      { path: "notifications", element: <NotificationSettingsPage /> },
+      { path: "digests", element: <DigestsPage /> },
+      { path: "digests/:digestId", element: <DigestDetailPage /> }
     ]
   }
 ]);

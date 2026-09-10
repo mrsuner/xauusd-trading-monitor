@@ -10,6 +10,7 @@ export const en = {
     status: "Status",
     support: "Support",
     notifications: "Notifications",
+    digests: "Daily digests",
     supportCta: "Support",
     language: "Language",
     tickbaseHome: "TickBase News home",

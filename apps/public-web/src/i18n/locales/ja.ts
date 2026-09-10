@@ -10,6 +10,7 @@ export const ja = {
     status: "ステータス",
     support: "サポート",
     notifications: "通知",
+    digests: "デイリーダイジェスト",
     supportCta: "サポート",
     language: "言語",
     tickbaseHome: "TickBase News ホーム",

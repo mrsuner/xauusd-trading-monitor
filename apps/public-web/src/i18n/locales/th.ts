@@ -10,6 +10,7 @@ export const th = {
     status: "สถานะ",
     support: "สนับสนุน",
     notifications: "การแจ้งเตือน",
+    digests: "สรุปรายวัน",
     supportCta: "สนับสนุน",
     language: "ภาษา",
     tickbaseHome: "หน้าแรก TickBase News",

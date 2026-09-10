@@ -29,6 +29,7 @@ export function Layout() {
     { path: "/about", label: t.nav.about },
     { path: "/status", label: t.nav.status },
     { path: "/notifications", label: t.nav.notifications },
+    { path: "/digests", label: t.nav.digests },
     { path: "/support", label: t.nav.support }
   ];
 
