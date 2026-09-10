@@ -20,11 +20,16 @@ class Settings(BaseSettings):
     public_api_base_url: str | None = Field(default=None, alias="PUBLIC_API_BASE_URL")
     public_ingest_path: str = Field(default="/ingest/events", alias="PUBLIC_INGEST_PATH")
     public_raw_ingest_path: str = Field(default="/ingest/raw-items", alias="PUBLIC_RAW_INGEST_PATH")
+    public_catalog_ingest_path: str = Field(
+        default="/ingest/subscription-catalog",
+        alias="PUBLIC_SUBSCRIPTION_CATALOG_INGEST_PATH",
+    )
     auth_mode: str = Field(default="hmac", alias="PUBLIC_SYNC_AUTH_MODE")
     sync_key_id: str | None = Field(default=None, alias="PUBLIC_SYNC_KEY_ID")
     sync_secret: str | None = Field(default=None, alias="PUBLIC_SYNC_SECRET")
     sync_api_key: str | None = Field(default=None, alias="PUBLIC_SYNC_API_KEY")
     public_sync_languages_raw: str = Field(default="zh-Hant,en", alias="PUBLIC_SYNC_LANGUAGES")
+    subscription_catalog_enabled: bool = Field(default=False, alias="PUBLIC_SUBSCRIPTION_CATALOG_ENABLED")
 
     batch_size: int = Field(default=10, alias="PUBLIC_SYNCER_BATCH_SIZE")
     max_attempts: int = Field(default=5, alias="PUBLIC_SYNCER_MAX_ATTEMPTS")
@@ -55,7 +60,7 @@ class Settings(BaseSettings):
     def normalize_base_url(cls, value: str | None) -> str | None:
         return value.rstrip("/") if value else value
 
-    @field_validator("public_ingest_path", "public_raw_ingest_path")
+    @field_validator("public_ingest_path", "public_raw_ingest_path", "public_catalog_ingest_path")
     @classmethod
     def normalize_ingest_path(cls, value: str) -> str:
         if not value.startswith("/"):

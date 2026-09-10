@@ -138,6 +138,9 @@ V1 必要資料表：
 | `prompt_modules` | Versioned active domain lens bodies |
 | `ai_daily_budgets` | UTC 日界、跨 worker/restart 的原子 AI request reservations |
 | `routing_config_snapshots` | 以 `config_version` 保存不可變的 deterministic routing 設定快照 |
+| `public_subscription_catalog_revisions` | public DB 接收過的 subscription catalog revisions 與來源時間 |
+| `public_subscription_categories` | public DB 當前可訂閱 category snapshot |
+| `public_subscription_tags` | public DB 當前可訂閱 tag snapshot |
 | `source_health` | source 與 collector health |
 | `schema_migrations` | migration 版本紀錄，若不用 Alembic 可保留 |
 

@@ -156,6 +156,29 @@ class Database:
         await self.conn.commit()
         return int(row["count"] or 0) if row else 0
 
+    async def get_subscription_catalog(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        async with self.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select key, label_en, label_zh, description, sort_order
+                from content_categories
+                where enabled = true and subscribable = true
+                order by sort_order, key
+                """
+            )
+            categories = [dict(row) for row in await cur.fetchall()]
+            await cur.execute(
+                """
+                select key, coalesce(label_en, label) as label_en, label_zh, tag_type, aliases
+                from tags
+                where enabled = true and subscribable = true
+                order by tag_type, key
+                """
+            )
+            tags = [dict(row) for row in await cur.fetchall()]
+        await self.conn.commit()
+        return categories, tags
+
     async def raw_item_sent_count_last_minute(self) -> int:
         async with self.conn.cursor() as cur:
             await cur.execute(

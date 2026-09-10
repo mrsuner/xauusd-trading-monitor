@@ -5,7 +5,59 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from public_api.models import PublicEventIngestRequest, PublicRawItemIngestRequest
+from public_api.models import (
+    PublicEventIngestRequest,
+    PublicRawItemIngestRequest,
+    SubscriptionCatalogIngestRequest,
+    SubscriptionCategoryInput,
+    SubscriptionTagInput,
+    subscription_catalog_revision,
+)
+
+
+def subscription_catalog_payload() -> dict:
+    categories = [
+        SubscriptionCategoryInput(
+            key="fed",
+            label_en="Federal Reserve",
+            label_zh="聯準會",
+            description="Federal Reserve policy.",
+            sort_order=10,
+        )
+    ]
+    tags = [
+        SubscriptionTagInput(
+            key="inflation",
+            label_en="Inflation",
+            label_zh="通膨",
+            tag_type="topic",
+            aliases=[],
+        )
+    ]
+    revision = subscription_catalog_revision(categories, tags)
+    return {
+        "schema_version": "subscription_catalog.v1",
+        "idempotency_key": f"subscription_catalog:{revision}",
+        "revision": revision,
+        "generated_at": "2026-09-11T00:00:00Z",
+        "categories": [item.model_dump(mode="json") for item in categories],
+        "tags": [item.model_dump(mode="json") for item in tags],
+    }
+
+
+def test_subscription_catalog_accepts_matching_content_revision() -> None:
+    payload = SubscriptionCatalogIngestRequest.model_validate(subscription_catalog_payload())
+
+    assert payload.categories[0].key == "fed"
+    assert payload.tags[0].label_zh == "通膨"
+
+
+def test_subscription_catalog_rejects_tampered_content() -> None:
+    raw = subscription_catalog_payload()
+    raw["tags"][0]["label_en"] = "Changed after hashing"
+
+    with pytest.raises(ValidationError, match="revision mismatch"):
+        SubscriptionCatalogIngestRequest.model_validate(raw)
 
 
 def test_public_event_ingest_request_normalizes_taxonomy() -> None:

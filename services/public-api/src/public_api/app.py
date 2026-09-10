@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from .db import Database, PublicRepository
-from .models import PublicEventIngestRequest, PublicRawItemIngestRequest
+from .models import PublicEventIngestRequest, PublicRawItemIngestRequest, SubscriptionCatalogIngestRequest
 from .security import timestamp_age_seconds, verify_signature
 from .settings import Settings
 
@@ -261,6 +261,76 @@ def create_app() -> FastAPI:
             to_time=to_time,
         )
 
+    @app.post("/ingest/subscription-catalog")
+    async def ingest_subscription_catalog(
+        request: Request,
+        authorization: Annotated[str | None, Header()] = None,
+        idempotency_header: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+        xer_key_id: Annotated[str | None, Header(alias="X-XER-Key-Id")] = None,
+        xer_timestamp: Annotated[str | None, Header(alias="X-XER-Timestamp")] = None,
+        xer_nonce: Annotated[str | None, Header(alias="X-XER-Nonce")] = None,
+        xer_signature: Annotated[str | None, Header(alias="X-XER-Signature")] = None,
+        repository: PublicRepository = Depends(repo),
+    ) -> dict[str, Any]:
+        body = await request.body()
+        settings: Settings = request.app.state.settings
+        if len(body) > settings.ingest_max_body_bytes:
+            raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Payload too large")
+        try:
+            body_obj = json.loads(body)
+            idempotency_key = str(body_obj.get("idempotency_key") or idempotency_header or "")
+        except json.JSONDecodeError:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message="invalid_json",
+                idempotency_key=idempotency_header,
+                ingest_kind="subscription_catalog",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        try:
+            await _authorize_ingest(
+                settings=settings,
+                repository=repository,
+                body=body,
+                authorization=authorization,
+                idempotency_key=idempotency_key,
+                key_id=xer_key_id,
+                timestamp=xer_timestamp,
+                nonce=xer_nonce,
+                signature=xer_signature,
+            )
+            payload = SubscriptionCatalogIngestRequest.model_validate(body_obj)
+        except HTTPException as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc.detail),
+                idempotency_key=idempotency_key,
+                ingest_kind="subscription_catalog",
+            )
+            raise
+        except ValidationError as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc),
+                idempotency_key=idempotency_key,
+                ingest_kind="subscription_catalog",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid subscription catalog payload") from exc
+        if idempotency_header and idempotency_header != payload.idempotency_key:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Idempotency-Key header mismatch")
+        return await repository.ingest_subscription_catalog(
+            payload,
+            raw_body=body,
+            key_id=xer_key_id,
+            nonce=xer_nonce,
+        )
+
     @app.get("/events/{public_event_id}")
     async def get_event(
         public_event_id: UUID,
@@ -322,6 +392,10 @@ def create_app() -> FastAPI:
     @app.get("/categories")
     async def list_categories(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
         return {"items": await repository.list_categories()}
+
+    @app.get("/subscription-catalog")
+    async def get_subscription_catalog(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
+        return await repository.get_subscription_catalog()
 
     @app.get("/stats/overview")
     async def stats_overview(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
