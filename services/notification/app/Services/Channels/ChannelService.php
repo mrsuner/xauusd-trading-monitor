@@ -181,6 +181,35 @@ class ChannelService
         });
     }
 
+    public function stopTelegramChat(string $chatId): bool
+    {
+        $fingerprintKey = (string) config('notification.channel_fingerprint_key');
+        if ($fingerprintKey === '') {
+            throw new ChannelException('service_unavailable', 'Channel encryption is not configured.', 503);
+        }
+
+        return DB::transaction(function () use ($chatId, $fingerprintKey): bool {
+            $channel = Channel::query()
+                ->where('type', 'telegram')
+                ->where('target_fingerprint', hash_hmac('sha256', $chatId, $fingerprintKey))
+                ->lockForUpdate()
+                ->first();
+            if ($channel === null) {
+                return false;
+            }
+
+            if ($channel->enabled) {
+                $channel->enabled = false;
+                $channel->enabled_from = null;
+                $channel->revision++;
+                $channel->save();
+                $this->cancelPending($channel->id, 'telegram_stop');
+            }
+
+            return true;
+        });
+    }
+
     /** @return array<string, mixed> */
     private function serialize(Channel $channel): array
     {
