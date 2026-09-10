@@ -42,6 +42,11 @@ class RawItemTranslationContext(BaseModel):
     status: str | None = None
 
 
+class EventTranslationContext(BaseModel):
+    language: str
+    summary: str
+
+
 class EventClaimContext(BaseModel):
     claim_text: str
     claim_direction: str
@@ -60,8 +65,7 @@ class EventContext(BaseModel):
     confidence: int | None = None
     confirmation_state: str
     title: str | None = None
-    summary_zh: str
-    summary_en: str | None = None
+    translations: list[EventTranslationContext] = Field(default_factory=list)
     market_relevance: str | None = None
     xauusd_impact_channel: list[str] = Field(default_factory=list)
     requires_confirmation: bool
@@ -71,6 +75,9 @@ class EventContext(BaseModel):
     raw_item_translations: list[RawItemTranslationContext] = Field(default_factory=list)
     claims: list[EventClaimContext] = Field(default_factory=list)
     topic_tags: list[str] = Field(default_factory=list)
+
+    def summary_for(self, language: str) -> str | None:
+        return next((item.summary for item in self.translations if item.language == language), None)
 
 
 class AlertChannelStats(BaseModel):

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from alert_dispatcher.message import build_telegram_message
-from alert_dispatcher.models import EventContext, RawItemContext, SourceContext
+from alert_dispatcher.models import EventContext, EventTranslationContext, RawItemContext, SourceContext
 
 
 def test_telegram_message_includes_source_and_url() -> None:
@@ -16,7 +16,7 @@ def test_telegram_message_includes_source_and_url() -> None:
         relevance_score=90,
         confidence=75,
         confirmation_state="unconfirmed",
-        summary_zh="Trump 發布與伊朗談判相關消息。",
+        translations=[EventTranslationContext(language="zh-Hant", summary="Trump 發布與伊朗談判相關消息。")],
         xauusd_impact_channel=["safe_haven"],
         requires_confirmation=True,
         source=SourceContext(
@@ -47,8 +47,7 @@ def test_telegram_message_falls_back_to_raw_item_translation_summary() -> None:
         relevance_score=90,
         confidence=75,
         confirmation_state="unconfirmed",
-        summary_zh="",
-        summary_en=None,
+        translations=[],
         xauusd_impact_channel=["safe_haven"],
         requires_confirmation=True,
         source=SourceContext(

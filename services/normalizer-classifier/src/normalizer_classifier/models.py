@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SourceMetadata(BaseModel):
@@ -102,6 +102,20 @@ class NormalizedItem(BaseModel):
     filter_reason: str | None = None
 
 
+class EventSummary(BaseModel):
+    language: str
+    summary: str
+
+    @model_validator(mode="after")
+    def validate_language_summary(self) -> "EventSummary":
+        limits = {"zh-Hant": 280, "en": 400}
+        if self.language not in limits:
+            raise ValueError(f"unsupported event summary language: {self.language}")
+        if len(self.summary) > limits[self.language]:
+            raise ValueError(f"{self.language} event summary exceeds {limits[self.language]} characters")
+        return self
+
+
 class ClassificationResult(BaseModel):
     is_relevant: bool
     relevance_score: int = Field(ge=0, le=100)
@@ -109,8 +123,7 @@ class ClassificationResult(BaseModel):
     source_stance: str | None = None
     claim_direction: str = "unknown"
     claim_text: str | None = None
-    summary_zh: str
-    summary_en: str | None = None
+    summaries: list[EventSummary]
     actors: list[str] = Field(default_factory=list)
     xauusd_impact_channel: list[str] = Field(default_factory=list)
     requires_confirmation: bool = True
@@ -120,6 +133,15 @@ class ClassificationResult(BaseModel):
     primary_actor: str | None = None
     secondary_actor: str | None = None
     market_relevance: str | None = None
+
+    @model_validator(mode="after")
+    def validate_summaries(self) -> "ClassificationResult":
+        languages = [item.language for item in self.summaries]
+        if len(languages) != len(set(languages)):
+            raise ValueError("event summary languages must be unique")
+        if "zh-Hant" not in languages:
+            raise ValueError("zh-Hant event summary is required")
+        return self
 
     @field_validator("claim_direction")
     @classmethod

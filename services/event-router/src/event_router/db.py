@@ -15,6 +15,7 @@ from .models import (
     AlertDecision,
     EventClaimContext,
     EventContext,
+    EventTranslationContext,
     PublicOutboxDraft,
     RawItemContext,
     RawItemTranslationContext,
@@ -34,6 +35,7 @@ def _event_context_query() -> str:
     return f"""
                 select
                   e.*,
+                  coalesce(event_translation_rows.items, '[]'::jsonb) as event_translations,
                   s.id as source_context_id,
                   s.name as source_name,
                   s.handle_or_url,
@@ -62,6 +64,14 @@ def _event_context_query() -> str:
                 from events e
                 left join sources s on s.id = e.source_id
                 left join lateral (
+                  select jsonb_agg(
+                    jsonb_build_object('language', et.language, 'summary', et.summary)
+                    order by case et.language when 'zh-Hant' then 0 when 'en' then 1 else 2 end, et.language
+                  ) as items
+                  from event_translations et
+                  where et.event_id = e.id
+                ) event_translation_rows on true
+                left join lateral (
                   select raw.*
                   from raw_items raw
                   where raw.id = any(e.raw_item_ids)
@@ -74,6 +84,7 @@ def _event_context_query() -> str:
                 where e.id = %(event_id)s
                 group by
                   e.id,
+                  event_translation_rows.items,
                   s.id,
                   r.id,
                   r.title,
@@ -123,11 +134,7 @@ def public_outbox_translation_enrichment_sql() -> str:
                       on pot.public_outbox_id = pri.public_outbox_id
                      and pot.language = languages.language
                     where pot.id is null
-                       or (
-                         pot.title is null
-                         and pot.summary is distinct from nullif(btrim(rit.summary), '')
-                         and rit.updated_at > pot.updated_at
-                       )
+                       or nullif(btrim(pot.summary), '') is null
                   )
                   order by pri.generated_at asc
                   limit %(limit)s
@@ -164,11 +171,15 @@ def public_outbox_translation_enrichment_sql() -> str:
                   from translation_candidates
                   on conflict (public_outbox_id, language) do update
                   set title = coalesce(public_outbox_translations.title, excluded.title),
-                      summary = excluded.summary,
-                      status = excluded.status,
+                      summary = case
+                        when nullif(btrim(public_outbox_translations.summary), '') is not null
+                        then public_outbox_translations.summary
+                        else excluded.summary
+                      end,
+                      status = public_outbox_translations.status,
                       updated_at = now()
-                  where public_outbox_translations.title is null
-                    and public_outbox_translations.summary is distinct from excluded.summary
+                  where nullif(btrim(public_outbox_translations.summary), '') is null
+                    and nullif(btrim(excluded.summary), '') is not null
                   returning public_outbox_id
                 ),
                 distinct_upserted as (
@@ -343,8 +354,10 @@ class Database:
             confidence=row["confidence"],
             confirmation_state=row["confirmation_state"],
             title=row["title"],
-            summary_zh=row["summary_zh"],
-            summary_en=row["summary_en"],
+            translations=[
+                EventTranslationContext.model_validate(translation)
+                for translation in row["event_translations"]
+            ],
             market_relevance=row["market_relevance"],
             xauusd_impact_channel=row["xauusd_impact_channel"] or [],
             requires_confirmation=row["requires_confirmation"],
@@ -566,9 +579,13 @@ class Database:
                       %(status)s
                     )
                     on conflict (public_outbox_id, language) do update
-                    set title = excluded.title,
-                        summary = excluded.summary,
-                        status = excluded.status,
+                    set title = coalesce(public_outbox_translations.title, excluded.title),
+                        summary = case
+                          when nullif(btrim(public_outbox_translations.summary), '') is not null
+                          then public_outbox_translations.summary
+                          else excluded.summary
+                        end,
+                        status = public_outbox_translations.status,
                         updated_at = now()
                     """,
                     translations,

@@ -230,8 +230,12 @@ class PublicRepository:
                       %(summary)s
                     )
                     on conflict (public_event_id, language) do update
-                    set title = excluded.title,
-                        summary = excluded.summary,
+                    set title = coalesce(public_events_translations.title, excluded.title),
+                        summary = case
+                          when nullif(btrim(public_events_translations.summary), '') is not null
+                          then public_events_translations.summary
+                          else excluded.summary
+                        end,
                         updated_at = now()
                     """,
                     translation_rows,

@@ -311,7 +311,16 @@ class DashboardRepository:
         event = await self._db.fetch_one(
             """
             select
-              e.*,
+              e.id, e.event_time, e.detected_at, e.event_type, e.source_group,
+              e.severity, e.relevance_score, e.confidence, e.confirmation_state,
+              e.title, e.market_relevance, e.xauusd_impact_channel,
+              e.requires_confirmation, e.created_at, e.updated_at,
+              coalesce(
+                (select jsonb_agg(jsonb_build_object('language', et.language, 'summary', et.summary)
+                  order by case et.language when 'zh-Hant' then 0 when 'en' then 1 else 2 end, et.language)
+                 from event_translations et where et.event_id = e.id),
+                '[]'::jsonb
+              ) as translations,
               s.name as source_name,
               s.handle_or_url,
               s.official_level,
@@ -854,7 +863,16 @@ def build_events_query(filters: dict[str, Any]) -> QueryBuilder:
     builder = QueryBuilder(
         base_select="""
         select
-          e.*,
+          e.id, e.event_time, e.detected_at, e.event_type, e.source_group,
+          e.severity, e.relevance_score, e.confidence, e.confirmation_state,
+          e.title, e.market_relevance, e.xauusd_impact_channel,
+          e.requires_confirmation, e.created_at, e.updated_at,
+          coalesce(
+            (select jsonb_agg(jsonb_build_object('language', et.language, 'summary', et.summary)
+              order by case et.language when 'zh-Hant' then 0 when 'en' then 1 else 2 end, et.language)
+             from event_translations et where et.event_id = e.id),
+            '[]'::jsonb
+          ) as translations,
           s.name as source_name,
           s.handle_or_url,
           s.official_level,
@@ -931,7 +949,12 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
           p.created_at,
           p.updated_at,
           e.title as event_title,
-          e.summary_zh as event_summary_zh,
+          coalesce(
+            (select jsonb_agg(jsonb_build_object('language', et.language, 'summary', et.summary)
+              order by case et.language when 'zh-Hant' then 0 when 'en' then 1 else 2 end, et.language)
+             from event_translations et where et.event_id = e.id),
+            '[]'::jsonb
+          ) as event_translations,
           e.event_type,
           e.detected_at as event_detected_at
         from public_outbox p
@@ -955,7 +978,7 @@ def build_public_outbox_query(filters: dict[str, Any]) -> QueryBuilder:
         (
             "translation_search.search_text",
             "e.title",
-            "e.summary_zh",
+            "coalesce((select string_agg(et.summary, ' ') from event_translations et where et.event_id = e.id), '')",
             "p.topic_tags::text",
         ),
         "q",

@@ -7,6 +7,7 @@ import { ErrorPanel } from "../components/DataState";
 import { formatTime, Score } from "../components/Format";
 import { PageHeader } from "../components/Layout";
 import { rawItemDisplaySummary, rawItemFullTranslations, rawItemSummary } from "../utils/rawItemTranslations";
+import { eventSummary } from "../utils/eventTranslations";
 
 export function EventDetail() {
   const { i18n, t } = useTranslation();
@@ -19,7 +20,7 @@ export function EventDetail() {
 
   return (
     <>
-      <PageHeader title={event.title || event.event_type} description={event.summary_zh} />
+      <PageHeader title={event.title || event.event_type} description={eventSummary(event.translations, i18n.language)} />
       <div className="mb-4 grid gap-3 md:grid-cols-5">
         <div className="rounded border border-base-300 bg-base-100 p-3"><div className="text-xs text-base-content/50">{t("eventDetail.meta.severity")}</div><SeverityBadge value={event.severity} /></div>
         <div className="rounded border border-base-300 bg-base-100 p-3"><div className="text-xs text-base-content/50">{t("eventDetail.meta.relevance")}</div><Score value={event.relevance_score} /></div>

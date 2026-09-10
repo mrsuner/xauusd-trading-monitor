@@ -316,7 +316,7 @@ def build_public_outbox_draft(
     zh_title = public_outbox_title(event)
     zh_summary = build_public_outbox_summary(event)
     en_title = public_outbox_title_en(event)
-    en_summary = event.summary_en or event.raw_item.summary_en
+    en_summary = event.summary_for("en") or event.raw_item.summary_en
     return PublicOutboxDraft(
         event_id=event.id,
         translations=public_outbox_translations(

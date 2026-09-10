@@ -29,8 +29,8 @@ def source_label(event: EventContext) -> str:
 
 def event_summary(event: EventContext) -> str:
     return (
-        event.summary_zh
-        or event.summary_en
+        event.summary_for("zh-Hant")
+        or event.summary_for("en")
         or event.raw_item.summary_zh
         or event.raw_item.summary_en
         or event.raw_item.text_clean
@@ -83,4 +83,9 @@ def build_pushover_message(event: EventContext) -> str:
 
 
 def build_public_outbox_summary(event: EventContext) -> str | None:
-    return event.summary_zh or event.raw_item.summary_zh or event.summary_en or event.raw_item.summary_en
+    return (
+        event.summary_for("zh-Hant")
+        or event.raw_item.summary_zh
+        or event.summary_for("en")
+        or event.raw_item.summary_en
+    )

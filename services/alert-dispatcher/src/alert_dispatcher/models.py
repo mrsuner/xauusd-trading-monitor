@@ -42,6 +42,11 @@ class EventClaimContext(BaseModel):
     confidence: int | None = None
 
 
+class EventTranslationContext(BaseModel):
+    language: str
+    summary: str
+
+
 class EventContext(BaseModel):
     id: UUID
     event_time: datetime | None = None
@@ -53,8 +58,7 @@ class EventContext(BaseModel):
     confidence: int | None = None
     confirmation_state: str
     title: str | None = None
-    summary_zh: str
-    summary_en: str | None = None
+    translations: list[EventTranslationContext] = Field(default_factory=list)
     market_relevance: str | None = None
     xauusd_impact_channel: list[str] = Field(default_factory=list)
     requires_confirmation: bool
@@ -62,6 +66,9 @@ class EventContext(BaseModel):
     source: SourceContext = Field(default_factory=SourceContext)
     raw_item: RawItemContext = Field(default_factory=RawItemContext)
     claims: list[EventClaimContext] = Field(default_factory=list)
+
+    def summary_for(self, language: str) -> str | None:
+        return next((item.summary for item in self.translations if item.language == language), None)
 
 
 class AlertDecision(BaseModel):

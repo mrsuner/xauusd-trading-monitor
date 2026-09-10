@@ -142,6 +142,11 @@ export type RawItemTranslation = {
   updated_at?: string | null;
 };
 
+export type EventTranslation = {
+  language: string;
+  summary: string;
+};
+
 export type RawItem = {
   id: string;
   source_id: string;
@@ -296,7 +301,7 @@ export type EventItem = {
   confidence?: number | null;
   confirmation_state: string;
   title?: string | null;
-  summary_zh: string;
+  translations: EventTranslation[];
   market_relevance?: string | null;
   xauusd_impact_channel: string[];
   requires_confirmation: boolean;
@@ -387,7 +392,7 @@ export type PublicOutboxItem = {
   created_at: string;
   updated_at: string;
   event_title?: string | null;
-  event_summary_zh?: string | null;
+  event_translations?: EventTranslation[];
   event_type?: string | null;
   event_detected_at?: string | null;
 };

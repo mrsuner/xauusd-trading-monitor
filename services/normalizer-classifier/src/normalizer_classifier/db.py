@@ -455,7 +455,9 @@ class Database:
 
         async with self.cursor() as cur:
             if result.is_relevant and result.relevance_score >= relevance_threshold_event:
-                event_id = await self._insert_event(cur, task, normalized, model_response)
+                event_id, inserted = await self._insert_event(cur, task, normalized, model_response)
+                if inserted:
+                    await self._insert_event_translations(cur, event_id, result)
                 if result.claim_text:
                     await self._insert_event_claim(cur, event_id, task, model_response)
 
@@ -800,7 +802,7 @@ class Database:
         task: ProcessingTask,
         normalized: NormalizedItem,
         model_response: ModelResponse,
-    ) -> Any:
+    ) -> tuple[Any, bool]:
         result = model_response.result
         event_dedupe_key = f"raw-item:{task.raw_item.dedupe_key}"
         severity = severity_for(result.relevance_score, task.source)
@@ -819,8 +821,6 @@ class Database:
               confidence,
               confirmation_state,
               title,
-              summary_zh,
-              summary_en,
               market_relevance,
               xauusd_impact_channel,
               requires_confirmation,
@@ -844,8 +844,6 @@ class Database:
               %(confidence)s,
               %(confirmation_state)s,
               %(title)s,
-              %(summary_zh)s,
-              %(summary_en)s,
               %(market_relevance)s,
               %(xauusd_impact_channel)s,
               %(requires_confirmation)s,
@@ -858,7 +856,7 @@ class Database:
             )
             on conflict (dedupe_key) where dedupe_key is not null
             do update set updated_at = now()
-            returning id
+            returning id, (xmax = 0) as inserted
             """,
             {
                 "event_time": task.raw_item.published_at or task.raw_item.ingested_at,
@@ -873,8 +871,6 @@ class Database:
                 "confidence": result.confidence,
                 "confirmation_state": "unconfirmed",
                 "title": task.raw_item.title,
-                "summary_zh": result.summary_zh,
-                "summary_en": result.summary_en,
                 "market_relevance": result.market_relevance,
                 "xauusd_impact_channel": result.xauusd_impact_channel,
                 "requires_confirmation": result.requires_confirmation,
@@ -887,7 +883,29 @@ class Database:
             },
         )
         row = await cur.fetchone()
-        return row["id"]
+        return row["id"], bool(row["inserted"])
+
+    async def _insert_event_translations(
+        self,
+        cur: psycopg.AsyncCursor[Any],
+        event_id: Any,
+        result: ClassificationResult,
+    ) -> None:
+        rows = [
+            {"event_id": event_id, "language": item.language, "summary": item.summary}
+            for item in result.summaries
+            if item.summary.strip()
+        ]
+        if not rows:
+            return
+        await cur.executemany(
+            """
+            insert into event_translations (event_id, language, summary)
+            values (%(event_id)s, %(language)s, %(summary)s)
+            on conflict (event_id, language) do nothing
+            """,
+            rows,
+        )
 
     async def _insert_event_claim(
         self,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from alert_dispatcher.models import AlertChannelStats, AlertPolicyRuntime, EventContext, SourceContext
+from alert_dispatcher.models import AlertChannelStats, AlertPolicyRuntime, EventContext, EventTranslationContext, SourceContext
 from alert_dispatcher.policy import notification_decisions
 
 
@@ -28,7 +28,7 @@ def make_event(
         relevance_score=relevance_score,
         confidence=80,
         confirmation_state="unconfirmed",
-        summary_zh="測試事件摘要。",
+        translations=[EventTranslationContext(language="zh-Hant", summary="測試事件摘要。")],
         requires_confirmation=requires_confirmation,
         source_group=source_group,
         source=SourceContext(

@@ -6,6 +6,7 @@ from uuid import uuid4
 from event_router.models import (
     AlertChannelStats,
     EventContext,
+    EventTranslationContext,
     RawItemContext,
     RawItemTranslationContext,
     RoutePolicyRuntime,
@@ -47,8 +48,10 @@ def make_event(
         confidence=80,
         confirmation_state=confirmation_state,
         title=title,
-        summary_zh="測試事件摘要。",
-        summary_en=summary_en,
+        translations=[
+            EventTranslationContext(language="zh-Hant", summary="測試事件摘要。"),
+            *([EventTranslationContext(language="en", summary=summary_en)] if summary_en else []),
+        ],
         requires_confirmation=requires_confirmation,
         source_group=source_group,
         source=SourceContext(
@@ -214,8 +217,7 @@ def test_public_outbox_uses_configured_additional_translation_languages() -> Non
 
 def test_public_outbox_summary_falls_back_to_raw_item_translation_summary() -> None:
     event = make_event(severity="A", relevance_score=90)
-    event.summary_zh = ""
-    event.summary_en = None
+    event.translations = []
     event.raw_item.summary_zh = "Raw item translation summary."
 
     results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))

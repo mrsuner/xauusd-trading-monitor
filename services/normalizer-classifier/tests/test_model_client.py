@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import httpx
+import pytest
+from pydantic import ValidationError
 
 from normalizer_classifier.model_client import (
     OpenAIStyleModelClient,
@@ -13,7 +15,7 @@ from normalizer_classifier.model_client import (
     build_translation_model_clients,
     auxiliary_text_json_schema_response_format,
 )
-from normalizer_classifier.models import AuxiliaryTextResult, NormalizedItem, RawItem, SourceMetadata
+from normalizer_classifier.models import AuxiliaryTextResult, ClassificationResult, NormalizedItem, RawItem, SourceMetadata
 from normalizer_classifier.settings import Settings
 
 
@@ -62,8 +64,10 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
             "source_stance": "us_trump",
             "claim_direction": "confirm",
             "claim_text": "Trump says Iran deal is close.",
-            "summary_zh": "Trump 表示伊朗協議接近完成。",
-            "summary_en": "Trump says an Iran deal is close.",
+            "summaries": [
+                {"language": "zh-Hant", "summary": "Trump 表示伊朗協議接近完成。"},
+                {"language": "en", "summary": "Trump says an Iran deal is close."},
+            ],
             "actors": ["Trump", "Iran"],
             "xauusd_impact_channel": ["safe_haven"],
             "requires_confirmation": True,
@@ -96,6 +100,7 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
     assert response.model == "test-model"
     assert response.result.is_relevant is True
     assert response.result.relevance_score == 82
+    assert response.result.summaries[0].language == "zh-Hant"
 
 
 async def test_openai_style_model_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
@@ -106,7 +111,7 @@ async def test_openai_style_model_client_logs_api_request_and_response(monkeypat
             "relevance_score": 82,
             "event_type": "IRAN_NUCLEAR",
             "claim_direction": "confirm",
-            "summary_zh": "Trump 表示伊朗協議接近完成。",
+            "summaries": [{"language": "zh-Hant", "summary": "Trump 表示伊朗協議接近完成。"}],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -148,7 +153,7 @@ async def test_openai_style_model_client_can_omit_json_response_format(monkeypat
             "relevance_score": 10,
             "event_type": "UNKNOWN",
             "claim_direction": "unknown",
-            "summary_zh": "低相關消息。",
+            "summaries": [{"language": "zh-Hant", "summary": "低相關消息。"}],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -186,8 +191,7 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
             "source_stance": None,
             "claim_direction": "neutral",
             "claim_text": None,
-            "summary_zh": "Fed 相關消息。",
-            "summary_en": None,
+            "summaries": [{"language": "zh-Hant", "summary": "Fed 相關消息。"}],
             "actors": ["Fed"],
             "xauusd_impact_channel": ["real_rate"],
             "requires_confirmation": True,
@@ -231,7 +235,7 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
             "relevance_score": 20,
             "event_type": "UNKNOWN",
             "claim_direction": "unknown",
-            "summary_zh": "測試。",
+            "summaries": [{"language": "zh-Hant", "summary": "測試。"}],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -509,3 +513,28 @@ def test_build_translation_model_clients_use_free_then_paid_fallback() -> None:
     assert [client.provider for client in clients] == ["translation_primary", "translation_paid_fallback"]
     assert [client.model for client in clients] == ["openai/gpt-oss-20b:free", "openai/gpt-oss-20b"]
     assert [client.translation_output_languages for client in clients] == [("zh-Hant", "en", "ja")] * 2
+
+
+def test_classification_summaries_require_unique_supported_zh_hant() -> None:
+    base = {
+        "is_relevant": True,
+        "relevance_score": 80,
+        "event_type": "TEST",
+    }
+
+    with pytest.raises(ValidationError, match="zh-Hant event summary is required"):
+        ClassificationResult.model_validate({**base, "summaries": [{"language": "en", "summary": "English"}]})
+
+    with pytest.raises(ValidationError, match="event summary languages must be unique"):
+        ClassificationResult.model_validate(
+            {
+                **base,
+                "summaries": [
+                    {"language": "zh-Hant", "summary": "摘要一"},
+                    {"language": "zh-Hant", "summary": "摘要二"},
+                ],
+            }
+        )
+
+    with pytest.raises(ValidationError, match="unsupported event summary language"):
+        ClassificationResult.model_validate({**base, "summaries": [{"language": "ja", "summary": "要約"}]})

@@ -599,15 +599,16 @@ def system_prompt() -> str:
         "position sizing, buy, sell, long, short, bullish, or bearish recommendations. "
         "Do not predict market direction. "
         "Do not describe the event as a gold catalyst or imply whether gold should rise or fall. "
-        "Use Traditional Chinese for summary_zh. "
-        "summary_zh must be concise, no more than 280 Chinese characters, and must not copy the full source text. "
-        "summary_en must be concise, no more than 400 English characters, and must not copy the full source text. "
+        "Return event summaries in a summaries array using BCP 47 language keys. "
+        "Include exactly one zh-Hant summary and optionally one en summary. "
+        "The zh-Hant summary must be concise, no more than 280 Chinese characters, and must not copy the full source text. "
+        "The en summary must be concise, no more than 400 English characters, and must not copy the full source text. "
         "Decide whether the item is relevant to gold through safe_haven, real_rate, inflation, dollar, "
         "liquidity, oil, sanctions, geopolitics, or Fed expectations. "
         "The JSON schema is: "
         '{"is_relevant": boolean, "relevance_score": 0-100, "event_type": string, '
         '"source_stance": string|null, "claim_direction": "confirm|deny|warn|escalate|deescalate|neutral|unknown", '
-        '"claim_text": string|null, "summary_zh": string, "summary_en": string|null, "actors": string[], '
+        '"claim_text": string|null, "summaries": [{"language": "zh-Hant|en", "summary": string}], "actors": string[], '
         '"xauusd_impact_channel": string[], "requires_confirmation": boolean, "confidence": 0-100|null, '
         '"reason": string|null, "region": string|null, "primary_actor": string|null, '
         '"secondary_actor": string|null, "market_relevance": string|null}.'
@@ -679,8 +680,20 @@ def classification_json_schema_response_format() -> dict[str, Any]:
                         "enum": ["confirm", "deny", "warn", "escalate", "deescalate", "neutral", "unknown"],
                     },
                     "claim_text": {"type": ["string", "null"]},
-                    "summary_zh": {"type": "string", "maxLength": 280},
-                    "summary_en": {"type": ["string", "null"], "maxLength": 400},
+                    "summaries": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 2,
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "language": {"type": "string", "enum": ["zh-Hant", "en"]},
+                                "summary": {"type": "string", "maxLength": 400},
+                            },
+                            "required": ["language", "summary"],
+                        },
+                    },
                     "actors": {"type": "array", "items": {"type": "string"}},
                     "xauusd_impact_channel": {"type": "array", "items": {"type": "string"}},
                     "requires_confirmation": {"type": "boolean"},
@@ -698,8 +711,7 @@ def classification_json_schema_response_format() -> dict[str, Any]:
                     "source_stance",
                     "claim_direction",
                     "claim_text",
-                    "summary_zh",
-                    "summary_en",
+                    "summaries",
                     "actors",
                     "xauusd_impact_channel",
                     "requires_confirmation",

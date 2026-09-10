@@ -20,6 +20,8 @@ def test_event_context_query_reads_raw_item_translation_summaries_without_legacy
     assert "tr_en.summary as raw_item_summary_en" in sql
     assert "r.summary_zh" not in sql
     assert "r.summary_en" not in sql
+    assert "from event_translations et" in sql
+    assert "as event_translations" in sql
     assert (
         "left join raw_item_translations tr_zh on tr_zh.raw_item_id = r.id "
         "and tr_zh.language = 'zh-Hant'"
@@ -37,8 +39,9 @@ def test_public_outbox_translation_enrichment_is_idempotent_and_web_only() -> No
     sql = _compact(public_outbox_translation_enrichment_sql())
 
     assert "on conflict (public_outbox_id, language) do update" in sql
-    assert "public_outbox_translations.summary is distinct from excluded.summary" in sql
-    assert "where public_outbox_translations.title is null" in sql
+    assert "nullif(btrim(public_outbox_translations.summary), '') is not null" in sql
+    assert "then public_outbox_translations.summary else excluded.summary" in sql
+    assert "status = public_outbox_translations.status" in sql
     assert "returning public_outbox_id" in sql
     assert "publish_status_web = 'pending'" in sql
     assert "retry_count_web = 0" in sql

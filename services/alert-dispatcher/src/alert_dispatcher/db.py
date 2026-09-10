@@ -10,7 +10,16 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .models import AlertChannelStats, AlertDecision, AlertDelivery, EventClaimContext, EventContext, RawItemContext, SourceContext
+from .models import (
+    AlertChannelStats,
+    AlertDecision,
+    AlertDelivery,
+    EventClaimContext,
+    EventContext,
+    EventTranslationContext,
+    RawItemContext,
+    SourceContext,
+)
 from .raw_item_translation_sql import raw_item_translation_join_sql, raw_item_translation_summary_select_sql
 from .security import sanitize_provider_response, sanitize_text
 
@@ -21,6 +30,7 @@ def _event_context_query() -> str:
     return f"""
                 select
                   e.*,
+                  coalesce(event_translation_rows.items, '[]'::jsonb) as event_translations,
                   s.id as source_context_id,
                   s.name as source_name,
                   s.handle_or_url,
@@ -44,6 +54,14 @@ def _event_context_query() -> str:
                   r.text_raw as raw_item_text_raw
                 from events e
                 left join sources s on s.id = e.source_id
+                left join lateral (
+                  select jsonb_agg(
+                    jsonb_build_object('language', et.language, 'summary', et.summary)
+                    order by case et.language when 'zh-Hant' then 0 when 'en' then 1 else 2 end, et.language
+                  ) as items
+                  from event_translations et
+                  where et.event_id = e.id
+                ) event_translation_rows on true
                 left join lateral (
                   select raw.*
                   from raw_items raw
@@ -181,8 +199,10 @@ class Database:
             confidence=row["confidence"],
             confirmation_state=row["confirmation_state"],
             title=row["title"],
-            summary_zh=row["summary_zh"],
-            summary_en=row["summary_en"],
+            translations=[
+                EventTranslationContext.model_validate(translation)
+                for translation in row["event_translations"]
+            ],
             market_relevance=row["market_relevance"],
             xauusd_impact_channel=row["xauusd_impact_channel"] or [],
             requires_confirmation=row["requires_confirmation"],

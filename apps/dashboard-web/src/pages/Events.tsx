@@ -7,9 +7,10 @@ import { SeverityBadge, OfficialBadge, PriorityBadge } from "../components/Badge
 import { EmptyRow, ErrorPanel, LoadingRows } from "../components/DataState";
 import { formatTime, Score, Truncate } from "../components/Format";
 import { PageHeader } from "../components/Layout";
+import { eventSummary } from "../utils/eventTranslations";
 
 export function Events() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [severity, setSeverity] = useState("");
   const query = useQuery({
     queryKey: ["events", severity],
@@ -46,16 +47,18 @@ export function Events() {
           <tbody>
             {query.isLoading ? <LoadingRows columns={7} /> : null}
             {query.data?.items.length === 0 ? <EmptyRow columns={7}>{t("events.empty")}</EmptyRow> : null}
-            {query.data?.items.map((event) => (
+            {query.data?.items.map((event) => {
+              const summary = eventSummary(event.translations, i18n.language);
+              return (
               <tr key={event.id}>
                 <td>{formatTime(event.detected_at)}</td>
                 <td><SeverityBadge value={event.severity} /></td>
                 <td><Truncate text={event.event_type} /></td>
                 <td>
                   <Link className="link link-primary font-medium" to={`/events/${event.id}`}>
-                    <Truncate text={event.title || event.summary_zh} />
+                    <Truncate text={event.title || summary} />
                   </Link>
-                  <Truncate className="text-xs text-base-content/55" text={event.summary_zh} />
+                  <Truncate className="text-xs text-base-content/55" text={summary} />
                 </td>
                 <td>
                   <Truncate text={event.source_name || event.source_group} />
@@ -64,7 +67,8 @@ export function Events() {
                 <td><Score value={event.relevance_score} /></td>
                 <td><Score value={event.confidence} /></td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

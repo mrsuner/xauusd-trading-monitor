@@ -121,12 +121,12 @@ class Database:
                 """
                 insert into events (
                     event_time, event_type, source_id, source_group, severity,
-                    relevance_score, confirmation_state, title, summary_zh,
+                    relevance_score, confirmation_state, title,
                     requires_confirmation, raw_item_ids
                 ) values (
                     %(event_time)s, %(event_type)s, %(source_id)s, 'market_anomaly',
                     %(severity)s, %(relevance_score)s, 'confirmed', %(title)s,
-                    %(summary_zh)s, false, '{}'::uuid[]
+                    false, '{}'::uuid[]
                 )
                 returning id
                 """,
@@ -137,11 +137,18 @@ class Database:
                     "severity": mapped.severity,
                     "relevance_score": mapped.relevance_score,
                     "title": mapped.title_zh,
-                    "summary_zh": mapped.summary_zh,
                 },
             )
             event_row = await cur.fetchone()
             event_uuid = event_row["id"]
+
+            await cur.execute(
+                """
+                insert into event_translations (event_id, language, summary)
+                values (%(event_id)s, 'zh-Hant', %(summary)s)
+                """,
+                {"event_id": event_uuid, "summary": mapped.summary_zh},
+            )
 
             # 2) claim the anomaly via the tickbase_id PK; a conflict means we have
             #    already processed it, so roll back (discarding the event above).

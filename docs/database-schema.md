@@ -660,7 +660,7 @@ create table events (
   confidence smallint,
   confirmation_state text not null default 'unconfirmed',
   title text,
-  summary_zh text not null,
+  summary_zh text, -- legacy cutover field; no longer written after migration 0023
   summary_en text,
   market_relevance text,
   xauusd_impact_channel text[] not null default '{}',
@@ -686,6 +686,23 @@ create table events (
   constraint events_confirmation_state_check check (
     confirmation_state in ('unconfirmed', 'partially_confirmed', 'confirmed', 'contradicted')
   )
+);
+```
+
+Event summaries are owned by language rows after migration `0022`; the two legacy
+columns remain nullable only for the bounded R4 observation and rollback window.
+They are removed by a later migration after the accepted observation gate.
+
+```sql
+create table event_translations (
+  event_id uuid not null references events(id) on delete cascade,
+  language text not null,
+  summary text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (event_id, language),
+  check (btrim(language) <> ''),
+  check (btrim(summary) <> '')
 );
 ```
 

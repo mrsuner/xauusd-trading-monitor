@@ -8,6 +8,7 @@ import { SeverityBadge, StatusBadge } from "../components/Badges";
 import { EmptyRow, ErrorPanel, LoadingRows } from "../components/DataState";
 import { formatTime, Score, Truncate } from "../components/Format";
 import { PageHeader } from "../components/Layout";
+import { eventSummary } from "../utils/eventTranslations";
 
 type ChannelKey = "web" | "telegram" | "x";
 
@@ -40,7 +41,7 @@ function titleFor(item: PublicOutboxItem, language?: string | null) {
 
 function summaryFor(item: PublicOutboxItem, language?: string | null) {
   const translation = translationFor(item, language);
-  return translation?.summary || item.event_summary_zh;
+  return translation?.summary || eventSummary(item.event_translations, language);
 }
 
 function channelState(item: PublicOutboxItem, channel: ChannelKey) {
