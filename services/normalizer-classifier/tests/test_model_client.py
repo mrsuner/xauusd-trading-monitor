@@ -10,6 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from normalizer_classifier.model_client import (
+    ModelClientError,
     OpenAIStyleModelClient,
     build_auxiliary_model_client,
     build_translation_model_clients,
@@ -74,6 +75,8 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
             ],
             "content_category": "diplomacy",
             "topic_tags": ["iran", "nuclear"],
+            "primary_domain": "geopolitics",
+            "relevant_domains": ["geopolitics"],
             "actors": ["Trump", "Iran"],
             "xauusd_impact_channel": ["safe_haven"],
             "requires_confirmation": True,
@@ -108,6 +111,7 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
             categories=[CategoryOption(key="diplomacy", label_en="Diplomacy")],
             tags=[TagOption(key="iran", label="Iran")],
         ),
+        enabled_domain_keys=["geopolitics"],
     )
 
     assert response.provider == "cloud_small"
@@ -119,6 +123,48 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
     assert response.result.topic_tags == ["iran", "nuclear"]
 
 
+async def test_openai_style_model_client_rejects_unknown_domain(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        content = {
+            "is_relevant": True,
+            "relevance_score": 80,
+            "event_type": "UNKNOWN",
+            "claim_direction": "unknown",
+            "summaries": [
+                {"language": "zh-Hant", "summary": "相關消息。"},
+                {"language": "en", "summary": "Relevant item."},
+            ],
+            "primary_domain": "invented",
+            "relevant_domains": ["invented"],
+            "requires_confirmation": True,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="cloud_small",
+        base_url="https://api.example.test/v1/",
+        api_key="test-key",
+        model="test-model",
+        timeout_seconds=5,
+        response_format="json_object",
+    )
+
+    with pytest.raises(ModelClientError, match="disabled or unknown domain"):
+        await client.classify(
+            raw_item,
+            source,
+            normalized,
+            enabled_domain_keys=["geopolitics"],
+        )
+
+
 async def test_openai_style_model_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert headers["Authorization"] == "Bearer test-key"
@@ -128,6 +174,8 @@ async def test_openai_style_model_client_logs_api_request_and_response(monkeypat
             "event_type": "IRAN_NUCLEAR",
             "claim_direction": "confirm",
             "summaries": [{"language": "zh-Hant", "summary": "Trump 表示伊朗協議接近完成。"}],
+            "primary_domain": "geopolitics",
+            "relevant_domains": ["geopolitics"],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -170,6 +218,8 @@ async def test_openai_style_model_client_can_omit_json_response_format(monkeypat
             "event_type": "UNKNOWN",
             "claim_direction": "unknown",
             "summaries": [{"language": "zh-Hant", "summary": "低相關消息。"}],
+            "primary_domain": None,
+            "relevant_domains": [],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -208,6 +258,8 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
             "claim_direction": "neutral",
             "claim_text": None,
             "summaries": [{"language": "zh-Hant", "summary": "Fed 相關消息。"}],
+            "primary_domain": "monetary",
+            "relevant_domains": ["monetary"],
             "actors": ["Fed"],
             "xauusd_impact_channel": ["real_rate"],
             "requires_confirmation": True,
@@ -252,6 +304,8 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
             "event_type": "UNKNOWN",
             "claim_direction": "unknown",
             "summaries": [{"language": "zh-Hant", "summary": "測試。"}],
+            "primary_domain": None,
+            "relevant_domains": [],
             "requires_confirmation": True,
         }
         return httpx.Response(

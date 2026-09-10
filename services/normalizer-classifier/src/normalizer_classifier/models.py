@@ -100,6 +100,9 @@ class NormalizedItem(BaseModel):
     matched_keywords: list[str] = Field(default_factory=list)
     prefilter_passed: bool
     filter_reason: str | None = None
+    matched_domains: list[str] = Field(default_factory=list)
+    selected_domains: list[str] = Field(default_factory=list)
+    routing_config_version: str | None = None
 
 
 class EventSummary(BaseModel):
@@ -126,6 +129,8 @@ class ClassificationResult(BaseModel):
     summaries: list[EventSummary]
     content_category: str | None = None
     topic_tags: list[str] = Field(default_factory=list)
+    primary_domain: str | None = None
+    relevant_domains: list[str] = Field(default_factory=list)
     actors: list[str] = Field(default_factory=list)
     xauusd_impact_channel: list[str] = Field(default_factory=list)
     requires_confirmation: bool = True
@@ -143,6 +148,12 @@ class ClassificationResult(BaseModel):
             raise ValueError("event summary languages must be unique")
         if "zh-Hant" not in languages:
             raise ValueError("zh-Hant event summary is required")
+        if self.is_relevant and (
+            not self.primary_domain or self.primary_domain not in self.relevant_domains
+        ):
+            raise ValueError("relevant results require primary_domain in relevant_domains")
+        if not self.is_relevant and self.primary_domain is not None:
+            raise ValueError("irrelevant results require a null primary_domain")
         return self
 
     @field_validator("claim_direction")

@@ -25,6 +25,7 @@ from .models import (
     SourceMetadata,
 )
 from .normalization import severity_for
+from .routing import DomainKeyword, DomainOption, RoutingContext
 from .taxonomy import CategoryOption, TagOption, TaxonomyContext, normalize_actors, normalize_category, normalize_topic_tags
 
 logger = logging.getLogger(__name__)
@@ -385,6 +386,86 @@ class Database:
             ],
         )
 
+    async def get_routing_context(self, *, source_id: Any) -> RoutingContext:
+        async with self.cursor() as cur:
+            await cur.execute(
+                """
+                select
+                  d.key,
+                  d.score_threshold,
+                  d.sort_order,
+                  coalesce(sd.prior_weight, 0) as prior_weight,
+                  pm.body as prompt_body
+                from domains d
+                left join source_domains sd
+                  on sd.domain_id = d.id and sd.source_id = %(source_id)s
+                left join lateral (
+                  select body
+                  from prompt_modules
+                  where domain_id = d.id and role = 'domain' and is_active = true
+                  order by version desc
+                  limit 1
+                ) pm on true
+                where d.enabled = true
+                order by d.sort_order, d.key
+                """,
+                {"source_id": source_id},
+            )
+            domain_rows = await cur.fetchall()
+            await cur.execute(
+                """
+                select d.key as domain_key, k.group_key, k.term, k.weight, k.match_type
+                from domain_keywords k
+                join domains d on d.id = k.domain_id
+                where d.enabled = true and k.enabled = true
+                order by d.sort_order, d.key, k.group_key, k.term
+                """
+            )
+            keyword_rows = await cur.fetchall()
+
+        keywords_by_domain: dict[str, list[DomainKeyword]] = {}
+        for row in keyword_rows:
+            keywords_by_domain.setdefault(row["domain_key"], []).append(
+                DomainKeyword(
+                    group_key=row["group_key"],
+                    term=row["term"],
+                    weight=row["weight"],
+                    match_type=row["match_type"],
+                )
+            )
+        domains: list[DomainOption] = []
+        for row in domain_rows:
+            prompt_body = str(row["prompt_body"] or "").strip()
+            keywords = tuple(keywords_by_domain.get(row["key"], []))
+            if not prompt_body or not keywords:
+                raise ValueError(f"incomplete routing configuration for domain {row['key']}")
+            domains.append(
+                DomainOption(
+                    key=row["key"],
+                    threshold=row["score_threshold"],
+                    sort_order=row["sort_order"],
+                    prompt_body=prompt_body,
+                    keywords=keywords,
+                    prior_weight=row["prior_weight"],
+                )
+            )
+        if not domains:
+            raise ValueError("routing configuration has no enabled domains")
+        context = RoutingContext(domains=tuple(domains), top_k=2)
+        async with self.cursor() as cur:
+            await cur.execute(
+                """
+                insert into routing_config_snapshots (config_version, snapshot_json)
+                values (%(config_version)s, %(snapshot_json)s)
+                on conflict (config_version) do nothing
+                """,
+                {
+                    "config_version": context.config_version,
+                    "snapshot_json": Jsonb(context.snapshot_payload),
+                },
+            )
+        return context
+
     async def update_normalized_item(self, *, raw_item_id: Any, normalized: NormalizedItem) -> None:
         async with self.cursor() as cur:
             await cur.execute(
@@ -392,6 +473,8 @@ class Database:
                 update raw_items
                 set text_clean = %(text_clean)s,
                     language = %(language)s,
+                    matched_domains = %(matched_domains)s,
+                    routing_config_version = %(routing_config_version)s,
                     updated_at = now()
                 where id = %(raw_item_id)s
                 """,
@@ -399,10 +482,17 @@ class Database:
                     "raw_item_id": raw_item_id,
                     "text_clean": normalized.text_clean,
                     "language": normalized.language,
+                    "matched_domains": normalized.matched_domains,
+                    "routing_config_version": normalized.routing_config_version,
                 },
             )
 
-    async def defer_for_model_budget(self, *, processing_id: Any) -> None:
+    async def defer_for_model_budget(
+        self,
+        *,
+        processing_id: Any,
+        reason: str = "model_call_budget_reached",
+    ) -> None:
         async with self.cursor() as cur:
             await cur.execute(
                 """
@@ -411,12 +501,42 @@ class Database:
                     next_retry_at = now() + interval '1 hour',
                     locked_by = null,
                     locked_at = null,
-                    error_message = 'model_call_budget_reached',
+                    error_message = %(reason)s,
                     updated_at = now()
                 where id = %(processing_id)s
                 """,
-                {"processing_id": processing_id},
+                {"processing_id": processing_id, "reason": reason},
             )
+
+    async def reserve_ai_request(
+        self,
+        *,
+        kind: str,
+        total_limit: int,
+        kind_limit: int,
+    ) -> bool:
+        if kind not in {"classification", "translation"}:
+            raise ValueError(f"unsupported AI budget kind: {kind}")
+        if total_limit == 0 and kind_limit == 0:
+            return True
+        kind_column = "classification_reserved" if kind == "classification" else "translation_reserved"
+        async with self.cursor() as cur:
+            await cur.execute(
+                f"""
+                insert into ai_daily_budgets (
+                  budget_date, total_reserved, {kind_column}
+                ) values ((now() at time zone 'UTC')::date, 1, 1)
+                on conflict (budget_date) do update
+                set total_reserved = ai_daily_budgets.total_reserved + 1,
+                    {kind_column} = ai_daily_budgets.{kind_column} + 1,
+                    updated_at = now()
+                where (%(total_limit)s = 0 or ai_daily_budgets.total_reserved < %(total_limit)s)
+                  and (%(kind_limit)s = 0 or ai_daily_budgets.{kind_column} < %(kind_limit)s)
+                returning budget_date
+                """,
+                {"total_limit": total_limit, "kind_limit": kind_limit},
+            )
+            return await cur.fetchone() is not None
 
     async def complete_skipped(self, *, processing_id: Any, normalized: NormalizedItem) -> None:
         async with self.cursor() as cur:
@@ -459,6 +579,7 @@ class Database:
                 cur,
                 raw_item_id=task.raw_item.id,
                 result=result,
+                normalized=normalized,
                 taxonomy_context=taxonomy_context,
             )
             if result.is_relevant and result.relevance_score >= relevance_threshold_event:
@@ -547,6 +668,7 @@ class Database:
         *,
         raw_item_id: Any,
         result: ClassificationResult,
+        normalized: NormalizedItem,
         taxonomy_context: TaxonomyContext,
     ) -> None:
         content_category = normalize_category(result.content_category, taxonomy_context)
@@ -558,6 +680,9 @@ class Database:
             set content_category = %(content_category)s,
                 topic_tags = %(topic_tags)s,
                 mentioned_actors = %(mentioned_actors)s,
+                matched_domains = %(matched_domains)s,
+                primary_domain = %(primary_domain)s,
+                routing_config_version = %(routing_config_version)s,
                 updated_at = now()
             where id = %(raw_item_id)s
             """,
@@ -566,6 +691,9 @@ class Database:
                 "content_category": content_category,
                 "topic_tags": Jsonb(topic_tags),
                 "mentioned_actors": Jsonb(mentioned_actors),
+                "matched_domains": normalized.matched_domains,
+                "primary_domain": result.primary_domain,
+                "routing_config_version": normalized.routing_config_version,
             },
         )
         await cur.execute(
@@ -856,6 +984,9 @@ class Database:
               model_provider,
               model_name,
               model_output_json,
+              matched_domains,
+              primary_domain,
+              routing_config_version,
               dedupe_key
             )
             values (
@@ -879,6 +1010,9 @@ class Database:
               %(model_provider)s,
               %(model_name)s,
               %(model_output_json)s,
+              %(matched_domains)s,
+              %(primary_domain)s,
+              %(routing_config_version)s,
               %(dedupe_key)s
             )
             on conflict (dedupe_key) where dedupe_key is not null
@@ -906,6 +1040,9 @@ class Database:
                 "model_provider": model_response.provider,
                 "model_name": model_response.model,
                 "model_output_json": Jsonb(result.model_dump(mode="json")),
+                "matched_domains": normalized.matched_domains,
+                "primary_domain": result.primary_domain,
+                "routing_config_version": normalized.routing_config_version,
                 "dedupe_key": event_dedupe_key,
             },
         )

@@ -133,6 +133,11 @@ V1 必要資料表：
 | `event_claims` | V1 簡化 claim 保存 |
 | `alerts` | Telegram / Pushover delivery tracking |
 | `ai_model_calls` | AI API call、token usage、model route 與成本估算 |
+| `domains` / `domain_keywords` | 受控 domain 與 grouped deterministic routing terms |
+| `source_domains` | Optional source-to-domain prior；不能單獨造成命中 |
+| `prompt_modules` | Versioned active domain lens bodies |
+| `ai_daily_budgets` | UTC 日界、跨 worker/restart 的原子 AI request reservations |
+| `routing_config_snapshots` | 以 `config_version` 保存不可變的 deterministic routing 設定快照 |
 | `source_health` | source 與 collector health |
 | `schema_migrations` | migration 版本紀錄，若不用 Alembic 可保留 |
 
@@ -370,7 +375,7 @@ Raw item 摘要與全文翻譯保存在 `raw_item_translations`，以 `(raw_item
 
 `content_category`、`topic_tags` 與 `mentioned_actors` 由 Layer 1 在翻譯摘要時同步回寫，只用於 Timeline taxonomy、filter 與搜尋。這些欄位不代表交易相關性、通知等級或事件嚴重度。
 
-`content_category` 是 controlled category key，應來自 `content_categories.key`；若模型輸出不在啟用字典內，normalizer 會回寫為 `other`。`topic_tags` 是 semi-controlled normalized tag keys，normalizer 會做 lowercase、slug normalization、alias mapping，並 upsert 到 `tags` 與 `raw_item_tags`。
+`content_category` 是 controlled category key，應來自 `content_categories.key`；若模型輸出不在啟用字典內，normalizer 會回寫為 `other`。`topic_tags` 是 semi-controlled normalized tag keys，normalizer 會做 lowercase、slug normalization、alias mapping，並 upsert 到 `tags` 與 `raw_item_tags`。`matched_domains`、`primary_domain` 與 `routing_config_version` 保存 deterministic router 與分類結果的可追溯資訊。
 
 `translation_status`：
 

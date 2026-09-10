@@ -253,6 +253,13 @@ Taxonomy 規則：
 
 Layer 2 只讀 `source` metadata、`text_clean` / `text_raw` 原文、rule prefilter 結果與受控 taxonomy context。它不讀 legacy summary 或 full translation。Classification、taxonomy 關聯、processing result 與 event 建立在同一 transaction 完成。
 
+The runtime prefilter loads enabled domains, grouped keywords, optional source priors
+and active prompt modules from PostgreSQL. A source prior cannot pass an item without
+a content match. It loads at most two score-ranked domain lenses into one classification
+request and stores all matches plus the routing configuration hash on raw items/events.
+Shared UTC daily request limits are optional until calibrated; when configured, their
+PostgreSQL reservation is required before each provider request.
+
 ## 10.1 AI Usage Tracking
 
 每次 AI API call 都應寫入 `ai_model_calls`：
@@ -470,6 +477,9 @@ TRANSLATION_SINGLE_CALL_MAX_CHARS=100000
 MAX_CLASSIFICATION_CALLS_PER_RUN=0
 MAX_TRANSLATION_CALLS_PER_RUN=0
 MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN=0
+AI_DAILY_REQUEST_LIMIT=0
+AI_DAILY_CLASSIFICATION_LIMIT=0
+AI_DAILY_TRANSLATION_LIMIT=0
 CLAUDE_CODE_AGENT_ENABLED=false
 CLAUDE_CODE_AGENT_MODEL=...
 MODEL_TIMEOUT_SECONDS=30
