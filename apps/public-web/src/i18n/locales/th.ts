@@ -9,6 +9,7 @@ export const th = {
     about: "เกี่ยวกับ",
     status: "สถานะ",
     support: "สนับสนุน",
+    notifications: "การแจ้งเตือน",
     supportCta: "สนับสนุน",
     language: "ภาษา",
     tickbaseHome: "หน้าแรก TickBase News",
@@ -26,6 +27,44 @@ export const th = {
     dataBoundary: "ขอบเขตข้อมูล",
     dataBoundaryBody:
       "เว็บไซต์นี้แสดงเฉพาะสรุปแบบ public-safe และแหล่งที่มาเท่านั้น ไม่เผยแพร่ raw item ภายใน, prompt, usage cost, session หรือสถานะการส่งส่วนตัว"
+  },
+  notifications: {
+    eyebrow: "การส่งส่วนบุคคล",
+    title: "การแจ้งเตือนข่าว",
+    body: "เลือกหัวข้อสาธารณะที่คุณติดตามและรับการแจ้งเตือนที่ตรงเงื่อนไขผ่าน Telegram การส่งส่วนบุคคลต้องมี News subscription ที่ใช้งานอยู่",
+    signInTitle: "เข้าสู่ระบบเพื่อจัดการการแจ้งเตือน",
+    signInBody: "TickBase Account จัดการ browser session ที่ใช้ร่วมกัน โปรดเข้าสู่ระบบแล้วกลับมาที่หน้านี้",
+    signIn: "เข้าสู่ระบบ TickBase",
+    loadError: "การตั้งค่าการแจ้งเตือนไม่พร้อมใช้งานชั่วคราว",
+    upgradeRequired: "คุณยังอ่านข่าวสาธารณะได้ตามปกติ การแก้ไขขอบเขตหรือเปิด Telegram ต้องมี News subscription ที่ใช้งานอยู่",
+    requestError: "ไม่สามารถดำเนินการตามคำขอได้",
+    preferencesTitle: "การตั้งค่าการส่ง",
+    preferencesBody: "category และ tag ที่เลือกใช้เงื่อนไข AND เหตุการณ์ต้องตรงกับทั้งสองกลุ่ม",
+    masterLabel: "การแจ้งเตือนส่วนบุคคล",
+    masterBody: "ปิดเพื่อหยุดจับคู่เหตุการณ์ใหม่ โดยยังเก็บตัวเลือกและการเชื่อมต่อ Telegram ไว้",
+    severity: "severity ขั้นต่ำ",
+    language: "ภาษาที่ส่ง",
+    categories: "Categories",
+    allCategories: "จับคู่ category ที่เปิดใช้งานทั้งหมด",
+    tags: "Topic tags",
+    tagsBody: "หากไม่เลือก tag ระบบจะจับคู่ tag ใดก็ได้ใน category ที่เลือก",
+    catalogError: "subscription catalog ไม่พร้อมใช้งาน ตัวเลือกเดิมยังไม่ถูกเปลี่ยน",
+    unavailableSelections: "ตัวเลือกที่บันทึกไว้แต่ไม่พร้อมใช้งาน",
+    saved: "บันทึกการตั้งค่าแล้ว",
+    saving: "กำลังบันทึก…",
+    save: "บันทึกการตั้งค่า",
+    telegramBody: "เชื่อมต่อ private Telegram chat หนึ่งรายการ ลิงก์ใช้ครั้งเดียวจะหมดอายุใน 10 นาที",
+    channelLoadError: "ไม่สามารถอ่านสถานะ Telegram ได้ชั่วคราว",
+    creatingLink: "กำลังสร้างลิงก์…",
+    linkTelegram: "เชื่อมต่อ Telegram",
+    openTelegramBody: "เปิด Telegram และเริ่ม bot จากนั้นกลับมาตรวจสอบสถานะที่หน้านี้",
+    openTelegram: "เปิด Telegram",
+    checkLink: "ตรวจสอบสถานะ",
+    linked: "เชื่อมต่อ Telegram แล้ว",
+    channelEnabled: "เปิดการส่งผ่าน Telegram",
+    channelNeedsAttention: "การส่งผ่าน Telegram ต้องได้รับการแก้ไข หากยังมีปัญหาให้เชื่อมต่อ chat ใหม่",
+    unlink: "ยกเลิกการเชื่อมต่อ Telegram",
+    unlinkConfirm: "ยกเลิกการเชื่อมต่อ Telegram และยกเลิกรายการที่รอส่งหรือไม่?"
   },
   events: {
     eyebrow: "เรดาร์เหตุการณ์สาธารณะ",
@@ -166,7 +205,7 @@ export const th = {
     eyebrow: "สนับสนุน",
     title: "ขับเคลื่อนด้วยความสมัครใจ เพื่อให้เรดาร์ทำงานต่อ",
     body:
-      "TickBase News เปิดให้ใช้ฟรีและไม่มี subscription ต่างจากแผนรายเดือนของ TickBase เว็บไซต์นี้ใช้โมเดล pay it forward หากคุณเห็นคุณค่า การสนับสนุนเล็กน้อยช่วยให้เว็บไซต์ออนไลน์ต่อเพื่อทุกคน",
+      "public feed ของ TickBase News ยังคงอ่านได้ฟรี การบริจาคโดยสมัครใจช่วยให้บริการสาธารณะทำงานต่อไป ส่วนการส่งข่าวส่วนบุคคลแบบชำระเงินจะจัดการแยกต่างหาก",
     costsTitle: "เงินสนับสนุนใช้ทำอะไร",
     costs: [
       {
@@ -186,7 +225,7 @@ export const th = {
     ctaBody:
       "บน Ko-fi คุณสามารถช่วยเติมเวลาการทำงานของเว็บไซต์ด้วยจำนวนเงินเท่าใดก็ได้ คิดเป็นนาทีหรือชั่วโมง ทุกส่วนช่วยชดเชยค่า AI เซิร์ฟเวอร์ และการดูแลระบบโดยตรง",
     ctaButton: "สนับสนุนบน Ko-fi",
-    ctaNote: "การบริจาคเป็นความสมัครใจและไม่ปลดล็อกเนื้อหาแบบ paywall ทุกอย่างที่นี่จะยังคงเป็นสาธารณะ",
+    ctaNote: "การบริจาคเป็นความสมัครใจและไม่เปิดใช้การส่งข่าวส่วนบุคคล public feed ยังคงเปิดให้ทุกคน",
     disclaimer: "การสนับสนุนช่วยให้ระบบทำงานต่อ ไม่ใช่การซื้อคำแนะนำการลงทุน เนื้อหาทั้งหมดมีไว้เพื่อข้อมูลและการวิจัยเท่านั้น"
   },
   status: {

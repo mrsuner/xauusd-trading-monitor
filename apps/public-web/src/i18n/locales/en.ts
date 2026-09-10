@@ -9,6 +9,7 @@ export const en = {
     about: "About",
     status: "Status",
     support: "Support",
+    notifications: "Notifications",
     supportCta: "Support",
     language: "Language",
     tickbaseHome: "TickBase News home",
@@ -25,6 +26,44 @@ export const en = {
     dataBoundary: "Data Boundary",
     dataBoundaryBody:
       "This site only displays public-safe summaries and source attribution. Internal raw items, prompts, usage cost, sessions, and private delivery states are not published."
+  },
+  notifications: {
+    eyebrow: "Personal delivery",
+    title: "News notifications",
+    body: "Choose the public topics you follow and receive eligible alerts in Telegram. Personal delivery requires an active News subscription.",
+    signInTitle: "Sign in to manage notifications",
+    signInBody: "TickBase Account owns your shared browser session. Sign in there, then return to this page.",
+    signIn: "Sign in to TickBase",
+    loadError: "Notification settings are temporarily unavailable.",
+    upgradeRequired: "Your public news feed remains available. An active News subscription is required to change delivery scope or enable Telegram alerts.",
+    requestError: "The request could not be completed.",
+    preferencesTitle: "Delivery preferences",
+    preferencesBody: "Selected categories are combined with selected tags. A matching event must satisfy both groups.",
+    masterLabel: "Personal alerts",
+    masterBody: "Turn off to stop future matching without deleting your choices or Telegram binding.",
+    severity: "Minimum severity",
+    language: "Delivery language",
+    categories: "Categories",
+    allCategories: "Match every active category",
+    tags: "Topic tags",
+    tagsBody: "Leave tags empty to match any tag within the selected categories.",
+    catalogError: "The subscription catalog is unavailable. Existing choices have not been changed.",
+    unavailableSelections: "Unavailable saved selections",
+    saved: "Preferences saved.",
+    saving: "Saving…",
+    save: "Save preferences",
+    telegramBody: "Link one private Telegram chat. Linking creates a single-use link that expires after 10 minutes.",
+    channelLoadError: "Telegram status is temporarily unavailable.",
+    creatingLink: "Creating link…",
+    linkTelegram: "Link Telegram",
+    openTelegramBody: "Open Telegram and start the bot. Return here afterward and check the link status.",
+    openTelegram: "Open Telegram",
+    checkLink: "Check status",
+    linked: "Telegram linked",
+    channelEnabled: "Enable Telegram delivery",
+    channelNeedsAttention: "Telegram delivery needs attention. Re-link the chat if the issue continues.",
+    unlink: "Unlink Telegram",
+    unlinkConfirm: "Unlink Telegram and cancel pending deliveries?"
   },
   events: {
     eyebrow: "Public event radar",
@@ -165,7 +204,7 @@ export const en = {
     eyebrow: "Support",
     title: "Powered by goodwill — keep the radar running",
     body:
-      "TickBase News is free and has no subscription. Unlike TickBase's monthly plan, this site runs on a \"pay it forward\" model: if it creates value for you, a small donation helps keep it online for everyone.",
+      "The TickBase News public feed remains free to read. If it creates value for you, a voluntary donation helps keep the public service online; paid personal delivery is managed separately.",
     costsTitle: "Where your support goes",
     costs: [
       {
@@ -185,7 +224,7 @@ export const en = {
     ctaBody:
       "On Ko-fi you can chip in any amount to \"top up\" the site's running time, by the minute or by the hour. Every bit directly offsets AI, server, and upkeep costs.",
     ctaButton: "Support on Ko-fi",
-    ctaNote: "Donations are voluntary and do not unlock paywalled content — everything here stays public.",
+    ctaNote: "Donations are voluntary and do not activate personal delivery. The public feed remains open to everyone.",
     disclaimer: "Support keeps the lights on; it does not buy investment advice. All content remains information and research only."
   },
   status: {

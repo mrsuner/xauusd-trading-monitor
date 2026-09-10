@@ -9,6 +9,7 @@ export const zhHant = {
     about: "關於",
     status: "狀態",
     support: "支持",
+    notifications: "通知",
     supportCta: "支持",
     language: "語言",
     tickbaseHome: "TickBase News 首頁",
@@ -25,6 +26,44 @@ export const zhHant = {
     dataBoundary: "資料邊界",
     dataBoundaryBody:
       "本站只顯示 public-safe 摘要與來源歸屬，不發布內部 raw item、prompt、usage cost、session 或私人通知狀態。"
+  },
+  notifications: {
+    eyebrow: "個人投遞",
+    title: "新聞通知",
+    body: "選擇你關注的公開主題，並透過 Telegram 接收符合條件的提醒。個人投遞需要有效的 News 訂閱。",
+    signInTitle: "登入後管理通知",
+    signInBody: "TickBase Account 管理共用的瀏覽器 session。請先登入，再回到此頁。",
+    signIn: "登入 TickBase",
+    loadError: "通知設定暫時無法使用。",
+    upgradeRequired: "公開新聞仍可正常閱讀。修改投遞範圍或啟用 Telegram 提醒需要有效的 News 訂閱。",
+    requestError: "目前無法完成請求。",
+    preferencesTitle: "投遞偏好",
+    preferencesBody: "所選 category 與 tag 採交集比對；事件必須同時符合兩組條件。",
+    masterLabel: "個人提醒",
+    masterBody: "關閉後停止匹配新事件，但保留選擇與 Telegram 綁定。",
+    severity: "最低分級",
+    language: "投遞語言",
+    categories: "Categories",
+    allCategories: "比對所有啟用中的 category",
+    tags: "Topic tags",
+    tagsBody: "不選 tag 時，會比對所選 category 中的任何 tag。",
+    catalogError: "訂閱 taxonomy 暫時無法使用，既有選擇沒有變更。",
+    unavailableSelections: "已停用但仍保留的選項",
+    saved: "偏好已儲存。",
+    saving: "儲存中…",
+    save: "儲存偏好",
+    telegramBody: "綁定一個私人 Telegram chat。單次連結會在 10 分鐘後失效。",
+    channelLoadError: "Telegram 狀態暫時無法讀取。",
+    creatingLink: "建立連結中…",
+    linkTelegram: "綁定 Telegram",
+    openTelegramBody: "開啟 Telegram 並啟動 bot，完成後回到此頁檢查狀態。",
+    openTelegram: "開啟 Telegram",
+    checkLink: "檢查狀態",
+    linked: "Telegram 已綁定",
+    channelEnabled: "啟用 Telegram 投遞",
+    channelNeedsAttention: "Telegram 投遞需要處理；若問題持續，請重新綁定 chat。",
+    unlink: "解除 Telegram 綁定",
+    unlinkConfirm: "確定解除 Telegram 綁定並取消待送項目嗎？"
   },
   events: {
     eyebrow: "公開事件雷達",
@@ -162,7 +201,7 @@ export const zhHant = {
     eyebrow: "支持",
     title: "用愛發電，維持雷達運轉",
     body:
-      "TickBase News 完全免費、沒有訂閱制。不同於 TickBase 的月付模式，本站採「用愛發電」：如果它為你帶來價值，一點小額捐助就能幫助它持續為大家運轉。",
+      "TickBase News 的公開 feed 維持免費閱讀。如果它為你帶來價值，自願捐助可以協助公開服務持續運作；付費個人投遞會另外管理。",
     costsTitle: "你的支持會用在哪裡",
     costs: [
       {
@@ -182,7 +221,7 @@ export const zhHant = {
     ctaBody:
       "在 Ko-fi 你可以用任意金額為本站「續時」，以分鐘或小時計。每一份支持都直接抵銷 AI、伺服器與維護成本。",
     ctaButton: "前往 Ko-fi 支持",
-    ctaNote: "捐助完全出於自願，也不會解鎖任何付費內容——這裡的一切都維持公開。",
+    ctaNote: "捐助完全出於自願，也不會啟用個人投遞；公開 feed 仍對所有人開放。",
     disclaimer: "支持是維持站點運轉，而非購買投資建議。所有內容仍僅供資訊與研究用途。"
   },
   status: {

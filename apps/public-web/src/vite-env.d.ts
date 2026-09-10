@@ -4,6 +4,7 @@ interface ImportMetaEnv {
   readonly VITE_PUBLIC_SUPPORTED_LANGUAGES?: string;
   readonly VITE_PUBLIC_DEFAULT_LANGUAGE?: string;
   readonly VITE_PUBLIC_SUPPORT_URLS?: string;
+  readonly VITE_ACCOUNT_API_BASE_URL?: string;
 }
 
 interface Window {
@@ -13,5 +14,6 @@ interface Window {
     PUBLIC_DEFAULT_LANGUAGE?: string;
     PUBLIC_SUPPORT_URLS?: string;
     PUBLIC_GA_MEASUREMENT_ID?: string;
+    ACCOUNT_API_BASE_URL?: string;
   };
 }

@@ -13,6 +13,7 @@ import { RawItemsPage } from "./pages/RawItemsPage";
 import { StatusPage } from "./pages/StatusPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TagPage } from "./pages/TagPage";
+import { NotificationSettingsPage } from "./features/notifications/ui/NotificationSettingsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
   { path: "/about", element: <LegacyRedirect /> },
   { path: "/status", element: <LegacyRedirect /> },
   { path: "/support", element: <LegacyRedirect /> },
+  { path: "/notifications", element: <LegacyRedirect /> },
   {
     path: "/:lang",
     element: <LanguageLayout />,
@@ -46,7 +48,8 @@ const router = createBrowserRouter([
       { path: "tags/:tag", element: <TagPage /> },
       { path: "about", element: <AboutPage /> },
       { path: "status", element: <StatusPage /> },
-      { path: "support", element: <SupportPage /> }
+      { path: "support", element: <SupportPage /> },
+      { path: "notifications", element: <NotificationSettingsPage /> }
     ]
   }
 ]);

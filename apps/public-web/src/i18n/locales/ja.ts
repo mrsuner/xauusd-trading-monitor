@@ -9,6 +9,7 @@ export const ja = {
     about: "概要",
     status: "ステータス",
     support: "サポート",
+    notifications: "通知",
     supportCta: "サポート",
     language: "言語",
     tickbaseHome: "TickBase News ホーム",
@@ -26,6 +27,44 @@ export const ja = {
     dataBoundary: "データ境界",
     dataBoundaryBody:
       "このサイトは public-safe な要約と出典情報だけを表示します。内部 raw item、prompt、usage cost、session、非公開配信状態は公開しません。"
+  },
+  notifications: {
+    eyebrow: "個人配信",
+    title: "ニュース通知",
+    body: "関心のある公開トピックを選び、対象の速報を Telegram で受け取れます。個人配信には有効な News subscription が必要です。",
+    signInTitle: "ログインして通知を管理",
+    signInBody: "共通の browser session は TickBase Account が管理します。ログイン後、このページに戻ってください。",
+    signIn: "TickBase にログイン",
+    loadError: "通知設定を一時的に読み込めません。",
+    upgradeRequired: "公開ニュースは引き続き閲覧できます。配信範囲の変更や Telegram 通知の有効化には有効な News subscription が必要です。",
+    requestError: "リクエストを完了できませんでした。",
+    preferencesTitle: "配信設定",
+    preferencesBody: "選択した category と tag は AND 条件で照合されます。",
+    masterLabel: "個人通知",
+    masterBody: "オフにすると選択内容と Telegram の連携を残したまま、新しい配信を停止します。",
+    severity: "最低 severity",
+    language: "配信言語",
+    categories: "Categories",
+    allCategories: "有効な全 category を対象にする",
+    tags: "Topic tags",
+    tagsBody: "tag を選択しない場合、選択した category 内のすべての tag が対象です。",
+    catalogError: "subscription catalog を利用できません。既存の選択内容は変更されていません。",
+    unavailableSelections: "無効ですが保存されている選択",
+    saved: "設定を保存しました。",
+    saving: "保存中…",
+    save: "設定を保存",
+    telegramBody: "1つの private Telegram chat を連携します。single-use link は10分で期限切れになります。",
+    channelLoadError: "Telegram の状態を一時的に読み込めません。",
+    creatingLink: "リンク作成中…",
+    linkTelegram: "Telegram を連携",
+    openTelegramBody: "Telegram で bot を開始し、このページに戻って状態を確認してください。",
+    openTelegram: "Telegram を開く",
+    checkLink: "状態を確認",
+    linked: "Telegram 連携済み",
+    channelEnabled: "Telegram 配信を有効にする",
+    channelNeedsAttention: "Telegram 配信に問題があります。問題が続く場合は chat を再連携してください。",
+    unlink: "Telegram の連携を解除",
+    unlinkConfirm: "Telegram の連携を解除し、未送信の配信をキャンセルしますか？"
   },
   events: {
     eyebrow: "公開イベントレーダー",
@@ -166,7 +205,7 @@ export const ja = {
     eyebrow: "サポート",
     title: "善意で動くレーダーを支える",
     body:
-      "TickBase News は無料で、購読制ではありません。TickBase の月額プランとは異なり、このサイトは pay it forward モデルで運営しています。価値を感じたら、少額の寄付がサイトの継続運営を支えます。",
+      "TickBase News の公開 feed は無料で閲覧できます。任意の寄付は公開サービスの運営を支えます。有料の個人配信は別に管理されます。",
     costsTitle: "支援の使い道",
     costs: [
       {
@@ -186,7 +225,7 @@ export const ja = {
     ctaBody:
       "Ko-fi では任意の金額でサイトの稼働時間を分単位または時間単位で支援できます。すべての支援は AI、サーバー、保守費用に直接充てられます。",
     ctaButton: "Ko-fi で支援",
-    ctaNote: "寄付は任意で、有料コンテンツを解放するものではありません。ここにある内容はすべて公開のままです。",
+    ctaNote: "寄付は任意で、個人配信を有効にするものではありません。公開 feed は誰でも閲覧できます。",
     disclaimer: "支援は運営費を支えるもので、投資助言を購入するものではありません。すべての内容は情報提供と調査目的のみです。"
   },
   status: {

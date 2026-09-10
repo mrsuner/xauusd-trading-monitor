@@ -28,6 +28,7 @@ export function Layout() {
     { path: "/tags/iran", label: t.nav.tags },
     { path: "/about", label: t.nav.about },
     { path: "/status", label: t.nav.status },
+    { path: "/notifications", label: t.nav.notifications },
     { path: "/support", label: t.nav.support }
   ];
 
