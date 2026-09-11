@@ -17,7 +17,20 @@ dist
 build
 **/build
 *.tsbuildinfo
-infra/.env
+# Environment files are supplied at runtime and may contain secrets.
+.env*
+**/.env*
 infra/data
 *.session
 *.session-journal
+
+# Never bake local Laravel runtime state into production images.
+**/storage/logs/*
+!**/storage/logs/.gitignore
+**/storage/framework/cache/data/*
+!**/storage/framework/cache/data/.gitignore
+**/storage/framework/sessions/*
+!**/storage/framework/sessions/.gitignore
+**/storage/framework/views/*
+!**/storage/framework/views/.gitignore
+**/bootstrap/cache/*.php
