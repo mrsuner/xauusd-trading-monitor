@@ -23,6 +23,16 @@ def downgrade() -> None:
     op.execute(
         """
         update events e
+        set summary_en = et.summary
+        from event_translations et
+        where et.event_id = e.id
+          and et.language = 'en'
+          and e.summary_en is null
+        """
+    )
+    op.execute(
+        """
+        update events e
         set summary_zh = et.summary
         from event_translations et
         where et.event_id = e.id
