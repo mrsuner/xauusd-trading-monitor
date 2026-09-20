@@ -211,15 +211,15 @@ X V1 應採用一則短文，不做 thread。
 
 V1 可先固定最多 2 個 hashtag：優先使用事件分類，其次使用主題或主要 actor。
 
-### 8.1 Translation Boundary
+### 8.1 Translation Boundary（翻譯邊界）
 
-X copy is channel-specific. It has stricter length, URL, tone, dedupe, and policy constraints than public website/API copy.
+X 文案是 channel-specific 的。相較 public website/API copy，它有更嚴格的長度、URL、語氣、dedupe 與政策限制。
 
-P2 multilingual website/API support must not automatically replace X output with `public_outbox_translations`. V1 keeps reading legacy Chinese fields from `public_outbox`:
+P2 多語 website/API 支援不得自動以 `public_outbox_translations` 取代 X 輸出。V1 繼續讀取 `public_outbox` 的 legacy 中文欄位：
 
-- Use `public_title_zh` and `public_summary_zh`.
-- Do not fallback to `public_title_en` or `public_summary_en` for the published post.
-- Future X multilingual support should use a channel-aware table or a `surface/channel` dimension, not raw website/API translations.
+- 使用 `public_title_zh` 與 `public_summary_zh`。
+- 發佈的 post 不 fallback 到 `public_title_en` 或 `public_summary_en`。
+- 未來 X 多語支援應使用 channel-aware table 或 `surface/channel` 維度，而不是 raw website/API translations。
 
 ## 9. 長度控制
 

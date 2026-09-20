@@ -131,51 +131,51 @@ Public Website 不應直接依賴 HomeLab 的完整 `events` schema。V1 建議�
 
 V1 可以直接由 `public_outbox` 映射出 payload。後續若 public website 需要更多欄位，應新增 `schema_version`，避免破壞已部署的 VPS API。
 
-### 4.1 Raw Items Feed Contract, Planned
+### 4.1 Raw Items Feed Contract（規劃中）
 
 `public_event.v1` 只承載事件級 public summary。若公共網站需要像 HomeLab Event Radar Timeline 一樣展示「原始資料源」feed，應新增獨立 contract，而不是把 raw item 內容混入 event payload。
 
 具體實施方案：見 [Public Raw Items Feed Implementation Plan](public-raw-items-feed-implementation-plan.md)。
 
-Planned contract:
+規劃中的 contract：
 
 - `schema_version`: `public_raw_item.v1`
 - ingest endpoint: `POST /ingest/raw-items`
-- read endpoints: `GET /raw-items`, `GET /raw-items/{public_raw_item_id}`
+- read endpoints: `GET /raw-items`、`GET /raw-items/{public_raw_item_id}`
 - idempotency key: `raw_item:<raw_item_id>:v1`
-- VPS tables: `public_raw_items`, `public_raw_item_translations`; extend existing `public_ingest_requests` with raw item ingest metadata so HMAC nonce replay protection remains global.
+- VPS tables: `public_raw_items`、`public_raw_item_translations`；擴展既有 `public_ingest_requests` 加入 raw item ingest metadata，使 HMAC nonce 防重放保持全局有效。
 
-Allowed public-safe fields:
+允許同步的 public-safe 欄位：
 
-- upstream raw item id, source name/type/group, public source URL.
-- published / ingested / edited timestamps.
-- title, cleaned original content, summary, full translation.
-- translation rows by language.
-- content category, topic tags, mentioned actors.
-- source text / translation character counts and truncation flags.
+- upstream raw item id、source name/type/group、public source URL。
+- published / ingested / edited 時間戳。
+- title、清洗後原文、summary、full translation。
+- 依語言區分的 translation rows。
+- content category、topic tags、mentioned actors。
+- source text / translation 字數統計與截斷旗標。
 
-Required protections:
+必要的防護：
 
-- Keep this feed separate from `public_events` so event summary sync remains stable.
-- Scrub Telegram private channel/chat/message metadata before ingest.
-- Do not sync `raw_json`, AI prompt, AI raw response, token usage, private notification state, internal HomeLab URLs, API keys, or collector credentials.
-- Enforce payload size limits and deterministic truncation for long source text/full translations.
+- 此 feed 必須與 `public_events` 分離，確保事件摘要同步維持穩定。
+- ingest 前先 scrub Telegram 私有 channel/chat/message metadata。
+- 不得同步 `raw_json`、AI prompt、AI raw response、token usage、私人通知狀態、HomeLab 內部 URL、API key 或 collector credentials。
+- 對長原文 / 完整翻譯強制 payload size limit 與 deterministic truncation。
 
-### 4.2 Translation Compatibility Contract
+### 4.2 Translation Compatibility Contract（翻譯相容性契約）
 
-Public translations are display-only public copy. They are separate from raw UI translations and must not be used as AI Layer 2 reasoning input.
+Public translations 是僅供展示的 public copy。它們與 raw UI translations 分離，不得作為 AI Layer 2 reasoning 的輸入。
 
-Compatibility rules:
+相容性規則：
 
-- `schema_version` stays `public_event.v1` while adding optional `translations: [{ language, title, summary }]`.
-- Legacy fields `public_title_zh`, `public_summary_zh`, `public_title_en`, and `public_summary_en` remain in the payload and response for backward compatibility.
-- `idempotency_key` stays `event:<event_id>:v1`; do not switch to a v2 key without a separate canonical upstream identity/upsert plan.
-- Public read requests use `lang=<BCP-47 language-code>`.
-- Read fallback order is requested language, then English (`en`), then the first available public language.
-- Response `language` must identify the language actually used after fallback.
-- `available_languages` is derived from translation rows. Legacy fields are only a fallback/backfill source.
-- `raw_item_translations` is not synced to the public database and is not exposed through the public API.
-- `public_outbox_translations` and `public_events_translations` store public-safe copy that can differ from raw UI translations.
+- `schema_version` 維持 `public_event.v1`，同時加入 optional `translations: [{ language, title, summary }]`。
+- legacy 欄位 `public_title_zh`、`public_summary_zh`、`public_title_en` 與 `public_summary_en` 保留在 payload 與 response 中，以維持向後相容。
+- `idempotency_key` 維持 `event:<event_id>:v1`；除非另有獨立的 canonical upstream identity/upsert 計畫，否則不切換到 v2 key。
+- Public read request 使用 `lang=<BCP-47 language-code>`。
+- Read fallback 順序為 requested language，其次 English (`en`)，再來是第一個可用的 public language。
+- Response 的 `language` 必須標示 fallback 後實際使用的語言。
+- `available_languages` 由 translation rows 推導。legacy 欄位僅作為 fallback/backfill 來源。
+- `raw_item_translations` 不同步到 public database，也不透過 public API 曝露。
+- `public_outbox_translations` 與 `public_events_translations` 保存 public-safe copy，可與 raw UI translations 不同。
 
 ## 5. Public Data Boundary
 
