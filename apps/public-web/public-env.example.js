@@ -1,6 +1,7 @@
 window.__TICKBASE_NEWS_CONFIG__ = {
   PUBLIC_API_BASE_URL: "https://news-api.thetickbase.com",
   ACCOUNT_API_BASE_URL: "https://account.thetickbase.com/api/v1",
+  ACCOUNT_DASHBOARD_URL: "https://dashboard.thetickbase.com",
   PUBLIC_SUPPORTED_LANGUAGES: "en,zh-Hant,ja,th",
   PUBLIC_DEFAULT_LANGUAGE: "en",
   // Per-language support links: comma-separated "lang=url" pairs.

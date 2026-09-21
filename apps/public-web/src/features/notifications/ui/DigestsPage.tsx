@@ -1,12 +1,11 @@
 import { BookOpen, Save } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useLanguage, useLocalizedPath } from "../../../i18n";
 import { AccountApiError } from "../domain/api";
 import type { DeliveryLanguage, DigestTopic } from "../domain/models";
 import { useDigestPreferences, useDigests, useSaveDigestPreferences } from "../domain/queries";
 
-const signInUrl = "https://dashboard.thetickbase.com/login";
 const topics: Record<DigestTopic, { en: string; zh: string }> = {
   geopolitics: { en: "Geopolitics", zh: "地緣政治" },
   monetary: { en: "Monetary policy", zh: "貨幣政策" },
@@ -19,6 +18,7 @@ export function DigestsPage() {
   const chinese = uiLanguage === "zh-Hant";
   const language: DeliveryLanguage = chinese ? "zh-Hant" : "en";
   const to = useLocalizedPath();
+  const location = useLocation();
   const preferences = useDigestPreferences();
   const active = preferences.data?.access === "active";
   const digests = useDigests(language, active);
@@ -35,7 +35,7 @@ export function DigestsPage() {
 
   if (preferences.isPending) return <Shell chinese={chinese}><div className="skeleton h-48 w-full" /></Shell>;
   if (preferences.error instanceof AccountApiError && preferences.error.status === 401) {
-    return <Shell chinese={chinese}><Notice title={chinese ? "登入後閱讀摘要" : "Sign in to read digests"} body={chinese ? "請先登入 TickBase Account，再回到此頁。" : "Sign in to TickBase Account, then return to this page."}><a className="btn btn-primary mt-4" href={signInUrl}>{chinese ? "登入 TickBase" : "Sign in to TickBase"}</a></Notice></Shell>;
+    return <Shell chinese={chinese}><Notice title={chinese ? "登入後閱讀摘要" : "Sign in to read digests"} body={chinese ? "請先登入 TickBase 帳戶，再回到此頁。" : "Sign in to your TickBase account, then return to this page."}><Link className="btn btn-primary mt-4" to={to("/sign-in", `?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`)}>{chinese ? "登入 TickBase" : "Sign in to TickBase"}</Link></Notice></Shell>;
   }
   if (preferences.isError || !preferences.data) return <Shell chinese={chinese}><ErrorMessage chinese={chinese} /></Shell>;
   const canSave = active || (

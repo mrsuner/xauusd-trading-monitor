@@ -5,7 +5,8 @@ export const en = {
     latest: "Latest",
     raw: "Raw Feed",
     highImpact: "High Impact",
-    tags: "Tags",
+    explore: "Explore",
+    topics: "Topics",
     about: "About",
     status: "Status",
     support: "Support",
@@ -13,20 +14,68 @@ export const en = {
     digests: "Daily digests",
     supportCta: "Support",
     language: "Language",
+    signIn: "Sign in",
+    accountMenu: "Account menu",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
     tickbaseHome: "TickBase News home",
     toggleTheme: "Toggle theme"
   },
   footer: {
     summary: "Public event radar for market-moving macro, gold, geopolitics, energy, and policy news. Not investment advice.",
     explore: "Explore",
+    product: "Product",
     latestEvents: "Latest events",
+    highImpact: "High impact",
     rawFeed: "Raw feed",
+    topics: "Topics",
     methodology: "Methodology",
     support: "Support this site",
     apiStatus: "API status",
+    mainTickBase: "Main TickBase",
     dataBoundary: "Data Boundary",
     dataBoundaryBody:
       "This site only displays public-safe summaries and source attribution. Internal raw items, prompts, usage cost, sessions, and private delivery states are not published."
+  },
+  account: {
+    loading: "Checking account",
+    unavailable: "Account service is temporarily unavailable.",
+    retry: "Retry account",
+    newsPro: "NEWS PRO",
+    free: "FREE",
+    accountSubscription: "Account & subscription",
+    signOut: "Sign out",
+    signingOut: "Signing out...",
+    signOutError: "Could not sign out. Please try again."
+  },
+  auth: {
+    signInTitle: "Sign in",
+    signInBody: "Use your TickBase account to manage news preferences, notifications, and daily digests.",
+    registerTitle: "Create your account",
+    registerBody: "Create one TickBase account for your News preferences and delivery settings.",
+    name: "Name",
+    email: "Email",
+    password: "Password",
+    passwordConfirmation: "Confirm password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    signIn: "Sign in",
+    signingIn: "Signing in...",
+    createAccount: "Create account",
+    creatingAccount: "Creating account...",
+    noAccount: "New to TickBase?",
+    haveAccount: "Already have an account?",
+    passwordMismatch: "The password confirmation does not match.",
+    genericError: "The account request could not be completed."
+  },
+  topics: {
+    eyebrow: "Explore",
+    title: "Topics",
+    body: "Browse the public event stream by the topics currently appearing in TickBase News.",
+    loading: "Loading topics...",
+    emptyTitle: "No topics are available yet",
+    emptyBody: "Topics will appear as public events are synchronized.",
+    eventCount: (count: number) => `${count} ${count === 1 ? "event" : "events"}`
   },
   notifications: {
     eyebrow: "Personal delivery",
@@ -203,7 +252,7 @@ export const en = {
   },
   support: {
     eyebrow: "Support",
-    title: "Powered by goodwill — keep the radar running",
+    title: "Powered by goodwill. Keep the radar running",
     body:
       "The TickBase News public feed remains free to read. If it creates value for you, a voluntary donation helps keep the public service online; paid personal delivery is managed separately.",
     costsTitle: "Where your support goes",
@@ -221,7 +270,7 @@ export const en = {
         body: "Daily maintenance, new sources, and feature work that keep the event radar accurate, fast, and useful."
       }
     ],
-    ctaTitle: "Buy the radar a minute — or an hour",
+    ctaTitle: "Buy the radar a minute or an hour",
     ctaBody:
       "On Ko-fi you can chip in any amount to \"top up\" the site's running time, by the minute or by the hour. Every bit directly offsets AI, server, and upkeep costs.",
     ctaButton: "Support on Ko-fi",

@@ -1,5 +1,6 @@
 import { Bell, ExternalLink, RefreshCw, Send, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { AccountApiError } from "../domain/api";
 import type { NotificationPreferences } from "../domain/models";
 import {
@@ -11,13 +12,13 @@ import {
   useSubscriptionCatalog,
   useUnlinkTelegram
 } from "../domain/queries";
-import { useI18n, useLanguage } from "../../../i18n";
-
-const signInUrl = "https://dashboard.thetickbase.com/login";
+import { useI18n, useLanguage, useLocalizedPath } from "../../../i18n";
 
 export function NotificationSettingsPage() {
   const t = useI18n().notifications;
   const language = useLanguage();
+  const location = useLocation();
+  const to = useLocalizedPath();
   const settings = useNotificationSettings();
   const channels = useNotificationChannels(settings.isSuccess);
   const catalog = useSubscriptionCatalog();
@@ -45,7 +46,12 @@ export function NotificationSettingsPage() {
         <section className="rounded-box border border-base-300 bg-base-200 p-6 sm:p-8">
           <h2 className="text-xl font-semibold">{t.signInTitle}</h2>
           <p className="mt-2 max-w-2xl text-base-content/65">{t.signInBody}</p>
-          <a className="btn btn-primary mt-5" href={signInUrl}>{t.signIn}</a>
+          <Link
+            className="btn btn-primary mt-5"
+            to={to("/sign-in", `?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`)}
+          >
+            {t.signIn}
+          </Link>
         </section>
       </PageShell>
     );
