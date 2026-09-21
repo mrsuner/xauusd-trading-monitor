@@ -89,9 +89,14 @@ class DigestGenerationTest extends TestCase
         $this->assertSame('published', $edition->status);
         $this->assertSame(['en', 'zh-Hant'], $edition->translations->pluck('language')->sort()->values()->all());
         $this->assertNotNull($edition->published_at);
+        $this->assertSame(22, $edition->model_prompt_tokens);
+        $this->assertSame(14, $edition->model_completion_tokens);
+        $this->assertSame(['request-test'], $edition->model_request_ids);
+        $this->assertGreaterThanOrEqual(0, $edition->model_latency_ms);
         Http::assertSentCount(2);
         Http::assertSent(fn ($request): bool => $request->url() === 'https://model.test/v1/chat/completions'
-            && $request['response_format']['type'] === 'json_object');
+            && $request['response_format']['type'] === 'json_schema'
+            && $request['response_format']['json_schema']['strict'] === true);
     }
 
     public function test_generator_retries_invalid_citations_until_fixed_deadline(): void
@@ -106,6 +111,56 @@ class DigestGenerationTest extends TestCase
         $this->assertSame('frozen', $edition->status);
         $this->assertSame('digest_citation_invalid', $edition->error_code);
         $this->assertSame(1, $edition->generation_attempt_count);
+    }
+
+    public function test_generator_rejects_translation_that_changes_citations(): void
+    {
+        config(['notification.digest.model.api_key' => 'secret', 'notification.digest.model.name' => 'model-test']);
+        $firstEventId = (string) Str::uuid();
+        $secondEventId = (string) Str::uuid();
+        $edition = $this->edition($firstEventId);
+        $edition->events()->create([
+            'public_event_id' => $secondEventId,
+            'upstream_event_id' => (string) Str::uuid(),
+            'position' => 2,
+            'input_payload' => ['event_id' => $secondEventId, 'summaries' => ['en' => 'Second source summary']],
+        ]);
+        Http::fakeSequence()
+            ->push($this->modelResponse('Daily energy', 'Overview', $firstEventId))
+            ->push($this->modelResponse('每日能源', '摘要', $secondEventId));
+
+        $this->assertSame(60, app(DigestGenerator::class)->generate($edition->id));
+        $this->assertSame('digest_translation_citations_mismatch', $edition->fresh()->error_code);
+    }
+
+    public function test_manual_command_can_dry_run_and_generate_without_dispatching_a_job(): void
+    {
+        Queue::fake();
+        CarbonImmutable::setTestNow('2026-09-11 00:20:00 UTC');
+        $start = CarbonImmutable::parse('2026-09-10 00:00:00 UTC');
+        $eventId = $this->event('A', 90, $start->addHour(), ['energy']);
+
+        $this->artisan('digest:generate', ['--date' => '2026-09-10', '--topic' => ['energy'], '--dry-run' => true])
+            ->expectsOutputToContain('Digest window: 2026-09-10 UTC')
+            ->assertSuccessful();
+        $this->assertDatabaseCount('digest_editions', 0);
+
+        config([
+            'notification.digest.model.api_key' => 'secret',
+            'notification.digest.model.name' => 'model-test',
+            'notification.digest.model.base_url' => 'https://model.test/v1',
+        ]);
+        Http::fakeSequence()
+            ->push($this->modelResponse('Daily energy', 'Overview', $eventId))
+            ->push($this->modelResponse('每日能源', '摘要', $eventId));
+
+        $this->artisan('digest:generate', ['--date' => '2026-09-10', '--topic' => ['energy']])
+            ->assertSuccessful();
+
+        $this->assertDatabaseCount('digest_editions', 1);
+        $this->assertSame('published', DigestEdition::query()->sole()->status);
+        Queue::assertNotPushed(GenerateDigestEdition::class);
+        CarbonImmutable::setTestNow();
     }
 
     private function event(string $severity, int $score, CarbonImmutable $readyAt, array $domains, ?string $upstreamId = null, ?CarbonImmutable $eventTime = null): string
@@ -153,10 +208,14 @@ class DigestGenerationTest extends TestCase
     /** @return array<string, mixed> */
     private function modelResponse(string $title, string $overview, string $eventId): array
     {
-        return ['choices' => [['message' => ['content' => json_encode([
-            'title' => $title,
-            'overview' => $overview,
-            'developments' => [['text' => 'Development', 'event_ids' => [$eventId]]],
-        ], JSON_THROW_ON_ERROR)]]]];
+        return [
+            'id' => 'request-test',
+            'usage' => ['prompt_tokens' => 11, 'completion_tokens' => 7],
+            'choices' => [['message' => ['content' => json_encode([
+                'title' => $title,
+                'overview' => $overview,
+                'developments' => [['text' => 'Development', 'event_ids' => [$eventId]]],
+            ], JSON_THROW_ON_ERROR)]]],
+        ];
     }
 }

@@ -34,6 +34,28 @@ php artisan migrate:fresh --force
 php artisan test
 ```
 
+## Local digest QA
+
+The local SQLite setup includes database cache and queue tables so Artisan's
+scheduler and database queue driver work without Redis. Production continues to
+use the dedicated Redis and Horizon services from Compose.
+
+Inspect a UTC day without writing data or calling a model:
+
+```bash
+php artisan digest:generate --date=2026-09-20 --topic=energy --dry-run
+```
+
+For a real synchronous generation, configure `DIGEST_MODEL_API_KEY` and
+`DIGEST_MODEL_NAME`, then omit `--dry-run`. The command does not require a queue
+worker and reports edition status, selected event count, total model tokens,
+latency, and the final error code. It will not regenerate an existing terminal
+edition; use a disposable local database when repeating QA for the same date.
+
+The scheduled pipeline remains closed by default. Enable `DIGEST_ENABLED=true`
+only when the scheduler, queue workers, model credentials, public event tables,
+and account access service are all available.
+
 The SQLite test database uses unqualified table names. PostgreSQL must create the
 `notify` schema and put `notify` before `public` in `DB_SEARCH_PATH`; the public tables
 remain read-only to this service.

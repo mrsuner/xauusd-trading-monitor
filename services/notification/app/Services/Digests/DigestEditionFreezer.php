@@ -26,8 +26,12 @@ class DigestEditionFreezer
         return $editions;
     }
 
-    public function freeze(string $topic, CarbonImmutable $windowStart, CarbonImmutable $windowEnd): DigestEdition
-    {
+    public function freeze(
+        string $topic,
+        CarbonImmutable $windowStart,
+        CarbonImmutable $windowEnd,
+        bool $dispatchGeneration = true,
+    ): DigestEdition {
         $existing = DigestEdition::query()->where('topic', $topic)->where('window_start', $windowStart)->first();
         if ($existing !== null) {
             return $existing;
@@ -67,7 +71,7 @@ class DigestEditionFreezer
             return $edition;
         });
 
-        if ($edition->status === 'frozen') {
+        if ($dispatchGeneration && $edition->status === 'frozen') {
             GenerateDigestEdition::dispatch($edition->id)->afterCommit();
         }
 

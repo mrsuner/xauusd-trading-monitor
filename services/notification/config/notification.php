@@ -44,6 +44,12 @@ return [
         'freeze_minute' => 15,
         'deadline_minute' => 60,
         'prompt_version' => 'shared-digest.v1',
+        'limits' => [
+            'title_chars' => 180,
+            'overview_chars' => 2000,
+            'development_chars' => 1000,
+            'developments' => 12,
+        ],
         'model' => [
             'provider' => env('DIGEST_MODEL_PROVIDER', 'openrouter'),
             'base_url' => env('DIGEST_MODEL_BASE_URL', 'https://openrouter.ai/api/v1'),
