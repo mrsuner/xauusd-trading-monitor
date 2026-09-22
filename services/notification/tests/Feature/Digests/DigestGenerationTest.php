@@ -39,6 +39,7 @@ class DigestGenerationTest extends TestCase
         Schema::create('public_events_translations', function (Blueprint $table): void {
             $table->uuid('public_event_id');
             $table->string('language');
+            $table->text('title')->nullable();
             $table->text('summary')->nullable();
         });
     }
@@ -55,6 +56,8 @@ class DigestGenerationTest extends TestCase
         $this->event('C', 99, $start->addHours(4), ['geopolitics']);
         $this->event('S', 100, $start->addHours(5), ['energy']);
         $this->event('S', 100, $start->addHours(6), ['geopolitics'], eventTime: $start->subDays(2));
+        $withoutSummary = $this->event('S', 100, $start->addHours(7), ['geopolitics']);
+        DB::table('public_events_translations')->where('public_event_id', $withoutSummary)->delete();
 
         $edition = app(DigestEditionFreezer::class)->freeze('geopolitics', $start, $start->addDay());
 
@@ -95,8 +98,51 @@ class DigestGenerationTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $edition->model_latency_ms);
         Http::assertSentCount(2);
         Http::assertSent(fn ($request): bool => $request->url() === 'https://model.test/v1/chat/completions'
+            && $request['reasoning_effort'] === 'low'
             && $request['response_format']['type'] === 'json_schema'
             && $request['response_format']['json_schema']['strict'] === true);
+    }
+
+    public function test_freeze_excludes_headline_only_event_without_a_summary(): void
+    {
+        Queue::fake();
+        $start = CarbonImmutable::parse('2026-09-10 00:00:00 UTC');
+        $eventId = $this->event('A', 90, $start->addHour(), ['geopolitics']);
+        DB::table('public_events_translations')->where('public_event_id', $eventId)->update([
+            'title' => 'Headline without supporting summary',
+            'summary' => '   ',
+        ]);
+
+        $edition = app(DigestEditionFreezer::class)->freeze('geopolitics', $start, $start->addDay());
+
+        $this->assertSame('no_content', $edition->status);
+        $this->assertSame(0, $edition->input_count);
+        $this->assertDatabaseCount('digest_edition_events', 0);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_freeze_keeps_partial_language_event_without_snapshotting_empty_summary(): void
+    {
+        Queue::fake();
+        $start = CarbonImmutable::parse('2026-09-10 00:00:00 UTC');
+        $eventId = $this->event('A', 90, $start->addHour(), ['geopolitics']);
+        DB::table('public_events_translations')->where('public_event_id', $eventId)->update(['summary' => '   ']);
+        DB::table('public_events_translations')->insert([
+            'public_event_id' => $eventId,
+            'language' => 'zh-Hant',
+            'title' => '只有部分語言有摘要',
+            'summary' => '這是一筆可供摘要模型使用的繁體中文摘要。',
+        ]);
+
+        $edition = app(DigestEditionFreezer::class)->freeze('geopolitics', $start, $start->addDay());
+
+        $this->assertSame('frozen', $edition->status);
+        $this->assertSame(1, $edition->input_count);
+        $this->assertSame(
+            ['zh-Hant' => '這是一筆可供摘要模型使用的繁體中文摘要。'],
+            $edition->events()->sole()->input_payload['summaries'],
+        );
+        Queue::assertPushed(GenerateDigestEdition::class, 1);
     }
 
     public function test_generator_retries_invalid_citations_until_fixed_deadline(): void

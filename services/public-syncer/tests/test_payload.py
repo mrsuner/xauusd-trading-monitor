@@ -253,6 +253,24 @@ def test_build_raw_item_payload_is_public_safe() -> None:
     assert "text_raw" not in payload
 
 
+def test_headline_only_raw_item_keeps_enriched_summaries() -> None:
+    item = make_raw_item()
+    item.text_clean = item.title
+
+    payload = build_raw_item_payload(
+        item,
+        max_original_chars=4000,
+        max_translation_chars=8000,
+        sync_languages=("zh-Hant", "en"),
+    )
+
+    assert payload["original_content"] == "Raw item title"
+    assert [(row["language"], row["summary"]) for row in payload["translations"]] == [
+        ("zh-Hant", "中文摘要"),
+        ("en", "English summary"),
+    ]
+
+
 def test_build_raw_item_payload_truncates_original_and_translation() -> None:
     item = make_raw_item()
     item.text_clean = "alpha " * 20

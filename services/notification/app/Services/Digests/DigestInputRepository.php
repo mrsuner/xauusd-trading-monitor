@@ -12,10 +12,17 @@ class DigestInputRepository
     public function select(string $topic, CarbonImmutable $windowStart, CarbonImmutable $windowEnd, int $limit): array
     {
         $table = DB::getDriverName() === 'pgsql' ? 'public.public_events' : 'public_events';
+        $translations = DB::getDriverName() === 'pgsql'
+            ? 'public.public_events_translations'
+            : 'public_events_translations';
         $rows = DB::table($table)
             ->where('is_visible', true)
             ->whereNull('invalidated_at')
             ->whereNotNull('public_content_ready_at')
+            ->whereIn('id', DB::table($translations)
+                ->select('public_event_id')
+                ->whereNotNull('summary')
+                ->whereRaw("trim(summary) <> ''"))
             ->where('public_content_ready_at', '>=', $windowStart)
             ->where('public_content_ready_at', '<', $windowEnd)
             ->orderByRaw("case severity when 'S' then 0 when 'A' then 1 when 'B' then 2 else 3 end")
@@ -70,7 +77,9 @@ class DigestInputRepository
     {
         $table = DB::getDriverName() === 'pgsql' ? 'public.public_events_translations' : 'public_events_translations';
 
-        return DB::table($table)->where('public_event_id', $eventId)->whereNotNull('summary')
+        return DB::table($table)->where('public_event_id', $eventId)
+            ->whereNotNull('summary')
+            ->whereRaw("trim(summary) <> ''")
             ->orderBy('language')->get(['language', 'summary'])
             ->mapWithKeys(fn (object $row): array => [
                 (string) $row->language => mb_substr(trim((string) $row->summary), 0, 2000),

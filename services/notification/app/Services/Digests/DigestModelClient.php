@@ -27,11 +27,12 @@ class DigestModelClient
 
         try {
             $response = Http::withToken($key)->acceptJson()
-                ->connectTimeout(5)->timeout((int) ($settings['timeout_seconds'] ?? 60))
+                ->connectTimeout(5)->timeout((int) ($settings['timeout_seconds'] ?? 120))
                 ->post(rtrim((string) $settings['base_url'], '/').'/chat/completions', [
                     'model' => $model,
                     'temperature' => 0.2,
                     'max_tokens' => (int) ($settings['max_output_tokens'] ?? 1800),
+                    'reasoning_effort' => (string) ($settings['reasoning_effort'] ?? 'low'),
                     'messages' => [
                         ['role' => 'system', 'content' => $instruction.' Return JSON with title, overview, and developments. Each development must contain text and event_ids.'],
                         ['role' => 'user', 'content' => json_encode($input, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)],

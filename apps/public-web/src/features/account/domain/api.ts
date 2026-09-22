@@ -29,6 +29,9 @@ export async function getAccountSession(): Promise<AccountSession> {
 
 export async function login(input: LoginInput): Promise<AccountSession> {
   await accountRequest("/auth/web/login", { method: "POST", body: input });
+  // Laravel rotates the session after authentication, which also invalidates
+  // the pre-login CSRF token used by the login request.
+  csrfToken = null;
   return getAccountSession();
 }
 
@@ -42,6 +45,7 @@ export async function register(input: RegisterInput): Promise<AccountSession> {
       password_confirmation: input.passwordConfirmation
     }
   });
+  csrfToken = null;
   return getAccountSession();
 }
 
