@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 class GenerateDigestEdition implements ShouldBeUnique, ShouldQueue
 {
@@ -50,5 +51,24 @@ class GenerateDigestEdition implements ShouldBeUnique, ShouldQueue
         } finally {
             $lock->release();
         }
+    }
+
+    /**
+     * Laravel may expire the queued job before handle() runs. Persist a
+     * terminal edition state so maintenance never treats it as frozen forever.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        $edition = DigestEdition::query()->find($this->editionId);
+        if ($edition === null || in_array($edition->status, ['published', 'no_content', 'failed', 'invalidated'], true)) {
+            return;
+        }
+
+        $edition->update([
+            'status' => 'failed',
+            'error_code' => $edition->deadline_at->isPast()
+                ? 'generation_deadline_expired'
+                : 'generation_job_failed',
+        ]);
     }
 }

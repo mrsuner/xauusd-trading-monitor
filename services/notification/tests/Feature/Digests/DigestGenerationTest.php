@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Tests\TestCase;
 
 class DigestGenerationTest extends TestCase
@@ -157,6 +158,19 @@ class DigestGenerationTest extends TestCase
         $this->assertSame('frozen', $edition->status);
         $this->assertSame('digest_citation_invalid', $edition->error_code);
         $this->assertSame(1, $edition->generation_attempt_count);
+    }
+
+    public function test_expired_queue_job_marks_frozen_edition_failed_before_handle_runs(): void
+    {
+        $eventId = (string) Str::uuid();
+        $edition = $this->edition($eventId);
+        $edition->update(['deadline_at' => now('UTC')->subMinute()]);
+
+        (new GenerateDigestEdition($edition->id))->failed(new RuntimeException('job expired'));
+
+        $edition->refresh();
+        $this->assertSame('failed', $edition->status);
+        $this->assertSame('generation_deadline_expired', $edition->error_code);
     }
 
     public function test_generator_rejects_translation_that_changes_citations(): void

@@ -39,9 +39,10 @@ export function useLogout() {
   return useMutation({
     mutationFn: logout,
     onSuccess: () => {
-      client.removeQueries({ queryKey: accountKeys.session });
-      client.removeQueries({ queryKey: ["news-notifications"] });
-      client.removeQueries({ queryKey: ["news-digests"] });
+      // Logout changes the identity boundary for every authenticated query.
+      // Clearing the whole client prevents active digest/settings observers from
+      // briefly rendering the previous account's cached data after sign-out.
+      client.clear();
     }
   });
 }

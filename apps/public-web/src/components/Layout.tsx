@@ -10,7 +10,7 @@ import {
   X
 } from "lucide-react";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { accountDashboardUrl } from "../config/account";
 import { AccountApiError } from "../features/account/domain/api";
 import { useAccountSession, useLogout } from "../features/account/domain/queries";
@@ -168,6 +168,7 @@ function AccountControl() {
   const t = useI18n();
   const to = useLocalizedPath();
   const location = useLocation();
+  const navigate = useNavigate();
   const session = useAccountSession();
   const logout = useLogout();
 
@@ -261,6 +262,9 @@ function AccountControl() {
                 try {
                   await logout.mutateAsync();
                   close();
+                  // Leave authenticated screens immediately so their local
+                  // form state cannot remain visible after the session ends.
+                  navigate(to("/events"), { replace: true });
                 } catch {
                   // The inline error keeps the menu open so the reader can retry.
                 }
