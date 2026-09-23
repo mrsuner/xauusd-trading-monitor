@@ -59,7 +59,8 @@ class NormalizerClassifierWorker:
                 continue
 
             try:
-                normalized = normalize_item(task.raw_item, task.source)
+                routing_context = await self.db.get_routing_context(source_id=task.source.id)
+                normalized = normalize_item(task.raw_item, task.source, routing_context)
                 await self.db.update_normalized_item(raw_item_id=task.raw_item.id, normalized=normalized)
 
                 if not normalized.prefilter_passed:
@@ -68,17 +69,35 @@ class NormalizerClassifierWorker:
                     logger.info("skipped raw_item_id=%s reason=%s", task.raw_item.id, normalized.filter_reason)
                     continue
 
-                if not await self._reserve_classification_call():
+                try:
+                    classification_reserved = await self._reserve_classification_call()
+                except Exception:
+                    logger.exception("classification budget store unavailable raw_item_id=%s", task.raw_item.id)
+                    await self.db.defer_for_model_budget(
+                        processing_id=task.id,
+                        reason="model_budget_store_unavailable",
+                    )
+                    continue
+                if not classification_reserved:
                     await self.db.defer_for_model_budget(processing_id=task.id)
                     logger.info("deferred raw_item_id=%s reason=model_call_budget_reached", task.raw_item.id)
                     continue
 
-                model_response = await self.model_client.classify(task.raw_item, task.source, normalized)
+                taxonomy_context = await self.db.get_taxonomy_context()
+                model_response = await self.model_client.classify(
+                    task.raw_item,
+                    task.source,
+                    normalized,
+                    taxonomy_context=taxonomy_context,
+                    domain_modules=routing_context.prompt_modules(tuple(normalized.selected_domains)),
+                    enabled_domain_keys=[domain.key for domain in routing_context.domains],
+                )
                 event_id = await self.db.complete_processed(
                     task=task,
                     normalized=normalized,
                     model_response=model_response,
                     relevance_threshold_event=self.settings.relevance_threshold_event,
+                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.insert_ai_model_call(
                     usage=model_response.usage,
@@ -118,26 +137,32 @@ class NormalizerClassifierWorker:
 
     async def _reserve_classification_call(self) -> bool:
         limit = self._classification_call_limit()
-        if limit == 0:
-            return True
-        async with self._budget_lock:
-            if self._classification_call_count >= limit:
-                return False
-            self._classification_call_count += 1
-            return True
+        if limit != 0:
+            async with self._budget_lock:
+                if self._classification_call_count >= limit:
+                    return False
+                self._classification_call_count += 1
+        return await self.db.reserve_ai_request(
+            kind="classification",
+            total_limit=self.settings.ai_daily_request_limit,
+            kind_limit=self.settings.ai_daily_classification_limit,
+        )
 
     def _classification_call_limit(self) -> int:
         return self.settings.max_classification_calls_per_run or self.settings.max_model_calls_per_run
 
     async def _reserve_translation_call(self) -> bool:
         limit = self.settings.max_translation_calls_per_run
-        if limit == 0:
-            return True
-        async with self._budget_lock:
-            if self._translation_call_count >= limit:
-                return False
-            self._translation_call_count += 1
-            return True
+        if limit != 0:
+            async with self._budget_lock:
+                if self._translation_call_count >= limit:
+                    return False
+                self._translation_call_count += 1
+        return await self.db.reserve_ai_request(
+            kind="translation",
+            total_limit=self.settings.ai_daily_request_limit,
+            kind_limit=self.settings.ai_daily_translation_limit,
+        )
 
     async def _reserve_translation_paid_fallback_call(self) -> bool:
         limit = self.settings.max_translation_paid_fallback_calls_per_run
@@ -160,14 +185,19 @@ class NormalizerClassifierWorker:
         text, truncated = self._translation_input_text(task.source, normalized.text_clean)
         full_translation_required = task.source.translation_policy == "full" or task.source.always_full_translate
         last_error = None
-        taxonomy_context = await self.db.get_taxonomy_context()
 
         for index, client in enumerate(self.translation_model_clients):
             is_paid_fallback = index > 0
             if is_paid_fallback and not await self._reserve_translation_paid_fallback_call():
                 last_error = "translation_paid_fallback_budget_reached"
                 break
-            if not await self._reserve_translation_call():
+            try:
+                translation_reserved = await self._reserve_translation_call()
+            except Exception:
+                logger.exception("translation budget store unavailable raw_item_id=%s", task.raw_item.id)
+                last_error = "translation_budget_store_unavailable"
+                break
+            if not translation_reserved:
                 last_error = "translation_call_budget_reached"
                 break
             try:
@@ -178,14 +208,12 @@ class NormalizerClassifierWorker:
                     full_translation_required=full_translation_required,
                     input_text=text,
                     truncated=truncated,
-                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.update_translation_result(
                     raw_item_id=task.raw_item.id,
                     response=response,
                     status="completed_truncated" if truncated else "completed",
                     input_chars=len(text),
-                    taxonomy_context=taxonomy_context,
                 )
                 await self.db.insert_ai_model_call(
                     usage=response.usage,

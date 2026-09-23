@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     max_translation_paid_fallback_calls_per_run: int = Field(
         default=0, alias="MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN"
     )
+    ai_daily_request_limit: int = Field(default=0, alias="AI_DAILY_REQUEST_LIMIT")
+    ai_daily_classification_limit: int = Field(default=0, alias="AI_DAILY_CLASSIFICATION_LIMIT")
+    ai_daily_translation_limit: int = Field(default=0, alias="AI_DAILY_TRANSLATION_LIMIT")
 
     model_timeout_seconds: float = Field(default=30.0, alias="MODEL_TIMEOUT_SECONDS")
     max_model_calls_per_run: int = Field(default=0, alias="MAX_MODEL_CALLS_PER_RUN")
@@ -122,6 +125,9 @@ class Settings(BaseSettings):
         "translation_default_max_chars",
         "translation_high_priority_max_chars",
         "translation_single_call_max_chars",
+        "ai_daily_request_limit",
+        "ai_daily_classification_limit",
+        "ai_daily_translation_limit",
     )
     @classmethod
     def validate_non_negative_int(cls, value: int) -> int:

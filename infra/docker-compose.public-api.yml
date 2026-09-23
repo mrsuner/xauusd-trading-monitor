@@ -81,8 +81,88 @@ services:
     networks:
       - xauusd-public
 
+  notification-redis:
+    image: redis:7.4.9-alpine
+    profiles: ["notifications"]
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - notification-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - xauusd-public
+
+  notification-migrate:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/notification:${NOTIFICATION_IMAGE_TAG:-${IMAGE_TAG}}
+    profiles: ["notifications"]
+    restart: "no"
+    logging: *default-logging
+    depends_on:
+      public-postgres:
+        condition: service_healthy
+    env_file:
+      - ${NOTIFICATION_ENV_FILE:-../../infra/notification.env}
+    command: ["php", "artisan", "migrate", "--force"]
+    networks:
+      - xauusd-public
+
+  notification-api:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/notification:${NOTIFICATION_IMAGE_TAG:-${IMAGE_TAG}}
+    profiles: ["notifications"]
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      notification-migrate:
+        condition: service_completed_successfully
+      notification-redis:
+        condition: service_healthy
+    env_file:
+      - ${NOTIFICATION_ENV_FILE:-../../infra/notification.env}
+    command: ["php", "-S", "0.0.0.0:8080", "-t", "public", "public/index.php"]
+    networks:
+      - xauusd-public
+
+  notification-scheduler:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/notification:${NOTIFICATION_IMAGE_TAG:-${IMAGE_TAG}}
+    profiles: ["notifications"]
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      notification-migrate:
+        condition: service_completed_successfully
+      notification-redis:
+        condition: service_healthy
+    env_file:
+      - ${NOTIFICATION_ENV_FILE:-../../infra/notification.env}
+    command: ["php", "artisan", "schedule:work"]
+    networks:
+      - xauusd-public
+
+  notification-horizon:
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/notification:${NOTIFICATION_IMAGE_TAG:-${IMAGE_TAG}}
+    profiles: ["notifications"]
+    restart: unless-stopped
+    stop_grace_period: 3m
+    logging: *default-logging
+    depends_on:
+      notification-migrate:
+        condition: service_completed_successfully
+      notification-redis:
+        condition: service_healthy
+    env_file:
+      - ${NOTIFICATION_ENV_FILE:-../../infra/notification.env}
+    command: ["php", "artisan", "horizon"]
+    networks:
+      - xauusd-public
+
 volumes:
   public-postgres-data:
+  notification-redis-data:
 
 networks:
   xauusd-public:

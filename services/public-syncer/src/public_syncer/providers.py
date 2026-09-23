@@ -108,7 +108,16 @@ def _public_api_response(response: httpx.Response, data: dict) -> dict:
         "provider": "public-api",
         "status_code": response.status_code,
     }
-    for key in ("status", "public_event_id", "public_raw_item_id", "idempotency_key", "schema_version", "error", "detail"):
+    for key in (
+        "status",
+        "public_event_id",
+        "public_raw_item_id",
+        "idempotency_key",
+        "schema_version",
+        "revision",
+        "error",
+        "detail",
+    ):
         if key in data:
             clean[key] = sanitize_provider_response(data[key]) if key in {"error", "detail"} else data[key]
     return clean

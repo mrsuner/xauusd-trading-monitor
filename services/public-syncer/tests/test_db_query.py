@@ -78,3 +78,11 @@ def test_claim_next_public_event_does_not_select_legacy_translation_fields() -> 
     assert "p.public_title_en" not in sql
     assert "p.public_summary_en" not in sql
     assert "public_outbox_translations_select_sql()" in source
+
+
+def test_subscription_catalog_query_only_exports_enabled_subscribable_rows() -> None:
+    source = _compact(inspect.getsource(Database.get_subscription_catalog))
+
+    assert source.count("where enabled = true and subscribable = true") == 2
+    assert "coalesce(label_en, label) as label_en" in source
+    assert "label_zh" in source

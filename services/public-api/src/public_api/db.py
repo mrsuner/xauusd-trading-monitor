@@ -10,7 +10,13 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .models import LANGUAGE_CODE_RE, PublicEventIngestRequest, PublicRawItemIngestRequest
+from .models import (
+    LANGUAGE_CODE_RE,
+    PublicEventIngestRequest,
+    PublicEventInvalidationRequest,
+    PublicRawItemIngestRequest,
+    SubscriptionCatalogIngestRequest,
+)
 from .security import body_sha256
 
 logger = logging.getLogger(__name__)
@@ -18,6 +24,13 @@ logger = logging.getLogger(__name__)
 DEFAULT_PUBLIC_LANGUAGE = "en"
 PUBLIC_LANGUAGE_ZH_HANT = "zh-Hant"
 PUBLIC_LANGUAGE_EN = "en"
+
+
+def public_event_has_summary(translation_rows: list[dict[str, Any]]) -> bool:
+    return any(
+        isinstance(row.get("summary"), str) and bool(row["summary"].strip())
+        for row in translation_rows
+    )
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -240,6 +253,15 @@ class PublicRepository:
                     """,
                     translation_rows,
                 )
+                if public_event_has_summary(translation_rows):
+                    await cur.execute(
+                        """
+                        update public_events
+                        set public_content_ready_at = coalesce(public_content_ready_at, now())
+                        where id = %(public_event_id)s
+                        """,
+                        {"public_event_id": row["id"]},
+                    )
             await cur.execute(
                 """
                 insert into public_ingest_requests (
@@ -533,6 +555,235 @@ class PublicRepository:
             )
         await self.db.conn.commit()
 
+    async def ingest_subscription_catalog(
+        self,
+        payload: SubscriptionCatalogIngestRequest,
+        *,
+        raw_body: bytes,
+        key_id: str | None,
+        nonce: str | None,
+    ) -> dict[str, Any]:
+        request_hash = body_sha256(raw_body)
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(
+                "select 1 from public_subscription_catalog_revisions where revision = %(revision)s",
+                {"revision": payload.revision},
+            )
+            duplicate = await cur.fetchone() is not None
+            if not duplicate:
+                await cur.execute(
+                    """
+                    insert into public_subscription_catalog_revisions (
+                      revision, schema_version, payload_hash, generated_at, category_count, tag_count
+                    ) values (
+                      %(revision)s, %(schema_version)s, %(payload_hash)s, %(generated_at)s,
+                      %(category_count)s, %(tag_count)s
+                    )
+                    """,
+                    {
+                        "revision": payload.revision,
+                        "schema_version": payload.schema_version,
+                        "payload_hash": request_hash,
+                        "generated_at": payload.generated_at,
+                        "category_count": len(payload.categories),
+                        "tag_count": len(payload.tags),
+                    },
+                )
+                category_rows = [
+                    {**item.model_dump(mode="python"), "revision": payload.revision}
+                    for item in payload.categories
+                ]
+                await cur.executemany(
+                    """
+                    insert into public_subscription_categories (
+                      key, label_en, label_zh, description, sort_order, revision
+                    ) values (
+                      %(key)s, %(label_en)s, %(label_zh)s, %(description)s, %(sort_order)s, %(revision)s
+                    )
+                    on conflict (key) do update set
+                      label_en = excluded.label_en,
+                      label_zh = excluded.label_zh,
+                      description = excluded.description,
+                      sort_order = excluded.sort_order,
+                      revision = excluded.revision,
+                      updated_at = now()
+                    """,
+                    category_rows,
+                )
+                tag_rows = [
+                    {
+                        **item.model_dump(mode="python", exclude={"aliases"}),
+                        "aliases": Jsonb(item.aliases),
+                        "revision": payload.revision,
+                    }
+                    for item in payload.tags
+                ]
+                await cur.executemany(
+                    """
+                    insert into public_subscription_tags (
+                      key, label_en, label_zh, tag_type, aliases, revision
+                    ) values (
+                      %(key)s, %(label_en)s, %(label_zh)s, %(tag_type)s, %(aliases)s, %(revision)s
+                    )
+                    on conflict (key) do update set
+                      label_en = excluded.label_en,
+                      label_zh = excluded.label_zh,
+                      tag_type = excluded.tag_type,
+                      aliases = excluded.aliases,
+                      revision = excluded.revision,
+                      updated_at = now()
+                    """,
+                    tag_rows,
+                )
+                await cur.execute(
+                    "delete from public_subscription_categories where not (key = any(%(keys)s))",
+                    {"keys": [item.key for item in payload.categories]},
+                )
+                await cur.execute(
+                    "delete from public_subscription_tags where not (key = any(%(keys)s))",
+                    {"keys": [item.key for item in payload.tags]},
+                )
+            status = "duplicate" if duplicate else "accepted"
+            await cur.execute(
+                """
+                insert into public_ingest_requests (
+                  ingest_kind, idempotency_key, request_hash, key_id, nonce, status
+                ) values (
+                  'subscription_catalog', %(idempotency_key)s, %(request_hash)s,
+                  %(key_id)s, %(nonce)s, %(status)s
+                )
+                """,
+                {
+                    "idempotency_key": payload.idempotency_key,
+                    "request_hash": request_hash,
+                    "key_id": key_id,
+                    "nonce": nonce,
+                    "status": status,
+                },
+            )
+        await self.db.conn.commit()
+        return {
+            "status": status,
+            "revision": payload.revision,
+            "idempotency_key": payload.idempotency_key,
+        }
+
+    async def invalidate_event(
+        self,
+        upstream_event_id: UUID,
+        payload: PublicEventInvalidationRequest,
+        *,
+        raw_body: bytes,
+        key_id: str | None,
+        nonce: str | None,
+    ) -> dict[str, Any] | None:
+        request_hash = body_sha256(raw_body)
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select id, invalidated_at
+                from public_events
+                where upstream_event_id = %(upstream_event_id)s
+                order by received_at
+                limit 1
+                for update
+                """,
+                {"upstream_event_id": upstream_event_id},
+            )
+            event = await cur.fetchone()
+            if event is None:
+                await self.db.conn.rollback()
+                return None
+
+            duplicate = event["invalidated_at"] is not None
+            if not duplicate:
+                await cur.execute(
+                    """
+                    update public_events
+                    set is_visible = false,
+                        invalidated_at = %(invalidated_at)s,
+                        invalidation_kind = %(invalidation_kind)s,
+                        invalidation_reason = %(invalidation_reason)s,
+                        updated_at = now()
+                    where id = %(public_event_id)s
+                    """,
+                    {
+                        "public_event_id": event["id"],
+                        "invalidated_at": payload.occurred_at,
+                        "invalidation_kind": payload.kind,
+                        "invalidation_reason": payload.reason,
+                    },
+                )
+            request_status = "duplicate" if duplicate else "accepted"
+            await cur.execute(
+                """
+                insert into public_ingest_requests (
+                  ingest_kind, idempotency_key, upstream_event_id, public_event_id,
+                  request_hash, key_id, nonce, status
+                ) values (
+                  'event_invalidation', %(idempotency_key)s, %(upstream_event_id)s,
+                  %(public_event_id)s, %(request_hash)s, %(key_id)s, %(nonce)s, %(status)s
+                )
+                on conflict do nothing
+                """,
+                {
+                    "idempotency_key": payload.idempotency_key,
+                    "upstream_event_id": upstream_event_id,
+                    "public_event_id": event["id"],
+                    "request_hash": request_hash,
+                    "key_id": key_id,
+                    "nonce": nonce,
+                    "status": request_status,
+                },
+            )
+        await self.db.conn.commit()
+        return {
+            "status": request_status,
+            "public_event_id": str(event["id"]),
+            "upstream_event_id": str(upstream_event_id),
+            "kind": payload.kind,
+        }
+
+    async def get_subscription_catalog(self) -> dict[str, Any]:
+        async with self.db.conn.cursor() as cur:
+            await cur.execute(
+                """
+                select revision, generated_at, received_at
+                from public_subscription_catalog_revisions
+                order by received_at desc
+                limit 1
+                """
+            )
+            revision = await cur.fetchone()
+            if not revision:
+                await self.db.conn.commit()
+                return {"schema_version": "subscription_catalog.v1", "revision": None, "categories": [], "tags": []}
+            await cur.execute(
+                """
+                select key, label_en, label_zh, description, sort_order
+                from public_subscription_categories
+                order by sort_order, key
+                """
+            )
+            categories = await cur.fetchall()
+            await cur.execute(
+                """
+                select key, label_en, label_zh, tag_type, aliases
+                from public_subscription_tags
+                order by tag_type, key
+                """
+            )
+            tags = await cur.fetchall()
+        await self.db.conn.commit()
+        return {
+            "schema_version": "subscription_catalog.v1",
+            "revision": revision["revision"],
+            "generated_at": revision["generated_at"],
+            "published_at": revision["received_at"],
+            "categories": [_json_ready(row) for row in categories],
+            "tags": [_json_ready(row) for row in tags],
+        }
+
     async def list_raw_items(
         self,
         *,
@@ -686,6 +937,7 @@ class PublicRepository:
         page_size: int,
         lang: str | None = None,
         severity: str | None = None,
+        min_severity: str | None = None,
         confirmation_state: str | None = None,
         tag: str | None = None,
         category: str | None = None,
@@ -697,6 +949,7 @@ class PublicRepository:
         offset = (page - 1) * limit
         where, params = _build_filters(
             severity=severity,
+            min_severity=min_severity,
             confirmation_state=confirmation_state,
             tag=tag,
             category=category,
@@ -847,6 +1100,15 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
     if filters.get("severity"):
         clauses.append("severity = %(severity)s")
         params["severity"] = filters["severity"]
+    elif filters.get("min_severity"):
+        # The reader preference is inclusive; keep filtering in SQL so totals
+        # and pagination describe the same globally ordered event stream.
+        ranked = ["S", "A", "B", "C"]
+        minimum = filters["min_severity"]
+        if minimum not in ranked:
+            raise ValueError("min_severity must be S, A, B, or C")
+        clauses.append("severity = any(%(allowed_severities)s)")
+        params["allowed_severities"] = ranked[: ranked.index(minimum) + 1]
     if filters.get("confirmation_state"):
         clauses.append("confirmation_state = %(confirmation_state)s")
         params["confirmation_state"] = filters["confirmation_state"]

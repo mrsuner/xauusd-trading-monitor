@@ -10,6 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from normalizer_classifier.model_client import (
+    ModelClientError,
     OpenAIStyleModelClient,
     build_auxiliary_model_client,
     build_translation_model_clients,
@@ -17,6 +18,7 @@ from normalizer_classifier.model_client import (
 )
 from normalizer_classifier.models import AuxiliaryTextResult, ClassificationResult, NormalizedItem, RawItem, SourceMetadata
 from normalizer_classifier.settings import Settings
+from normalizer_classifier.taxonomy import CategoryOption, TagOption, TaxonomyContext
 
 
 def make_objects() -> tuple[RawItem, SourceMetadata, NormalizedItem]:
@@ -57,6 +59,9 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
         assert url == "https://api.example.test/v1/chat/completions"
         assert headers["Authorization"] == "Bearer test-key"
         assert json["response_format"] == {"type": "json_object"}
+        user_payload = json_module.loads(json["messages"][1]["content"])
+        assert user_payload["taxonomy_context"]["content_categories"][0]["key"] == "diplomacy"
+        assert user_payload["taxonomy_context"]["known_topic_tags"][0]["key"] == "iran"
         content = {
             "is_relevant": True,
             "relevance_score": 82,
@@ -68,6 +73,10 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
                 {"language": "zh-Hant", "summary": "Trump 表示伊朗協議接近完成。"},
                 {"language": "en", "summary": "Trump says an Iran deal is close."},
             ],
+            "content_category": "diplomacy",
+            "topic_tags": ["iran", "nuclear"],
+            "primary_domain": "geopolitics",
+            "relevant_domains": ["geopolitics"],
             "actors": ["Trump", "Iran"],
             "xauusd_impact_channel": ["safe_haven"],
             "requires_confirmation": True,
@@ -94,13 +103,66 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
         reasoning_effort="none",
     )
 
-    response = await client.classify(raw_item, source, normalized)
+    response = await client.classify(
+        raw_item,
+        source,
+        normalized,
+        taxonomy_context=TaxonomyContext(
+            categories=[CategoryOption(key="diplomacy", label_en="Diplomacy")],
+            tags=[TagOption(key="iran", label="Iran")],
+        ),
+        enabled_domain_keys=["geopolitics"],
+    )
 
     assert response.provider == "cloud_small"
     assert response.model == "test-model"
     assert response.result.is_relevant is True
     assert response.result.relevance_score == 82
     assert response.result.summaries[0].language == "zh-Hant"
+    assert response.result.content_category == "diplomacy"
+    assert response.result.topic_tags == ["iran", "nuclear"]
+
+
+async def test_openai_style_model_client_rejects_unknown_domain(monkeypatch) -> None:
+    async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
+        content = {
+            "is_relevant": True,
+            "relevance_score": 80,
+            "event_type": "UNKNOWN",
+            "claim_direction": "unknown",
+            "summaries": [
+                {"language": "zh-Hant", "summary": "相關消息。"},
+                {"language": "en", "summary": "Relevant item."},
+            ],
+            "primary_domain": "invented",
+            "relevant_domains": ["invented"],
+            "requires_confirmation": True,
+        }
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json_module.dumps(content)}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    json_module = json
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    raw_item, source, normalized = make_objects()
+    client = OpenAIStyleModelClient(
+        provider="cloud_small",
+        base_url="https://api.example.test/v1/",
+        api_key="test-key",
+        model="test-model",
+        timeout_seconds=5,
+        response_format="json_object",
+    )
+
+    with pytest.raises(ModelClientError, match="disabled or unknown domain"):
+        await client.classify(
+            raw_item,
+            source,
+            normalized,
+            enabled_domain_keys=["geopolitics"],
+        )
 
 
 async def test_openai_style_model_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
@@ -112,6 +174,8 @@ async def test_openai_style_model_client_logs_api_request_and_response(monkeypat
             "event_type": "IRAN_NUCLEAR",
             "claim_direction": "confirm",
             "summaries": [{"language": "zh-Hant", "summary": "Trump 表示伊朗協議接近完成。"}],
+            "primary_domain": "geopolitics",
+            "relevant_domains": ["geopolitics"],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -154,6 +218,8 @@ async def test_openai_style_model_client_can_omit_json_response_format(monkeypat
             "event_type": "UNKNOWN",
             "claim_direction": "unknown",
             "summaries": [{"language": "zh-Hant", "summary": "低相關消息。"}],
+            "primary_domain": None,
+            "relevant_domains": [],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -192,6 +258,8 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
             "claim_direction": "neutral",
             "claim_text": None,
             "summaries": [{"language": "zh-Hant", "summary": "Fed 相關消息。"}],
+            "primary_domain": "monetary",
+            "relevant_domains": ["monetary"],
             "actors": ["Fed"],
             "xauusd_impact_channel": ["real_rate"],
             "requires_confirmation": True,
@@ -236,6 +304,8 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
             "event_type": "UNKNOWN",
             "claim_direction": "unknown",
             "summaries": [{"language": "zh-Hant", "summary": "測試。"}],
+            "primary_domain": None,
+            "relevant_domains": [],
             "requires_confirmation": True,
         }
         return httpx.Response(
@@ -283,9 +353,6 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
                     "full_translation": "Trump says Iran deal is close.",
                 },
             ],
-            "content_category": "diplomacy",
-            "topic_tags": ["trump", "iran", "nuclear"],
-            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }
@@ -320,9 +387,6 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     assert zh_translation.summary == "Trump 稱伊朗協議接近完成。"
     assert en_translation.summary == "Trump says an Iran deal is close."
     assert zh_translation.full_translation == "Trump 表示伊朗協議已接近完成。"
-    assert response.result.content_category == "diplomacy"
-    assert response.result.topic_tags == ["trump", "iran", "nuclear"]
-    assert response.result.mentioned_actors == ["Trump", "Iran"]
 
 
 async def test_openai_style_model_client_parses_auxiliary_translations_array(monkeypatch) -> None:
@@ -345,9 +409,6 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
                     "full_translation": "トランプ氏はイラン合意が近いと述べた。",
                 },
             ],
-            "content_category": "diplomacy",
-            "topic_tags": ["trump", "iran"],
-            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }
@@ -399,9 +460,6 @@ async def test_openai_style_model_client_requires_configured_translation_languag
                     "full_translation": "Trump says Iran deal is close.",
                 },
             ],
-            "content_category": "diplomacy",
-            "topic_tags": ["trump", "iran"],
-            "mentioned_actors": ["Trump", "Iran"],
             "detected_language": "en",
             "notes": None,
         }

@@ -2,7 +2,9 @@
 
 ## 1. 服務定位
 
-`public-api` 部署在 VPS，負責接收 HomeLab `public-syncer` 推送的 public-safe events 與可選 raw item feed，保存到 public database，並提供公共網站讀取 API。
+`public-api` 部署在 VPS，負責接收 HomeLab `public-syncer` 推送的 public-safe events、可選 raw item feed 與版本化 subscription catalog，保存到 public database，並提供公共網站讀取 API。
+
+訂閱目錄使用 `POST /ingest/subscription-catalog` 寫入完整 snapshot，沿用 event/raw item ingest 的 HMAC 或 bearer 鑑權。`revision` 必須等於 normalized categories/tags 的 SHA-256；更新會在單一 transaction 中 upsert 現有項目並移除不再 subscribable 的項目。公共 client 使用 `GET /subscription-catalog`，既有 `/tags` 與 `/categories` 仍維持事件聚合統計用途。
 
 它不是 HomeLab dashboard API，不讀 HomeLab DB，也不保存內部敏感資料。
 
@@ -151,6 +153,7 @@ GET /events
 GET /events/{public_event_id}
 GET /tags
 GET /categories
+GET /subscription-catalog
 GET /stats/overview
 ```
 
@@ -158,6 +161,7 @@ Raw feed endpoints：
 
 ```text
 POST /ingest/raw-items
+POST /ingest/subscription-catalog
 GET /raw-items
 GET /raw-items/{public_raw_item_id}
 ```

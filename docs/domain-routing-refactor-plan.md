@@ -1,7 +1,7 @@
 # 領域路由與動態 prompt 重構計畫
 
-> Status: Proposed; documentation only, no implementation authorized.
-> The 2026-09-07 review in section 15 supersedes conflicting earlier proposals. Taxonomy ownership in Plan B was accepted on 2026-09-07; remaining parameters still require review.
+> Status: Implemented locally on `codex/news-content-routing`; production activation pending calibration and release gates.
+> 第 15 節的 2026-09-07 review 取代先前衝突的提案。2026-09-10/11 implementation adopts Plan B, deterministic `top_k=2`, migration-seeded configuration and optional shared UTC daily budgets.
 > 範圍：`normalizer-classifier` 服務的 prefilter 與分類 prompt 從「寫死、單一領域（Iran/US 衝突）」演進為「DB 可配置、領域分流」。
 > 相關服務規格：[normalizer-classifier](./services/normalizer-classifier.md)、[event-router](./services/event-router.md)。
 
@@ -108,7 +108,7 @@ Output unified JSON (schema in core), plus:
 - `primary_domain`：模型選定的主領域（預設取 router 最高分）。
 - `relevant_domains[]`：模型自評真正相關的領域。
 
-`severity` remains a single value computed by the existing deterministic `severity_for()` rule from relevance score and source metadata. The model supplies impact channels, not severity.
+`severity` 維持單一數值，由既有的 deterministic `severity_for()` 規則依 relevance score 與 source metadata 計算。模型提供 impact channels，不提供 severity。
 
 ## 6. Router 設計（取代寫死的 KEYWORD_GROUPS）
 
@@ -198,183 +198,221 @@ prefilter_passed = matched 非空  或  (source.priority in {P0,P1} 且有任何
 
 ### Status and authority
 
-On 2026-09-07 the user accepted moving category/tags from translation into
-classification (Plan B). This is a design decision only; implementation remains
-unauthorized in this discussion session. Other proposed numerical defaults and
-operational details are not frozen by that acceptance.
-The four content domains and controlled subscription taxonomy follow the accepted
-[content plan](../../../docs/plans/2026-09-07-news-content-taxonomy.md).
-Consumer notification behavior belongs to the
-[delivery plan](../../../docs/plans/2026-09-07-news-preferences-and-delivery.md).
-This service remains Python; Laravel Horizon belongs to consumer delivery only.
-Existing operator notification routes remain outside this change.
+2026-09-07，使用者同意將 category/tags 從 translation 移入
+classification（Plan B）。這僅是設計決策；本次討論 session 仍未授權實作。
+其他提議的數值預設與運維細節不因該同意而凍結。
+四個 content domains 與受控的 subscription taxonomy 遵循已同意的
+[content plan](../../../docs/plans/2026-09-07-news-content-taxonomy.md)。
+Consumer notification 行為屬於
+[delivery plan](../../../docs/plans/2026-09-07-news-preferences-and-delivery.md)。
+本服務維持 Python；Laravel Horizon 僅屬於 consumer delivery。
+既有 operator notification routes 不在此變更範圍內。
 
 ### Current implementation findings
 
-- `normalization.py` gives P0 a 30-point bonus against a 25-point threshold:
-  nonempty P0 items can pass without keyword matches. P1 still needs a match.
-  Removing that P0 bypass is a deliberate behavior change, not parity.
-- `model_client.py` generates category/tags in the auxiliary translation call,
-  after relevance classification. Translation can be disabled or fail.
-- `worker.py` calls translation after classification even when no event is created.
-  One classification call does not mean one total model request per item.
-- `db.py` derives severity using `severity_for()` and already updates tag counts.
-- Current budget counters live on the worker instance behind `asyncio.Lock`;
-  restart or another process gets separate counters. They are not a daily global cap.
+- `normalization.py` 給予 P0 30 分加權，threshold 為 25 分：
+  非空 P0 items 無需關鍵字命中即可通過。P1 仍需要命中。
+  移除該 P0 bypass 是刻意的行為變更，不是 parity。
+- `model_client.py` 在輔助 translation call 中、relevance classification 之後產生 category/tags。Translation 可被停用或失敗。
+- `worker.py` 在 classification 之後呼叫 translation，即使沒有 event 產生。
+  一次 classification call 不代表每個 item 只有一次模型請求。
+- `db.py` 以 `severity_for()` 推導 severity，且已更新 tag counts。
+- 目前的 budget counters 存放在 worker instance 上，由 `asyncio.Lock` 保護；
+  restart 或另一個 process 會取得獨立的 counters。它們不是每日全域上限。
 
 ### Plan A: deterministic routing and bounded prompt assembly
 
-Use four domains: `geopolitics`, `monetary`, `energy`, `macro_data`.
-Default `top_k=2`; defer three modules until labeled samples show a material gain.
-Do not add an LLM router, per-domain model fanout, or a new routing service.
+使用四個 domains：`geopolitics`、`monetary`、`energy`、`macro_data`。
+預設 `top_k=2`；第三個模組延後到 labeled samples 顯示實質收益再導入。
+不加入 LLM router、per-domain model fanout 或新的 routing service。
 
-Proposed initial scoring, subject to sample calibration:
+建議的初始計分，仍需樣本校準：
 
-- Each keyword has an explicit group; aliases in the same group contribute only
-  the maximum matched weight, once per domain. Repetition cannot inflate scores.
-- Strong entity/phrase groups contribute 30 points; weak groups contribute 10.
-  Generic words such as `rate`, `deal`, or `market` are weak, not strong triggers.
-- Source prior is 0 or 10 per domain, assigned explicitly. Priority alone is not
-  an automatic pass. Threshold is initially 30 for each domain.
-- A candidate requires a content match AND score >= threshold. Source prior
-  cannot create candidates without a content match.
-- Sort by score descending, then domain key ascending for deterministic ties.
-  Preserve all candidates as `matched_domains`; load the first two modules.
-- If no candidates exist, record `no_domain_match` and skip paid classification.
-  Audit rejected samples manually to find vocabulary gaps; do not silently
-  introduce a no-keyword official-source bypass.
-- Normalize Unicode and case consistently. Support literal `word` matching for
-  Latin abbreviations (so `fed` does not match `federalism`) and `substring`
-  matching for phrases/non-Latin terms. No administrator-authored regex in V1.
-  Existing multilingual keywords remain represented; no pre-routing AI translation.
+- 每個關鍵字有明確的 group；同 group 內的 aliases 只貢獻最大命中權重，
+  每個 domain 一次。重複不會灌水分數。
+- 強 entity/phrase groups 貢獻 30 分；弱 groups 貢獻 10 分。
+  `rate`、`deal`、`market` 這類通用詞屬於弱觸發，不是強觸發。
+- Source prior 每個 domain 為 0 或 10，明確指定。Priority 本身不是自動通過。
+  每個 domain 的 threshold 初始為 30。
+- 候選需要內容命中 AND score >= threshold。沒有內容命中時，source prior
+  不得製造候選。
+- 依分數降序排序，平手時以 domain key 升序，確保 deterministic。
+  所有候選保留在 `matched_domains`；載入前兩個模組。
+- 若無候選，記錄 `no_domain_match` 並跳過付費 classification。
+  人工審核被拒樣本以找出詞彙缺口；不得默默引入
+  no-keyword official-source bypass。
+- 一致地 normalize Unicode 與大小寫。對拉丁縮寫支援 literal `word` 匹配
+  （因此 `fed` 不會命中 `federalism`），對片語/非拉丁詞支援 `substring`
+  匹配。V1 不提供管理員撰寫的 regex。
+  既有多語關鍵字仍被保留；不做 pre-routing AI translation。
 
-The core includes a short description of all four domains, the unchanged output
-rules, and the controlled taxonomy. Detailed modules supply only the selected
-lenses. Domain is an analysis lens, not a synonym for category or impact channel.
+Core 包含四個 domains 的簡短描述、不變的 output rules，以及受控 taxonomy。
+Detailed modules 只提供被選中的 lenses。Domain 是分析 lens，不是 category 或
+impact channel 的同義詞。
 
-`primary_domain` is null for irrelevant results; otherwise it must be one of
-`relevant_domains`, which contains only enabled domain keys. A relevant domain
-outside router candidates is permitted and recorded as a routing mismatch.
-It must not trigger another classification call. Preserve the current impact-channel
-wire vocabulary and deterministic severity rule; do not invent `Fed` as a new enum.
+`primary_domain` 對 irrelevant 結果為 null；否則必須是 `relevant_domains` 之一，
+後者只包含已啟用的 domain keys。允許 router 候選之外的 relevant domain，
+並記錄為 routing mismatch。
+它不得觸發另一次 classification call。保留目前的 impact-channel
+wire vocabulary 與 deterministic severity 規則；不得發明 `Fed` 作為新 enum。
 
-Validate prompt size before requests. Remove the lower-ranked domain module first;
-never remove the core/output schema/taxonomy silently. If core plus the highest
-module cannot fit, fail configuration validation. Input and output token limits
-must be explicit for the chosen model; final numbers require model inventory.
-News text is untrusted input and cannot override the system instructions.
+請求前驗證 prompt 大小。先移除較低分的 domain module；
+絕不默默移除 core / output schema / taxonomy。若 core 加上最高模組仍放不下，
+視為 configuration validation 失敗。所選模型的 input / output token limits
+必須明確；最終數字需要 model inventory。新聞文字是不可信輸入，
+不得覆蓋 system instructions。
 
 ### Plan B: one authoritative taxonomy result
 
-Accepted design change (2026-09-07): move `content_category` and `topic_tags` into the existing
-classification response, supplying the controlled taxonomy in the same request.
-This makes taxonomy readiness independent of optional translation. Actual sending
-still requires publishable public text under the delivery contract.
+已接受的設計變更（2026-09-07）：將 `content_category` 與 `topic_tags` 移入既有的
+classification response，並在同一請求中提供受控 taxonomy。
+這使 taxonomy readiness 與可選的 translation 脫鉤。實際發送仍依 delivery contract
+需要可發佈的 public 文字。
 
-- Validate category, normalized tag keys, and the 12-tag limit before persisting.
-  Respect the category underscore normalization fix in the content plan.
-- Persist classification, category/tag associations, domain metadata, and any event
-  in one transaction. A consumer-visible event must not appear before its taxonomy.
-- Translation then owns translated text only; remove its taxonomy writes together
-  with the new classifier writer. Do not run two competing taxonomy writers.
-- Keep category/tag results for classified items that do not become events, so
-  existing review/browsing behavior does not lose classification information.
-- Preserve reviewed subscription vocabulary and internal suggested-tag behavior;
-  AI output must never automatically make a new tag subscribable.
-- A failed translation retains classification and taxonomy. The delivery contract's
-  text fallback applies; no per-user model call is introduced.
-- No automatic historical reclassification or notification replay.
+- 持久化前驗證 category、normalized tag keys 與 12-tag 上限。
+  遵守 content plan 中的 category underscore normalization 修正。
+- classification、category/tag 關聯、domain metadata 與任何 event
+  在同一 transaction 中持久化。Consumer 可見的 event 不得出現在其 taxonomy 之前。
+- Translation 之後只負責翻譯文字；連同新的 classifier writer 一起移除其 taxonomy 寫入。
+  不得同時運行兩個競爭的 taxonomy writers。
+- 為已分類但未成為 event 的 items 保留 category/tag 結果，
+  使既有 review/browsing 行為不會失去 classification 資訊。
+- 保留已審核的 subscription vocabulary 與 internal suggested-tag 行為；
+  AI 輸出不得自動使新 tag 變成 subscribable。
+- 翻譯失敗仍保留 classification 與 taxonomy。適用 delivery contract 的
+  text fallback；不引入 per-user model call。
+- 不做自動歷史重新分類或通知重放。
 
-The user accepted this scope adjustment. Translation failure must not remove or
-overwrite taxonomy. This does not authorize publishing private text or bypassing
-existing public-content approval rules. The user also accepted the severity-based language policy in delivery plan N8
-on 2026-09-07: S allows immediate alternative-language summaries, A allows them
-after two minutes from public receipt, and B/C wait for the requested language
-until expiry. Approved classification summaries are eligible; their publication
-and synchronization path already exists (event-router -> public outbox -> public-api).
-The audit and proposed language-label/overwrite corrections are in delivery plan N8.
+使用者已接受此範圍調整。翻譯失敗不得移除或覆蓋 taxonomy。這不授權發佈 private 文字
+或繞過既有 public-content 審核規則。使用者也在 2026-09-07 同意了 delivery plan N8 的
+severity-based language policy：S 允許立即提供替代語言摘要，A 自公共接收兩分鐘後允許，
+B/C 在到期前等待請求的語言。Approved classification summaries 符合資格；其發佈
+與同步路徑已存在（event-router -> public outbox -> public-api）。
+審核與提議的 language-label/overwrite 修正見 delivery plan N8。
 
 ### Plan C: configuration ownership and reproducibility
 
-Keep the proposed four configuration tables, adding keyword group and literal
-match mode fields. Manage their initial contents through reviewed seeds/scripts.
-Do not add an admin UI, scheduled AI curation, or live A/B infrastructure in V1.
-Controlled database configuration updates remain operational changes; they are
-not permission to edit production without the release/backup workflow.
+保留提議的四張 configuration tables，加入 keyword group 與 literal
+match mode 欄位。初始內容透過受審核的 seeds / scripts 管理。
+V1 不加入 admin UI、排程 AI curation 或 live A/B 基礎設施。
+受控的 database configuration 更新仍屬於運維變更；
+它們不是未經 release/backup workflow 就編輯 production 的許可。
 
-Read a consistent configuration snapshot per claimed batch. Hash canonical sorted
-content covering keywords/groups/weights, priors, domain settings, prompt bodies,
-matching version, top-K, and the actual taxonomy context. Retain the immutable
-snapshot by hash and stamp processing attempts/events with that hash. Record model
-identity and request parameters alongside existing usage records. This supports
-explanation and reconstruction, not a promise of deterministic model output.
+每個 claimed batch 讀取一致的 configuration snapshot。對涵蓋 keywords/groups/weights、
+priors、domain settings、prompt bodies、matching version、top-K 與實際 taxonomy context
+的 canonical sorted content 做 hash。以 hash 保留 immutable snapshot，
+並以該 hash stamp processing attempts / events。在既有 usage records 旁記錄 model
+identity 與 request parameters。這是為了解釋與重建，不是 deterministic model output 的承諾。
 
-Reject incomplete configurations before activation. During rollout, keep the prior
-valid configuration/code artifact available; config rollback does not undo stored
-events. No automatic reprocessing during rollback.
+啟用前拒絕不完整配置。Rollout 期間保留前一個有效 configuration / code artifact；
+config rollback 不會復原已儲存的 events。Rollback 期間不做自動重處理。
 
 ### Plan D: protect shared model capacity
 
-Reuse private PostgreSQL for a small shared daily request counter; do not introduce
-another queue/cache service for this purpose. Reserve atomically before each actual
-provider request using a conditional update and `RETURNING`. Use the database's UTC
-calendar day. Count classification, translation, retries, and fallback requests
-against one total cap, with a translation sub-cap to protect classification capacity.
+為小型的共享每日 request counter 重用 private PostgreSQL；不為此引入
+另一個 queue/cache 服務。每次實際 provider 請求前，以 conditional update 與
+`RETURNING` 原子性預留。使用資料庫的 UTC calendar day。
+將 classification、translation、retries 與 fallback 請求計入同一總上限，
+並為 translation 設子上限以保護 classification 容量。
 
-Reservations are conservative: after a crash or uncertain network outcome, do not
-refund them. If the budget store is unavailable, do not call the model. A count cap
-is not a dollar guarantee: explicit model/token limits and usage reporting are also
-required. Hidden SDK retries must be disabled or included in reservations.
+Reservation 採保守策略：crash 或網路結果不確定後，不退款。
+若 budget store 不可用，不呼叫模型。數量上限不是金額保證：
+明確的 model/token limits 與 usage reporting 同樣必需。
+隱藏的 SDK retries 必須停用或計入 reservation。
 
-On classification exhaustion, defer the existing processing task without counting
-it as irrelevant or burning failure retries. On translation exhaustion, retain the
-classified event and record a translation budget skip. Resumption at UTC rollover
-must not bypass the consumer delivery freshness window. Existing per-run limits may
-remain supplementary guards, but cannot be presented as the shared cap.
+Classification 額度用盡時，延後既有 processing task，不將其計為 irrelevant，
+也不消耗 failure retries。Translation 額度用盡時，保留已分類的 event 並記錄
+translation budget skip。UTC 日切時的恢復不得繞過 consumer delivery 的
+freshness window。既有的 per-run limits 可作為輔助防護，
+但不得呈現為共享上限。
 
-Proposed sizing procedure: collect seven days of source volume and provider usage;
-set a nonzero launch cap from that baseline and an owner-approved spend envelope.
-Do not invent a dollar budget or automatically raise caps when channels are added.
+建議的 sizing 程序：收集七天的 source volume 與 provider usage；
+依該基線與 owner 核准的支出 envelope 設定非零的啟動上限。
+不虛構 dollar budget，也不在加入 channels 時自動調高上限。
 
-References: [Python asyncio synchronization](https://docs.python.org/3/library/asyncio-sync.html)
-and [PostgreSQL UPDATE / RETURNING](https://www.postgresql.org/docs/current/sql-update.html).
+References（參考）：[Python asyncio synchronization](https://docs.python.org/3/library/asyncio-sync.html)
+與 [PostgreSQL UPDATE / RETURNING](https://www.postgresql.org/docs/current/sql-update.html)。
 
 ### Acceptance and rollout
 
-1. Build a labeled offline set: at least 20 relevant samples per domain and 40
-   irrelevant/ambiguous samples, covering existing languages and cross-domain news.
-   Reserve a held-out portion; do not tune and score only on the same examples.
-2. First check legacy routing parity without model calls. Seeding old keyword groups
-   directly into four domains does not guarantee equivalent scoring. List deliberate
-   differences, especially removal of the P0 bypass, separately from regressions.
-3. Proposed quality gates: all explicitly labeled must-deliver samples pass routing;
-   relevant-sample routing recall >=95%; category agreement >=90%. Report per-domain
-   results and sample counts. These are sample gates, not production guarantees.
-4. Verify one logical classification per item, deterministic ties/group deduplication,
-   invalid output handling, taxonomy-before-event visibility, translation failure,
-   and multiple-worker/restart budget enforcement. Count actual retry requests too.
-5. Activate with existing channels first, inspect pass rate, model requests, taxonomy
-   readiness, rejection samples, and backlog age. Expand channels in small batches
-   only after this behavior is understood. No duplicate production LLM shadow calls.
-6. Roll back code/config together if taxonomy ownership/schema changes require it;
-   pause new consumer delivery until compatibility is verified. Retain raw data and
-   existing deduplication state; never replay already delivered events automatically.
+1. 建立 labeled offline set：每個 domain 至少 20 筆 relevant samples 與 40 筆
+   irrelevant / ambiguous samples，涵蓋既有語言與跨領域新聞。
+   保留 held-out 部分；不得只用同一批樣本調校又計分。
+2. 先在不呼叫模型的情況下檢查 legacy routing parity。直接把舊關鍵字組
+   seed 進四個 domains 不保證等價計分。將刻意差異（特別是移除 P0 bypass）
+   與 regression 分開列出。
+3. 建議的 quality gates：所有明確標記必須送達的樣本通過 routing；
+   relevant-sample routing recall >=95%；category agreement >=90%。
+   報告 per-domain 結果與樣本數。這些是樣本 gate，不是 production 保證。
+4. 驗證每個 item 一次邏輯 classification、deterministic 平手 / group 去重、
+   無效輸出處理、taxonomy 先於 event 可見、translation 失敗，
+   以及多 worker / restart 的 budget enforcement。實際 retry 請求也要計入。
+5. 先以既有 channels 啟用，觀察 pass rate、model requests、taxonomy
+   readiness、被拒樣本與 backlog age。只有在理解此行為後才小批量擴充 channels。
+   不做重複的 production LLM shadow calls。
+6. 若 taxonomy ownership / schema 變更需要，code 與 config 一起回滾；
+   相容性驗證前暫停新的 consumer delivery。保留原始資料與既有去重狀態；
+   絕不自動重放已送達的 events。
 
 ### TODOs before implementation-ready status
 
-- [x] Accept moving taxonomy into classification (2026-09-07).
-- [x] Accept severity-based public-text readiness policy (delivery plan N8).
-- [ ] Freeze routing defaults and approved classification-summary publication details.
-- Freeze source priors, keyword groups, labels/aliases, and the labeled sample set.
-- Inventory actual models, token bounds, usage baseline, and daily budget values.
-- Specify migration columns, event/translation write boundaries, snapshot retention,
-  and task defer/resume behavior in implementation tickets after design acceptance.
+- [x] 接受將 taxonomy 移入 classification（2026-09-07）。
+- [x] 接受 severity-based public-text readiness policy（delivery plan N8）。
+- [ ] 凍結 routing 預設值與 approved classification-summary 的發佈細節。
+- 凍結 source priors、keyword groups、labels / aliases 與 labeled sample set。
+- 盤點實際 models、token bounds、usage baseline 與每日 budget 值。
+- 設計驗收後，在實作 tickets 中指明 migration 欄位、event / translation 寫入邊界、
+  snapshot retention 與 task defer / resume 行為。
 
 
 ### Prerequisite update: legacy summary retirement (2026-09-07)
 
-The user requested retiring fixed-language event summary storage before larger News
-implementation. Follow [standalone retirement plan](../../../docs/plans/2026-09-07-legacy-event-summary-retirement.md)
-for proposed `event_translations`, classifier language-row output and consumer migration.
-Do not extend `events.summary_zh/summary_en` as the target of the new classifier.
-The existing evidence above remains a description of current code, not desired storage.
+使用者要求在較大的 News 實作之前，先退役固定語言的 event summary 儲存。
+針對提議的 `event_translations`、classifier language-row 輸出與 consumer migration，
+遵循 [standalone retirement plan](../../../docs/plans/2026-09-07-legacy-event-summary-retirement.md)。
+不得將 `events.summary_zh/summary_en` 擴充為新 classifier 的目標。
+上述既有證據仍是對目前程式碼的描述，不是目標儲存方式。
+
+
+## Direction checkpoint: routing and exhausted AI capacity (2026-09-07)
+
+The user accepted the following behavior principles on 2026-09-07. Accepted taxonomy ownership,
+summary-retirement priority and delivery policies are unchanged. This checkpoint
+separates remaining decisions from numerical calibration before implementation.
+
+| Question | Recommended behavior |
+| --- | --- |
+| Source priority versus content | A trusted source raises confidence/prior but does not automatically make every item relevant. Require content evidence in the configured domain rules. Removing today's P0 no-keyword bypass is an explicit behavior change that requires a labeled-sample comparison before activation. |
+| Multi-domain events | Assemble at most two detailed domain lenses in one logical classification request, retaining all matched domains as metadata. No per-domain LLM fanout; input/output schema and taxonomy remain mandatory. |
+| Missed topics | Keep rejected raw items under existing retention and audit representative rejected samples. Adjust centrally reviewed keywords/prompts; do not add automatic per-item LLM fallback that defeats the prefilter budget. |
+| Shared budget | Enforce a shared limit across workers/restarts and count every provider request including retries/translations/fallbacks. Reserve translation sub-capacity so optional text work cannot exhaust classification capacity. Request limits and token/model constraints jointly control cost. |
+| Budget exhaustion or budget-store outage | Preserve raw data and a deferred reason; do not classify budget-denied input as irrelevant. Do not silently increase spend, switch to a paid fallback outside budget, or start another worker to bypass limits. Notify the operator through an existing operational path. |
+| Resumption | Resume within configured capacity and preserve new live intake capacity. Deferred historical classification is distinct from notification catch-up; expired news is never sent by bypassing accepted delivery freshness. Define bounded backlog scheduling/lookback before implementation. |
+| Configuration changes | Keep rules/prompts versioned and reviewable. Adding a channel/domain does not automatically raise budget. Do not build an admin UI, automatic prompt rewriting or online A/B platform for V1. |
+
+No exact keyword weights, monetary cap, backlog horizon or SLA is frozen by this
+proposal. Recheck source cadence, languages, rejection samples, current model settings
+and measured usage before implementation. The historical best-effort raw retention
+window is not expanded automatically by this plan.
+
+
+Routing review checkpoint: content evidence remains required even for P0; top-K=2
+single logical classification, reviewed keyword changes, shared AI accounting and
+budget-denied deferral are accepted. Numeric scoring, model limits and backlog
+scheduling still require preimplementation calibration. No runtime changes had been made at that review checkpoint.
+
+## 16. Local implementation record (2026-09-11)
+
+- `0024_subscription_taxonomy` adds the accepted eight subscribable categories,
+  27 subscribable tags and en/zh-Hant labels. Classification is the sole taxonomy
+  writer; translation only writes language rows and status.
+- `0025_domain_routing` adds the four routing tables, four seeded domains, grouped
+  word/substring keywords, optional source priors and versioned prompt modules.
+  Runtime routing requires content evidence, sums one maximum weight per group,
+  sorts score-desc/key-asc, selects two lenses and stamps a SHA-256 configuration hash.
+- `0026_ai_daily_budgets` provides atomic PostgreSQL reservations across workers and
+  restarts. Total/classification/translation limits remain `0` until a measured budget
+  is approved; configured store failure prevents the provider call.
+- Local migration round-trips, seeded DB-context routing, atomic budget reservations
+  and normalizer tests pass. Production activation still requires the labeled sample
+  calibration, model/token inventory, release backup gate and the legacy-summary R5 gate.

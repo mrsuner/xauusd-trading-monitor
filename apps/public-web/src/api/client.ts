@@ -7,6 +7,7 @@ import type {
   PublicCategory,
   PublicEvent,
   PublicRawItem,
+  SubscriptionCatalog,
   PublicTag,
   RawItemFilters
 } from "./types";
@@ -50,6 +51,10 @@ export async function getOverviewStats(): Promise<OverviewStats> {
 
 export async function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/health");
+}
+
+export async function getSubscriptionCatalog(): Promise<SubscriptionCatalog> {
+  return request<SubscriptionCatalog>("/subscription-catalog");
 }
 
 async function request<T>(

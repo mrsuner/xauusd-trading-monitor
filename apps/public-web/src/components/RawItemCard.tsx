@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { PublicRawItem } from "../api/types";
+import type { Language, PublicRawItem } from "../api/types";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import {
   displayCategory,
@@ -16,18 +16,21 @@ import {
 export function RawItemCard({
   item,
   compact = false,
-  showFullTranslation = false
+  showFullTranslation = false,
+  contentLanguage,
 }: {
   item: PublicRawItem;
   compact?: boolean;
   showFullTranslation?: boolean;
+  contentLanguage?: Language;
 }) {
   const lang = useLanguage();
+  const preferredLanguage = contentLanguage ?? lang;
   const t = useI18n();
   const to = useLocalizedPath();
   const relevance = relevanceBand(item.relevance_score, t);
   const timestamp = rawItemTimestamp(item);
-  const fullTranslation = rawItemFullTranslation(item, lang);
+  const fullTranslation = rawItemFullTranslation(item, preferredLanguage);
 
   return (
     <article className="rounded-box border border-base-300 bg-base-200/40 p-4 transition-colors hover:border-primary/40">
@@ -43,7 +46,7 @@ export function RawItemCard({
         </h2>
       </Link>
 
-      <p className="mt-2 text-sm leading-6 text-base-content/70">{rawItemSummary(item, t, lang)}</p>
+      <p className="mt-2 text-sm leading-6 text-base-content/70">{rawItemSummary(item, t, preferredLanguage)}</p>
 
       {showFullTranslation && fullTranslation && (
         <details className="mt-3 border-t border-base-300/60 pt-3">

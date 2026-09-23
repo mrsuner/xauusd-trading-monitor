@@ -12,7 +12,12 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from .db import Database, PublicRepository
-from .models import PublicEventIngestRequest, PublicRawItemIngestRequest
+from .models import (
+    PublicEventIngestRequest,
+    PublicEventInvalidationRequest,
+    PublicRawItemIngestRequest,
+    SubscriptionCatalogIngestRequest,
+)
 from .security import timestamp_age_seconds, verify_signature
 from .settings import Settings
 
@@ -238,6 +243,7 @@ def create_app() -> FastAPI:
         repository: PublicRepository = Depends(repo),
         default_page_size: int = Depends(page_size_default),
         severity: str | None = None,
+        min_severity: Annotated[str | None, Query(pattern="^[SABC]$")] = None,
         confirmation_state: str | None = None,
         tag: str | None = None,
         category: str | None = None,
@@ -253,12 +259,83 @@ def create_app() -> FastAPI:
             page_size=page_size or default_page_size,
             lang=lang,
             severity=severity,
+            min_severity=min_severity,
             confirmation_state=confirmation_state,
             tag=tag,
             category=category,
             q=q,
             from_time=from_time,
             to_time=to_time,
+        )
+
+    @app.post("/ingest/subscription-catalog")
+    async def ingest_subscription_catalog(
+        request: Request,
+        authorization: Annotated[str | None, Header()] = None,
+        idempotency_header: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+        xer_key_id: Annotated[str | None, Header(alias="X-XER-Key-Id")] = None,
+        xer_timestamp: Annotated[str | None, Header(alias="X-XER-Timestamp")] = None,
+        xer_nonce: Annotated[str | None, Header(alias="X-XER-Nonce")] = None,
+        xer_signature: Annotated[str | None, Header(alias="X-XER-Signature")] = None,
+        repository: PublicRepository = Depends(repo),
+    ) -> dict[str, Any]:
+        body = await request.body()
+        settings: Settings = request.app.state.settings
+        if len(body) > settings.ingest_max_body_bytes:
+            raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Payload too large")
+        try:
+            body_obj = json.loads(body)
+            idempotency_key = str(body_obj.get("idempotency_key") or idempotency_header or "")
+        except json.JSONDecodeError:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message="invalid_json",
+                idempotency_key=idempotency_header,
+                ingest_kind="subscription_catalog",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        try:
+            await _authorize_ingest(
+                settings=settings,
+                repository=repository,
+                body=body,
+                authorization=authorization,
+                idempotency_key=idempotency_key,
+                key_id=xer_key_id,
+                timestamp=xer_timestamp,
+                nonce=xer_nonce,
+                signature=xer_signature,
+            )
+            payload = SubscriptionCatalogIngestRequest.model_validate(body_obj)
+        except HTTPException as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc.detail),
+                idempotency_key=idempotency_key,
+                ingest_kind="subscription_catalog",
+            )
+            raise
+        except ValidationError as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc),
+                idempotency_key=idempotency_key,
+                ingest_kind="subscription_catalog",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid subscription catalog payload") from exc
+        if idempotency_header and idempotency_header != payload.idempotency_key:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Idempotency-Key header mismatch")
+        return await repository.ingest_subscription_catalog(
+            payload,
+            raw_body=body,
+            key_id=xer_key_id,
+            nonce=xer_nonce,
         )
 
     @app.get("/events/{public_event_id}")
@@ -271,6 +348,83 @@ def create_app() -> FastAPI:
         if not event:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
         return event
+
+    @app.post("/ingest/events/{upstream_event_id}/invalidation")
+    async def invalidate_event(
+        upstream_event_id: UUID,
+        request: Request,
+        authorization: Annotated[str | None, Header()] = None,
+        idempotency_header: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+        xer_key_id: Annotated[str | None, Header(alias="X-XER-Key-Id")] = None,
+        xer_timestamp: Annotated[str | None, Header(alias="X-XER-Timestamp")] = None,
+        xer_nonce: Annotated[str | None, Header(alias="X-XER-Nonce")] = None,
+        xer_signature: Annotated[str | None, Header(alias="X-XER-Signature")] = None,
+        repository: PublicRepository = Depends(repo),
+    ) -> dict[str, Any]:
+        body = await request.body()
+        settings: Settings = request.app.state.settings
+        if len(body) > settings.ingest_max_body_bytes:
+            raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Payload too large")
+        try:
+            body_obj = json.loads(body)
+            idempotency_key = str(body_obj.get("idempotency_key") or idempotency_header or "")
+        except json.JSONDecodeError:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message="invalid_json",
+                idempotency_key=idempotency_header,
+                ingest_kind="event_invalidation",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        try:
+            await _authorize_ingest(
+                settings=settings,
+                repository=repository,
+                body=body,
+                authorization=authorization,
+                idempotency_key=idempotency_key,
+                key_id=xer_key_id,
+                timestamp=xer_timestamp,
+                nonce=xer_nonce,
+                signature=xer_signature,
+            )
+            payload = PublicEventInvalidationRequest.model_validate(body_obj)
+        except HTTPException as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc.detail),
+                idempotency_key=idempotency_key,
+                ingest_kind="event_invalidation",
+            )
+            raise
+        except ValidationError as exc:
+            await repository.record_rejected_ingest(
+                raw_body=body,
+                key_id=xer_key_id,
+                nonce=xer_nonce,
+                error_message=str(exc),
+                idempotency_key=idempotency_key,
+                ingest_kind="event_invalidation",
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid event invalidation payload") from exc
+
+        expected_key = f"event_invalidation:{upstream_event_id}:{payload.kind}"
+        if payload.idempotency_key != expected_key or (idempotency_header and idempotency_header != payload.idempotency_key):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Idempotency key mismatch")
+        result = await repository.invalidate_event(
+            upstream_event_id,
+            payload,
+            raw_body=body,
+            key_id=xer_key_id,
+            nonce=xer_nonce,
+        )
+        if result is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+        return result
 
     @app.get("/raw-items")
     async def list_raw_items(
@@ -322,6 +476,10 @@ def create_app() -> FastAPI:
     @app.get("/categories")
     async def list_categories(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
         return {"items": await repository.list_categories()}
+
+    @app.get("/subscription-catalog")
+    async def get_subscription_catalog(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:
+        return await repository.get_subscription_catalog()
 
     @app.get("/stats/overview")
     async def stats_overview(repository: PublicRepository = Depends(repo)) -> dict[str, Any]:

@@ -4,38 +4,41 @@ import { FormEvent, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { listCategories, listEvents, listTags, getOverviewStats } from "../api/client";
 import type { EventFilters } from "../api/types";
+import { useAppliedReaderPreferences } from "../features/reader-preferences/domain/useAppliedReaderPreferences";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { EventCard } from "../components/EventCard";
 import { categoryLabel } from "../components/format";
 import { PageHeader } from "../components/PageHeader";
 import { StatsStrip } from "../components/StatsStrip";
-import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
+import { useI18n, useLocalizedPath } from "../i18n";
 
 const pageSize = 20;
 
 export function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
-  const lang = useLanguage();
+  const reader = useAppliedReaderPreferences();
   const t = useI18n();
   const to = useLocalizedPath();
 
   const filters = useMemo<EventFilters>(
     () => ({
       severity: searchParams.get("severity") ?? undefined,
+      min_severity: searchParams.has("severity") ? undefined : (searchParams.get("min_severity") === "C" ? "C" : reader.minSeverity),
       tag: searchParams.get("tag") ?? undefined,
       category: searchParams.get("category") ?? undefined,
       q: searchParams.get("q") ?? undefined,
-      lang,
+      lang: reader.contentLanguage,
       page: Number(searchParams.get("page") ?? "1"),
       page_size: pageSize
     }),
-    [lang, searchParams]
+    [reader.contentLanguage, reader.minSeverity, searchParams]
   );
 
   const eventsQuery = useQuery({
     queryKey: ["public-events", filters],
     queryFn: () => listEvents(filters),
+    enabled: reader.ready,
     refetchInterval: 60_000
   });
   const tagsQuery = useQuery({ queryKey: ["public-tags"], queryFn: listTags, staleTime: 60_000 });
@@ -62,6 +65,16 @@ export function EventsPage() {
     updateFilter("q", query.trim());
   }
 
+  function updateSeverity(value: string) {
+    const next = new URLSearchParams(searchParams);
+    next.delete("severity");
+    next.delete("min_severity");
+    if (value === "all") next.set("min_severity", "C");
+    else if (value) next.set("severity", value);
+    next.delete("page");
+    setSearchParams(next);
+  }
+
   function setPage(page: number) {
     const next = new URLSearchParams(searchParams);
     if (page <= 1) {
@@ -74,6 +87,12 @@ export function EventsPage() {
 
   const totalPages = Math.max(1, Math.ceil((eventsQuery.data?.total ?? 0) / pageSize));
   const currentPage = Number(filters.page ?? 1);
+  const accountMinimum = reader.minSeverity ? {
+    S: t.reader.severityMajor,
+    A: t.reader.severityHigh,
+    B: t.reader.severityWatch,
+    C: t.reader.severityAll,
+  }[reader.minSeverity] : null;
 
   return (
     <>
@@ -108,11 +127,12 @@ export function EventsPage() {
 
             <select
               className="select select-bordered w-full"
-              value={filters.severity ?? ""}
-              onChange={(event) => updateFilter("severity", event.target.value)}
+              value={searchParams.get("min_severity") === "C" ? "all" : (filters.severity ?? "")}
+              onChange={(event) => updateSeverity(event.target.value)}
               aria-label={t.events.ariaSeverity}
             >
-              <option value="">{t.events.allSeverity}</option>
+              <option value="">{accountMinimum ? `${t.events.accountMinimum}: ${accountMinimum}` : t.events.allSeverity}</option>
+              {reader.minSeverity && <option value="all">{t.events.allSeverity}</option>}
               <option value="S">{t.events.severityOptions.S}</option>
               <option value="A">{t.events.severityOptions.A}</option>
               <option value="B">{t.events.severityOptions.B}</option>
@@ -150,7 +170,7 @@ export function EventsPage() {
         </div>
 
         <div className="mt-6 grid gap-4">
-          {eventsQuery.isLoading && <LoadingState />}
+          {(!reader.ready || eventsQuery.isLoading) && <LoadingState />}
           {eventsQuery.isError && <ErrorState message={(eventsQuery.error as Error).message} />}
           {eventsQuery.data?.items.length === 0 && (
             <EmptyState
@@ -158,7 +178,7 @@ export function EventsPage() {
               body={t.events.emptyBody}
             />
           )}
-          {eventsQuery.data?.items.map((event) => <EventCard key={event.id} event={event} />)}
+          {eventsQuery.data?.items.map((event) => <EventCard key={event.id} event={event} contentLanguage={reader.contentLanguage} />)}
         </div>
 
         {eventsQuery.data && eventsQuery.data.total > pageSize && (

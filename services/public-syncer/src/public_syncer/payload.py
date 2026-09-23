@@ -33,6 +33,8 @@ def build_payload(
         "route_metadata": {
             "source": "public_outbox",
             "public_outbox_id": str(item.id),
+            "primary_domain": item.primary_domain,
+            "matched_domains": item.matched_domains,
         },
     }
 

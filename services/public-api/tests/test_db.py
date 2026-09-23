@@ -7,6 +7,7 @@ from public_api.db import (
     _build_filters,
     _build_raw_item_filters,
     normalize_public_language,
+    public_event_has_summary,
     public_event_translation_rows,
     public_event_translation_search_exists_sql,
     public_event_translations_select_sql,
@@ -17,6 +18,11 @@ from public_api.db import (
     shape_public_raw_item,
 )
 from public_api.models import PublicEventIngestRequest, PublicRawItemIngestRequest
+
+
+def test_public_event_readiness_requires_a_nonempty_summary() -> None:
+    assert public_event_has_summary([{"language": "en", "summary": "Ready"}]) is True
+    assert public_event_has_summary([{"language": "en", "summary": "  "}, {"language": "ja", "title": "Title"}]) is False
 
 
 def event_row(**overrides: object) -> dict[str, object]:
@@ -266,6 +272,24 @@ def test_build_filters_searches_translation_rows() -> None:
     assert "public_events_translations pet_search" in where
     assert "pet_search.title ilike %(q)s" in where
     assert params["q"] == "%日本語%"
+
+
+def test_build_filters_applies_inclusive_minimum_severity() -> None:
+    for minimum, expected in {
+        "S": ["S"],
+        "A": ["S", "A"],
+        "B": ["S", "A", "B"],
+        "C": ["S", "A", "B", "C"],
+    }.items():
+        where, params = _build_filters(min_severity=minimum)
+        assert "severity = any(%(allowed_severities)s)" in where
+        assert params["allowed_severities"] == expected
+
+
+def test_exact_severity_overrides_reader_minimum() -> None:
+    where, params = _build_filters(severity="B", min_severity="A")
+    assert "severity = %(severity)s" in where
+    assert "allowed_severities" not in params
 
 
 def test_public_event_translation_rows_use_payload_translations() -> None:

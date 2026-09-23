@@ -25,6 +25,8 @@ class PublicOutboxItem(BaseModel):
     event_type: str | None = None
     content_category: str | None = None
     topic_tags: list[str] = Field(default_factory=list)
+    primary_domain: str | None = None
+    matched_domains: list[str] = Field(default_factory=list)
     retry_count_web: int = 0
     generated_at: datetime
     event_time: datetime | None = None
@@ -42,6 +44,13 @@ class PublicOutboxItem(BaseModel):
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
         return []
+
+    @field_validator("matched_domains", mode="before")
+    @classmethod
+    def normalize_domains(cls, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return sorted({str(item).strip() for item in value if str(item).strip()})
 
 
 class PublicRawItemTranslation(BaseModel):

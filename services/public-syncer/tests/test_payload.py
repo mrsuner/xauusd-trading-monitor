@@ -26,6 +26,8 @@ def make_item() -> PublicOutboxItem:
         relevance_score=80,
         confirmation_state="confirmed",
         topic_tags=["Iran", "Gold"],
+        primary_domain="geopolitics",
+        matched_domains=["geopolitics", "energy"],
         retry_count_web=1,
         generated_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
     )
@@ -51,6 +53,8 @@ def test_build_payload_is_public_safe() -> None:
         {"url": "https://example.com/news", "source_name": "Example", "label": "Example"}
     ]
     assert payload["route_metadata"]["public_outbox_id"] == str(item.id)
+    assert payload["route_metadata"]["primary_domain"] == "geopolitics"
+    assert payload["route_metadata"]["matched_domains"] == ["energy", "geopolitics"]
     assert "available_languages" not in payload
     assert "public_title_zh" not in payload
     assert "public_summary_zh" not in payload
@@ -247,6 +251,24 @@ def test_build_raw_item_payload_is_public_safe() -> None:
     assert payload["classification"]["relevance_score"] == 88
     assert "raw_json" not in payload
     assert "text_raw" not in payload
+
+
+def test_headline_only_raw_item_keeps_enriched_summaries() -> None:
+    item = make_raw_item()
+    item.text_clean = item.title
+
+    payload = build_raw_item_payload(
+        item,
+        max_original_chars=4000,
+        max_translation_chars=8000,
+        sync_languages=("zh-Hant", "en"),
+    )
+
+    assert payload["original_content"] == "Raw item title"
+    assert [(row["language"], row["summary"]) for row in payload["translations"]] == [
+        ("zh-Hant", "中文摘要"),
+        ("en", "English summary"),
+    ]
 
 
 def test_build_raw_item_payload_truncates_original_and_translation() -> None:

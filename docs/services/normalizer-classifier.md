@@ -122,7 +122,7 @@ rule prefilter
 dedupe / near-dedupe
   ├── Layer 2 classification-reasoning
   │     - input: source metadata + original text_clean/text_raw only
-  │     - output: relevance, event_type, claim_direction, event fields
+  │     - output: relevance, event_type, claim_direction, event fields, taxonomy
   │     - write processing result / create event / notify event-router
   ↓
   Layer 1 translation-summary, best-effort after classification
@@ -208,11 +208,13 @@ Layer 1: translation-summary
   fallback: openai/gpt-oss-20b
   output:
     raw_item_translations.summary / full_translation by language
-    raw_items.content_category / topic_tags / mentioned_actors
 
 Layer 2: classification-reasoning
   basic: gpt-5.4-mini
   advanced: reserved for Claude Code Agent SDK / stronger model
+  output:
+    relevance / event fields
+    raw_items.content_category / topic_tags / mentioned_actors
 ```
 
 Layer 1 使用 OpenRouter OpenAI-compatible API。預設先呼叫 `openai/gpt-oss-20b:free`；若 free route 429、timeout、invalid JSON 或其他 transient failure，且 `TRANSLATION_PAID_FALLBACK_ENABLED=true`，則 fallback 到 `openai/gpt-oss-20b`。Paid fallback 在 development 也預設開啟，但 `make dev` 會提供小的 translation budget 避免 backfill 時無限制消耗。
@@ -233,25 +235,30 @@ Layer 1 單次 API call 直接產生多語 `translations[]`：
       "full_translation": "English full translation"
     }
   ],
-  "content_category": "diplomacy",
-  "topic_tags": ["iran", "nuclear", "sanctions"],
-  "mentioned_actors": ["Iran", "United States", "State Department"],
   "detected_language": "fa",
   "notes": null
 }
 ```
 
-`content_category`、`topic_tags` 與 `mentioned_actors` 只用於 Timeline 檢索與資訊分類，不代表交易相關性、通知優先級或事件嚴重度。Layer 1 不輸出 `severity`、`relevance_score` 或 `should_alert`。
+Layer 1 only owns translated text and translation status. A translation failure
+does not clear or replace taxonomy produced by Layer 2.
 
 Taxonomy 規則：
 
-- `content_category` 是 controlled category，Layer 1 prompt 會帶入 DB 中啟用的 `content_categories`，模型必須優先從這些 keys 選擇；若都不適合，使用 `other`。
-- `topic_tags` 是 semi-controlled tags，Layer 1 會看到一批 known tags，但可以輸出新的短 tag。
+- `content_category` 是 controlled category，Layer 2 prompt 會帶入 DB 中啟用的 `content_categories`，模型必須優先從這些 keys 選擇；若都不適合，使用 `other`。
+- `topic_tags` 是 semi-controlled tags，Layer 2 會看到一批 known tags，但可以輸出新的短 tag。
 - normalizer 回寫前會對 tags 做 lowercase、slug normalization、alias mapping 與去重。
 - normalized tags 會自動 upsert 到 `tags`，並寫入 `raw_item_tags` 關聯；`raw_items.topic_tags` 保留作為 Timeline 查詢快取。
 - `mentioned_actors` V1 仍保留在 `raw_items.mentioned_actors`，不併入 tags，避免 topic 與 entity 混淆。
 
-Layer 2 只讀 `source` metadata、`text_clean` / `text_raw` 原文、rule prefilter 結果。它不讀 `summary_zh`、`summary_en` 或 full translation。
+Layer 2 只讀 `source` metadata、`text_clean` / `text_raw` 原文、rule prefilter 結果與受控 taxonomy context。它不讀 legacy summary 或 full translation。Classification、taxonomy 關聯、processing result 與 event 建立在同一 transaction 完成。
+
+The runtime prefilter loads enabled domains, grouped keywords, optional source priors
+and active prompt modules from PostgreSQL. A source prior cannot pass an item without
+a content match. It loads at most two score-ranked domain lenses into one classification
+request and stores all matches plus the routing configuration hash on raw items/events.
+Shared UTC daily request limits are optional until calibrated; when configured, their
+PostgreSQL reservation is required before each provider request.
 
 ## 10.1 AI Usage Tracking
 
@@ -470,6 +477,9 @@ TRANSLATION_SINGLE_CALL_MAX_CHARS=100000
 MAX_CLASSIFICATION_CALLS_PER_RUN=0
 MAX_TRANSLATION_CALLS_PER_RUN=0
 MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN=0
+AI_DAILY_REQUEST_LIMIT=0
+AI_DAILY_CLASSIFICATION_LIMIT=0
+AI_DAILY_TRANSLATION_LIMIT=0
 CLAUDE_CODE_AGENT_ENABLED=false
 CLAUDE_CODE_AGENT_MODEL=...
 MODEL_TIMEOUT_SECONDS=30

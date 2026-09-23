@@ -185,15 +185,15 @@ Tags: #iran #trump #fed
 
 避免使用過多 emoji，保持資訊平台風格。
 
-### 8.1 Translation Boundary
+### 8.1 Translation Boundary（翻譯邊界）
 
-Telegram Channel copy is channel-specific. It has different length, tone, safety, and source attribution constraints from public website/API copy.
+Telegram Channel 文案是 channel-specific 的。它的長度、語氣、安全性與 source attribution 限制都不同於 public website/API copy。
 
-P2 multilingual website/API support must not automatically replace Telegram output with `public_outbox_translations`. V1 keeps reading legacy fields from `public_outbox`:
+P2 多語 website/API 支援不得自動以 `public_outbox_translations` 取代 Telegram 輸出。V1 繼續讀取 `public_outbox` 的 legacy 欄位：
 
-- Prefer `public_title_zh` and `public_summary_zh`.
-- Fallback to `public_title_en` and `public_summary_en` only when Chinese channel copy is absent.
-- Future Telegram multilingual support should use a channel-aware table or a `surface/channel` dimension, not raw website/API translations.
+- 優先使用 `public_title_zh` 與 `public_summary_zh`。
+- 僅在中文 channel 文案缺失時才 fallback 到 `public_title_en` 與 `public_summary_en`。
+- 未來 Telegram 多語支援應使用 channel-aware table 或 `surface/channel` 維度，而不是 raw website/API translations。
 
 ## 9. Telegram Formatting
 

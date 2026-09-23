@@ -45,3 +45,26 @@ async def test_provider_sends_raw_items_to_raw_ingest_path(monkeypatch) -> None:
         "idempotency_key": "raw_item:1:v1",
         "schema_version": "public_raw_item.v1",
     }
+
+
+async def test_provider_sends_catalog_to_catalog_ingest_path(monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://xauusd:secret@postgres:5432/xauusd")
+    monkeypatch.setenv("PUBLIC_API_BASE_URL", "https://news.example.com")
+    monkeypatch.setenv("PUBLIC_SYNC_AUTH_MODE", "bearer")
+    monkeypatch.setenv("PUBLIC_SYNC_API_KEY", "secret-token")
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(202, json={"status": "accepted", "revision": "a" * 64})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        provider = PublicApiProvider(settings=Settings(), client=client)
+        result = await provider.send(
+            {"schema_version": "subscription_catalog.v1", "revision": "a" * 64},
+            idempotency_key=f"subscription_catalog:{'a' * 64}",
+            ingest_path="/ingest/subscription-catalog",
+        )
+
+    assert result.success is True
+    assert requests[0].url == "https://news.example.com/ingest/subscription-catalog"

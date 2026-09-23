@@ -2,11 +2,11 @@
 
 ## 1. 服務定位
 
-`public-syncer` 部署在 HomeLab，負責把 `public_outbox` 中已核准公開的事件同步到 VPS `public-api`。它也可選擇性同步 public-safe `raw_items` feed，作為獨立於 events 的公共原始資料源。
+`public-syncer` 部署在 HomeLab，負責把 `public_outbox` 中已核准公開的事件同步到 VPS `public-api`。它也可選擇性同步 public-safe `raw_items` feed，以及由私有資料庫管理的 subscribable category/tag catalog。
 
 它不是 publisher，也不直接發布到社交平台。它的輸出目標只有公共網站 ingest API。
 
-VPS 上的 `public-api` 有自己的 PostgreSQL 與 migrations；`public-syncer` 不需要知道 VPS schema，只需要遵守 `public_event.v1` 與 `public_raw_item.v1` ingest contract。
+VPS 上的 `public-api` 有自己的 PostgreSQL 與 migrations；`public-syncer` 不需要知道 VPS schema，只需要遵守 `public_event.v1`、`public_raw_item.v1` 與 `subscription_catalog.v1` ingest contract。
 
 目標資料流：
 
@@ -86,6 +86,7 @@ Go 可作後續備選，但 V1 建議維持 Python。
 
 - `POST /ingest/events` 到 VPS `public-api`。
 - optional：`POST /ingest/raw-items` 到 VPS `public-api`。
+- optional：`POST /ingest/subscription-catalog` 發佈完整、帶 content hash revision 的訂閱目錄 snapshot；同一個 process 只在 revision 改變時重送。
 - `public_outbox.publish_status_web`。
 - `public_outbox.published_web_at`。
 - `public_outbox.provider_response_web`。
@@ -279,6 +280,8 @@ PUBLIC_RAW_MAX_ORIGINAL_CHARS=4000
 PUBLIC_RAW_MAX_TRANSLATION_CHARS=8000
 PUBLIC_SYNC_LANGUAGES=zh-Hant,en
 PUBLIC_RAW_SYNC_LANGUAGES=zh-Hant,en
+PUBLIC_SUBSCRIPTION_CATALOG_ENABLED=false
+PUBLIC_SUBSCRIPTION_CATALOG_INGEST_PATH=/ingest/subscription-catalog
 ```
 
 錯誤處理：

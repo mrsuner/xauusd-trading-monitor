@@ -8,10 +8,10 @@ For code-related content, including code, identifiers, comments, commit messages
 
 ## Branch Policy
 
-- `main` is reserved for release-ready code and documentation.
-- Development work must happen on `develop` or feature branches based on `develop`.
-- Do not commit development changes directly to `main` unless the user explicitly requests a release commit.
-- After repository initialization, keep the working branch on `develop` for follow-up implementation tasks.
+- Perform active development directly on `develop`.
+- Reserve `main` for releases.
+- Do not create branches unless the user explicitly requests one.
+- Keep the working checkout on `develop` after development work unless the user explicitly requests otherwise.
 
 ## Project Memo / Recap Memory
 

@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { PublicEvent } from "../api/types";
+import type { Language, PublicEvent } from "../api/types";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { SeverityBadge } from "./Badges";
 import {
@@ -15,14 +15,15 @@ import {
   sourceLabel
 } from "./format";
 
-export function EventCard({ event }: { event: PublicEvent }) {
+export function EventCard({ event, contentLanguage }: { event: PublicEvent; contentLanguage?: Language }) {
   const lang = useLanguage();
+  const preferredLanguage = contentLanguage ?? lang;
   const t = useI18n();
   const to = useLocalizedPath();
   const relevance = relevanceBand(event.relevance_score, t);
   const timestamp = eventTimestamp(event);
-  const headline = eventHeadline(event, lang);
-  const summary = eventSummary(event, t, lang);
+  const headline = eventHeadline(event, preferredLanguage);
+  const summary = eventSummary(event, t, preferredLanguage);
   const typeTag = eventTypeTag(event.event_type);
 
   return (

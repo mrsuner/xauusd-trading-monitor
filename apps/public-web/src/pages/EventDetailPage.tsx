@@ -18,21 +18,23 @@ import {
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
 import { RawItemCard } from "../components/RawItemCard";
+import { useAppliedReaderPreferences } from "../features/reader-preferences/domain/useAppliedReaderPreferences";
 
 export function EventDetailPage() {
   const { eventId } = useParams();
   const lang = useLanguage();
+  const reader = useAppliedReaderPreferences();
   const t = useI18n();
   const to = useLocalizedPath();
   const query = useQuery({
-    queryKey: ["public-event", eventId, lang],
-    queryFn: () => getEvent(eventId ?? "", lang),
-    enabled: Boolean(eventId)
+    queryKey: ["public-event", eventId, reader.contentLanguage],
+    queryFn: () => getEvent(eventId ?? "", reader.contentLanguage),
+    enabled: Boolean(eventId) && reader.ready
   });
   const rawItemsQuery = useQuery({
-    queryKey: ["public-event-raw-items", eventId, lang],
-    queryFn: () => listRawItems({ event_id: eventId, lang, page_size: 6 }),
-    enabled: Boolean(eventId)
+    queryKey: ["public-event-raw-items", eventId, reader.contentLanguage],
+    queryFn: () => listRawItems({ event_id: eventId, lang: reader.contentLanguage, page_size: 6 }),
+    enabled: Boolean(eventId) && reader.ready
   });
 
   if (!eventId) {
@@ -43,7 +45,7 @@ export function EventDetailPage() {
     );
   }
 
-  if (query.isLoading) {
+  if (!reader.ready || query.isLoading) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         <LoadingState label={t.detail.loading} />
@@ -71,14 +73,14 @@ export function EventDetailPage() {
   const relevance = relevanceBand(event.relevance_score, t);
   const timestamp = eventTimestamp(event);
   const typeTag = eventTypeTag(event.event_type);
-  const heroTitle = eventHeadline(event, lang) ?? typeTag ?? t.format.untitled;
+  const heroTitle = eventHeadline(event, reader.contentLanguage) ?? typeTag ?? t.format.untitled;
 
   return (
     <>
       <PageHeader
         eyebrow={t.detail.eyebrow}
         title={heroTitle}
-        body={eventSummary(event, t, lang)}
+        body={eventSummary(event, t, reader.contentLanguage)}
         aside={
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
@@ -105,7 +107,7 @@ export function EventDetailPage() {
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         <article className="rounded-box border border-base-300 bg-base-200/40 p-5">
           <h2 className="text-lg font-semibold">{t.detail.summaryTitle}</h2>
-          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event, t, lang)}</p>
+          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event, t, reader.contentLanguage)}</p>
           <p className="mt-5 text-xs leading-5 text-base-content/50">
             {t.detail.boundary}
           </p>
@@ -120,7 +122,7 @@ export function EventDetailPage() {
               <p className="text-sm text-base-content/60">{t.raw.noSupportingItems}</p>
             )}
             {rawItemsQuery.data?.items.map((item) => (
-              <RawItemCard key={item.id} item={item} compact showFullTranslation />
+              <RawItemCard key={item.id} item={item} compact showFullTranslation contentLanguage={reader.contentLanguage} />
             ))}
           </div>
         </section>

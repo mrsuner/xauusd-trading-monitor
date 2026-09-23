@@ -109,6 +109,31 @@ export interface PublicCategory {
   count: number;
 }
 
+export interface SubscriptionCategory {
+  key: string;
+  label_en: string;
+  label_zh: string;
+  description: string | null;
+  sort_order: number;
+}
+
+export interface SubscriptionTag {
+  key: string;
+  label_en: string;
+  label_zh: string;
+  tag_type: string;
+  aliases: string[];
+}
+
+export interface SubscriptionCatalog {
+  schema_version: "subscription_catalog.v1";
+  revision: string | null;
+  generated_at?: string;
+  published_at?: string;
+  categories: SubscriptionCategory[];
+  tags: SubscriptionTag[];
+}
+
 export interface OverviewStats {
   total_events: number;
   s_events: number;
@@ -124,6 +149,7 @@ export interface HealthResponse {
 
 export interface EventFilters {
   severity?: string;
+  min_severity?: Severity;
   confirmation_state?: string;
   tag?: string;
   category?: string;

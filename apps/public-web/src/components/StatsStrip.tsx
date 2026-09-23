@@ -7,10 +7,10 @@ export function StatsStrip({ stats }: { stats?: OverviewStats }) {
   const lang = useLanguage();
   const t = useI18n();
   const items = [
-    { label: t.stats.publicEvents, value: stats?.total_events ?? "—", icon: Activity },
-    { label: t.stats.sSeverity, value: stats?.s_events ?? "—", icon: ShieldAlert },
-    { label: t.stats.aSeverity, value: stats?.a_events ?? "—", icon: Radio },
-    { label: t.stats.latest, value: stats?.latest_event_time ? formatTime(stats.latest_event_time, lang, t) : "—", icon: Activity }
+    { label: t.stats.publicEvents, value: stats?.total_events ?? "-", icon: Activity },
+    { label: t.stats.sSeverity, value: stats?.s_events ?? "-", icon: ShieldAlert },
+    { label: t.stats.aSeverity, value: stats?.a_events ?? "-", icon: Radio },
+    { label: t.stats.latest, value: stats?.latest_event_time ? formatTime(stats.latest_event_time, lang, t) : "-", icon: Activity }
   ];
 
   return (

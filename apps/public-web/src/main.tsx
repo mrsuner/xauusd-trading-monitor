@@ -13,6 +13,12 @@ import { RawItemsPage } from "./pages/RawItemsPage";
 import { StatusPage } from "./pages/StatusPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TagPage } from "./pages/TagPage";
+import { TopicsPage } from "./pages/TopicsPage";
+import { AuthPage } from "./features/account/ui/AuthPage";
+import { NotificationSettingsPage } from "./features/notifications/ui/NotificationSettingsPage";
+import { DigestDetailPage } from "./features/notifications/ui/DigestDetailPage";
+import { DigestsPage } from "./features/notifications/ui/DigestsPage";
+import { ReaderPreferencesPage } from "./features/reader-preferences/ui/ReaderPreferencesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,9 +37,16 @@ const router = createBrowserRouter([
   { path: "/raw", element: <LegacyRedirect /> },
   { path: "/raw/:rawItemId", element: <LegacyRedirect /> },
   { path: "/tags/:tag", element: <LegacyRedirect /> },
+  { path: "/topics", element: <LegacyRedirect /> },
   { path: "/about", element: <LegacyRedirect /> },
   { path: "/status", element: <LegacyRedirect /> },
   { path: "/support", element: <LegacyRedirect /> },
+  { path: "/notifications", element: <LegacyRedirect /> },
+  { path: "/reading-preferences", element: <LegacyRedirect /> },
+  { path: "/digests", element: <LegacyRedirect /> },
+  { path: "/digests/:digestId", element: <LegacyRedirect /> },
+  { path: "/sign-in", element: <LegacyRedirect /> },
+  { path: "/register", element: <LegacyRedirect /> },
   {
     path: "/:lang",
     element: <LanguageLayout />,
@@ -44,9 +57,16 @@ const router = createBrowserRouter([
       { path: "raw", element: <RawItemsPage /> },
       { path: "raw/:rawItemId", element: <RawItemDetailPage /> },
       { path: "tags/:tag", element: <TagPage /> },
+      { path: "topics", element: <TopicsPage /> },
       { path: "about", element: <AboutPage /> },
       { path: "status", element: <StatusPage /> },
-      { path: "support", element: <SupportPage /> }
+      { path: "support", element: <SupportPage /> },
+      { path: "notifications", element: <NotificationSettingsPage /> },
+      { path: "reading-preferences", element: <ReaderPreferencesPage /> },
+      { path: "digests", element: <DigestsPage /> },
+      { path: "digests/:digestId", element: <DigestDetailPage /> },
+      { path: "sign-in", element: <AuthPage mode="login" /> },
+      { path: "register", element: <AuthPage mode="register" /> }
     ]
   }
 ]);

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import httpx
 
+from .catalog import build_catalog_payload
 from .db import Database
 from .models import PublicOutboxItem, PublicRawItem
 from .payload import build_payload, build_raw_item_payload, idempotency_key_for, raw_item_idempotency_key_for
@@ -24,6 +25,7 @@ class PublicSyncer:
         self.settings = settings
         self.worker_id = f"{settings.service_name}:{socket.gethostname()}:{uuid4()}"
         self.db = Database(settings.database_url)
+        self._catalog_revision: str | None = None
 
     async def run(self) -> None:
         if not self.settings.enabled:
@@ -66,6 +68,8 @@ class PublicSyncer:
             return 0
 
         synced = 0
+        if self.settings.subscription_catalog_enabled and await self._sync_catalog(provider):
+            synced += 1
         for _ in range(self.settings.batch_size):
             if self.settings.max_per_minute > 0 and await self.db.sent_count_last_minute() >= self.settings.max_per_minute:
                 logger.info("public_syncer_rate_limit_reached max_per_minute=%s", self.settings.max_per_minute)
@@ -83,6 +87,47 @@ class PublicSyncer:
         if self.settings.raw_items_enabled:
             synced += await self.run_raw_once(provider=provider)
         return synced
+
+    async def _sync_catalog(self, provider: PublicApiProvider) -> bool:
+        categories, tags = await self.db.get_subscription_catalog()
+        if not categories or not tags:
+            logger.error("subscription_catalog_empty categories=%s tags=%s", len(categories), len(tags))
+            return False
+        payload = build_catalog_payload(categories=categories, tags=tags)
+        revision = str(payload["revision"])
+        if revision == self._catalog_revision:
+            return False
+        if self.settings.dry_run:
+            self._catalog_revision = revision
+            logger.info(
+                "dry_run_skip_subscription_catalog_sync revision=%s categories=%s tags=%s",
+                revision,
+                len(categories),
+                len(tags),
+            )
+            return True
+        result = await provider.send(
+            payload,
+            idempotency_key=str(payload["idempotency_key"]),
+            ingest_path=self.settings.public_catalog_ingest_path,
+        )
+        if not result.success:
+            logger.warning(
+                "subscription_catalog_sync_failed revision=%s status_code=%s error=%s",
+                revision,
+                result.status_code,
+                sanitize_text(result.error_message or "subscription_catalog_sync_failed"),
+            )
+            return False
+        self._catalog_revision = revision
+        logger.info(
+            "subscription_catalog_synced revision=%s categories=%s tags=%s duplicate=%s",
+            revision,
+            len(categories),
+            len(tags),
+            result.is_duplicate,
+        )
+        return True
 
     async def run_raw_once(self, *, provider: PublicApiProvider) -> int:
         if not self.settings.enabled or not self.settings.raw_items_enabled:

@@ -159,6 +159,32 @@ def test_public_website_title_falls_back_when_raw_title_is_full_text() -> None:
     ]
 
 
+def test_headline_only_raw_item_routes_after_event_summary_enrichment() -> None:
+    event = make_event(severity="A", relevance_score=90)
+    event.raw_item.title = "Headline-only source item"
+    event.raw_item.text_clean = "Headline-only source item"
+
+    results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is True
+    assert public_website.public_outbox is not None
+    assert public_website.public_outbox.translations[0].summary == "測試事件摘要。"
+
+
+def test_headline_only_raw_item_without_summary_is_not_routed_to_public_website() -> None:
+    event = make_event(severity="A", relevance_score=90)
+    event.raw_item.title = "Headline-only source item"
+    event.raw_item.text_clean = "Headline-only source item"
+    event.translations = []
+
+    results = route_results(event, RoutePolicyRuntime(), make_settings(ENABLE_PUBLIC_WEBSITE_ROUTE=True))
+    public_website = by_route(results, "public.website")
+
+    assert public_website.queued is False
+    assert public_website.reason == "missing_public_summary"
+
+
 def test_public_outbox_preserves_english_public_content() -> None:
     event = make_event(
         severity="A",
