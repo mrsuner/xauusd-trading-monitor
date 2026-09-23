@@ -274,6 +274,24 @@ def test_build_filters_searches_translation_rows() -> None:
     assert params["q"] == "%日本語%"
 
 
+def test_build_filters_applies_inclusive_minimum_severity() -> None:
+    for minimum, expected in {
+        "S": ["S"],
+        "A": ["S", "A"],
+        "B": ["S", "A", "B"],
+        "C": ["S", "A", "B", "C"],
+    }.items():
+        where, params = _build_filters(min_severity=minimum)
+        assert "severity = any(%(allowed_severities)s)" in where
+        assert params["allowed_severities"] == expected
+
+
+def test_exact_severity_overrides_reader_minimum() -> None:
+    where, params = _build_filters(severity="B", min_severity="A")
+    assert "severity = %(severity)s" in where
+    assert "allowed_severities" not in params
+
+
 def test_public_event_translation_rows_use_payload_translations() -> None:
     payload = PublicEventIngestRequest.model_validate(
         {

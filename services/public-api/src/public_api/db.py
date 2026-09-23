@@ -937,6 +937,7 @@ class PublicRepository:
         page_size: int,
         lang: str | None = None,
         severity: str | None = None,
+        min_severity: str | None = None,
         confirmation_state: str | None = None,
         tag: str | None = None,
         category: str | None = None,
@@ -948,6 +949,7 @@ class PublicRepository:
         offset = (page - 1) * limit
         where, params = _build_filters(
             severity=severity,
+            min_severity=min_severity,
             confirmation_state=confirmation_state,
             tag=tag,
             category=category,
@@ -1098,6 +1100,15 @@ def _build_filters(**filters: Any) -> tuple[str, dict[str, Any]]:
     if filters.get("severity"):
         clauses.append("severity = %(severity)s")
         params["severity"] = filters["severity"]
+    elif filters.get("min_severity"):
+        # The reader preference is inclusive; keep filtering in SQL so totals
+        # and pagination describe the same globally ordered event stream.
+        ranked = ["S", "A", "B", "C"]
+        minimum = filters["min_severity"]
+        if minimum not in ranked:
+            raise ValueError("min_severity must be S, A, B, or C")
+        clauses.append("severity = any(%(allowed_severities)s)")
+        params["allowed_severities"] = ranked[: ranked.index(minimum) + 1]
     if filters.get("confirmation_state"):
         clauses.append("confirmation_state = %(confirmation_state)s")
         params["confirmation_state"] = filters["confirmation_state"]

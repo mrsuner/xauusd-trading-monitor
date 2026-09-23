@@ -149,6 +149,7 @@ export interface HealthResponse {
 
 export interface EventFilters {
   severity?: string;
+  min_severity?: Severity;
   confirmation_state?: string;
   tag?: string;
   category?: string;

@@ -15,16 +15,18 @@ import {
 } from "../components/format";
 import { PageHeader } from "../components/PageHeader";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
+import { useAppliedReaderPreferences } from "../features/reader-preferences/domain/useAppliedReaderPreferences";
 
 export function RawItemDetailPage() {
   const { rawItemId } = useParams();
   const lang = useLanguage();
+  const reader = useAppliedReaderPreferences();
   const t = useI18n();
   const to = useLocalizedPath();
   const query = useQuery({
-    queryKey: ["public-raw-item", rawItemId, lang],
-    queryFn: () => getRawItem(rawItemId ?? "", lang),
-    enabled: Boolean(rawItemId)
+    queryKey: ["public-raw-item", rawItemId, reader.contentLanguage],
+    queryFn: () => getRawItem(rawItemId ?? "", reader.contentLanguage),
+    enabled: Boolean(rawItemId) && reader.ready
   });
 
   if (!rawItemId) {
@@ -35,7 +37,7 @@ export function RawItemDetailPage() {
     );
   }
 
-  if (query.isLoading) {
+  if (!reader.ready || query.isLoading) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         <LoadingState />
@@ -62,14 +64,14 @@ export function RawItemDetailPage() {
 
   const relevance = relevanceBand(item.relevance_score, t);
   const timestamp = rawItemTimestamp(item);
-  const fullTranslation = rawItemFullTranslation(item, lang);
+  const fullTranslation = rawItemFullTranslation(item, reader.contentLanguage);
 
   return (
     <>
       <PageHeader
         eyebrow={t.raw.eyebrow}
         title={rawItemTitle(item, t)}
-        body={rawItemSummary(item, t, lang)}
+        body={rawItemSummary(item, t, reader.contentLanguage)}
         aside={
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
@@ -92,7 +94,7 @@ export function RawItemDetailPage() {
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         <article className="space-y-4">
-          <TextPanel title={t.raw.summary} body={rawItemSummary(item, t, lang)} />
+          <TextPanel title={t.raw.summary} body={rawItemSummary(item, t, reader.contentLanguage)} />
           <TextPanel title={t.raw.originalContent} body={item.original_content || t.raw.noOriginalContent} />
           <TextPanel title={t.raw.fullTranslation} body={fullTranslation || t.raw.noFullTranslation} />
         </article>

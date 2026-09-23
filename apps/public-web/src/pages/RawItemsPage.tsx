@@ -7,7 +7,8 @@ import type { RawItemFilters } from "../api/types";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import { PageHeader } from "../components/PageHeader";
 import { RawItemCard } from "../components/RawItemCard";
-import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
+import { useI18n, useLocalizedPath } from "../i18n";
+import { useAppliedReaderPreferences } from "../features/reader-preferences/domain/useAppliedReaderPreferences";
 
 const pageSize = 20;
 const sourceTypes = ["telegram", "rss", "atom", "html_polling", "api"];
@@ -15,7 +16,7 @@ const sourceTypes = ["telegram", "rss", "atom", "html_polling", "api"];
 export function RawItemsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
-  const lang = useLanguage();
+  const reader = useAppliedReaderPreferences();
   const t = useI18n();
   const to = useLocalizedPath();
 
@@ -25,16 +26,17 @@ export function RawItemsPage() {
       tag: searchParams.get("tag") ?? undefined,
       category: searchParams.get("category") ?? undefined,
       q: searchParams.get("q") ?? undefined,
-      lang,
+      lang: reader.contentLanguage,
       page: Number(searchParams.get("page") ?? "1"),
       page_size: pageSize
     }),
-    [lang, searchParams]
+    [reader.contentLanguage, searchParams]
   );
 
   const rawItemsQuery = useQuery({
     queryKey: ["public-raw-items", filters],
     queryFn: () => listRawItems(filters),
+    enabled: reader.ready,
     refetchInterval: 60_000
   });
   const tagsQuery = useQuery({ queryKey: ["public-tags"], queryFn: listTags, staleTime: 60_000 });
@@ -144,12 +146,12 @@ export function RawItemsPage() {
         </div>
 
         <div className="mt-6 grid gap-4">
-          {rawItemsQuery.isLoading && <LoadingState />}
+          {(!reader.ready || rawItemsQuery.isLoading) && <LoadingState />}
           {rawItemsQuery.isError && <ErrorState message={(rawItemsQuery.error as Error).message} />}
           {rawItemsQuery.data?.items.length === 0 && (
             <EmptyState title={t.raw.emptyTitle} body={t.raw.emptyBody} />
           )}
-          {rawItemsQuery.data?.items.map((item) => <RawItemCard key={item.id} item={item} />)}
+          {rawItemsQuery.data?.items.map((item) => <RawItemCard key={item.id} item={item} contentLanguage={reader.contentLanguage} />)}
         </div>
 
         {rawItemsQuery.data && rawItemsQuery.data.total > pageSize && (
