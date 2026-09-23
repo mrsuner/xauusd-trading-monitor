@@ -29,12 +29,12 @@ class DigestInputRepository
             ->orderByRaw('coalesce(relevance_score, -1) desc')
             ->orderBy('public_content_ready_at')
             ->orderBy('id')
-            ->get(['id', 'upstream_event_id', 'severity', 'relevance_score', 'event_time', 'public_content_ready_at', 'route_metadata']);
+            ->get(['id', 'upstream_event_id', 'severity', 'relevance_score', 'event_time', 'public_content_ready_at', 'route_metadata', 'content_category']);
 
         $seen = [];
         $matched = [];
         foreach ($rows as $row) {
-            $domains = $this->domains($row->route_metadata);
+            $domains = $this->domains($row->route_metadata, $row->content_category);
             $eventTime = $row->event_time === null ? null : CarbonImmutable::parse($row->event_time, 'UTC');
             if (! in_array($topic, $domains, true)
                 || isset($seen[(string) $row->upstream_event_id])
@@ -58,18 +58,31 @@ class DigestInputRepository
     }
 
     /** @return list<string> */
-    private function domains(mixed $value): array
+    private function domains(mixed $value, ?string $contentCategory): array
     {
         $metadata = is_array($value) ? $value : json_decode((string) $value, true);
         if (! is_array($metadata)) {
-            return [];
+            $metadata = [];
         }
         $domains = array_merge(
             isset($metadata['primary_domain']) ? [(string) $metadata['primary_domain']] : [],
             is_array($metadata['matched_domains'] ?? null) ? array_map('strval', $metadata['matched_domains']) : [],
         );
 
-        return array_values(array_unique(array_filter($domains)));
+        $domains = array_values(array_unique(array_filter($domains)));
+        if ($domains !== []) {
+            return $domains;
+        }
+
+        // Events published before domain routing have no domain metadata. Only
+        // unambiguous legacy categories are mapped; the new routed domain wins.
+        return match ($contentCategory) {
+            'military', 'diplomacy', 'sanctions' => ['geopolitics'],
+            'fed', 'central_bank' => ['monetary'],
+            'energy' => ['energy'],
+            'economy' => ['macro_data'],
+            default => [],
+        };
     }
 
     /** @return array<string, string> */

@@ -6,6 +6,7 @@ use App\Jobs\GenerateDigestEdition;
 use App\Models\DigestEdition;
 use App\Services\Digests\DigestEditionFreezer;
 use App\Services\Digests\DigestGenerator;
+use App\Services\Digests\DigestInputRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +36,7 @@ class DigestGenerationTest extends TestCase
             $table->string('invalidation_kind')->nullable();
             $table->string('invalidation_reason')->nullable();
             $table->json('route_metadata');
+            $table->string('content_category')->nullable();
             $table->boolean('is_visible')->default(true);
         });
         Schema::create('public_events_translations', function (Blueprint $table): void {
@@ -71,6 +73,28 @@ class DigestGenerationTest extends TestCase
         $same = app(DigestEditionFreezer::class)->freeze('geopolitics', $start, $start->addDay());
         $this->assertSame($edition->id, $same->id);
         Queue::assertPushed(GenerateDigestEdition::class, 1);
+    }
+
+    public function test_legacy_category_fallback_only_applies_without_routed_domains(): void
+    {
+        $start = CarbonImmutable::parse('2026-09-10 00:00:00 UTC');
+        $legacy = $this->event('A', 80, $start->addHour(), ['energy']);
+        $unknown = $this->event('A', 80, $start->addHours(2), ['energy']);
+        $routed = $this->event('A', 80, $start->addHours(3), ['energy']);
+
+        DB::table('public_events')->where('id', $legacy)->update([
+            'route_metadata' => '{}', 'content_category' => 'military',
+        ]);
+        DB::table('public_events')->where('id', $unknown)->update([
+            'route_metadata' => '{}', 'content_category' => 'other',
+        ]);
+        DB::table('public_events')->where('id', $routed)->update([
+            'content_category' => 'military',
+        ]);
+
+        $selection = app(DigestInputRepository::class)->select('geopolitics', $start, $start->addDay(), 20);
+
+        $this->assertSame([$legacy], array_map(fn ($event): string => $event->id, $selection['events']));
     }
 
     public function test_generator_publishes_citation_checked_english_and_chinese(): void
