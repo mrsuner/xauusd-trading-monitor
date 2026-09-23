@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   RotateCw,
+  Settings2,
   X
 } from "lucide-react";
 import { ReactNode, useEffect, useRef, useState } from "react";
@@ -233,6 +234,11 @@ function AccountControl() {
             </div>
           </div>
           <ul className="menu border-t border-base-300/60 pt-2">
+            <li>
+              <Link to={to("/reading-preferences")} onClick={close}>
+                <Settings2 className="h-4 w-4" />{t.nav.readerPreferences}
+              </Link>
+            </li>
             <li>
               <Link to={to("/digests")} onClick={close}>
                 <BookOpen className="h-4 w-4" />{t.nav.digests}

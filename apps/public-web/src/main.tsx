@@ -18,6 +18,7 @@ import { AuthPage } from "./features/account/ui/AuthPage";
 import { NotificationSettingsPage } from "./features/notifications/ui/NotificationSettingsPage";
 import { DigestDetailPage } from "./features/notifications/ui/DigestDetailPage";
 import { DigestsPage } from "./features/notifications/ui/DigestsPage";
+import { ReaderPreferencesPage } from "./features/reader-preferences/ui/ReaderPreferencesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ const router = createBrowserRouter([
   { path: "/status", element: <LegacyRedirect /> },
   { path: "/support", element: <LegacyRedirect /> },
   { path: "/notifications", element: <LegacyRedirect /> },
+  { path: "/reading-preferences", element: <LegacyRedirect /> },
   { path: "/digests", element: <LegacyRedirect /> },
   { path: "/digests/:digestId", element: <LegacyRedirect /> },
   { path: "/sign-in", element: <LegacyRedirect /> },
@@ -60,6 +62,7 @@ const router = createBrowserRouter([
       { path: "status", element: <StatusPage /> },
       { path: "support", element: <SupportPage /> },
       { path: "notifications", element: <NotificationSettingsPage /> },
+      { path: "reading-preferences", element: <ReaderPreferencesPage /> },
       { path: "digests", element: <DigestsPage /> },
       { path: "digests/:digestId", element: <DigestDetailPage /> },
       { path: "sign-in", element: <AuthPage mode="login" /> },
