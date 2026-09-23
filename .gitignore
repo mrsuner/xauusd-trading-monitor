@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!apps/public-web/.env.production
 !infra/.env.dev.example
 infra/.env
 
