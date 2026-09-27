@@ -54,3 +54,9 @@ All content/results below are git-ignored under `var/news-dedup/`:
 - `jev-pilot-english-20260926-v2.jsonl`: 32 English-mode responses using v2 labels.
 
 Builder: `db/tools/news_dedup_pilot.py`. Runner: `normalizer_classifier.deduplication_evaluation`. Credentials were injected from the existing local OpenRouter configuration for this authorized run; no keys or raw HTTP responses were stored in artifacts.
+
+## Subsequent guard replay (offline, no new calls)
+
+Conservative literal-figure/unit/period blockers retained 6 of the original model's 7 merge candidates. With 19 provisional duplicate labels, guarded recall was 6/19 (31.6%), compared with raw-model recall 7/19 (36.8%). Zero observed guarded mistakes across six merges is not a quality guarantee. This guard development used the provisional pilot, so it cannot be claimed as independent validation.
+
+A separate 250-pair UNREVIEWED packet is available locally as `var/news-dedup/review-20260926-v1.md` / `.jsonl`; it includes 30 headline-only pairs and excludes report IDs from this pilot. Human labels, event grouping and freeze remain pending. No further paid requests were made for this replay or packet.

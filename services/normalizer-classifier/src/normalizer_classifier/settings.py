@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     translation_paid_fallback_enabled: bool = Field(default=True, alias="TRANSLATION_PAID_FALLBACK_ENABLED")
     translation_model_response_format: str = Field(default="none", alias="TRANSLATION_MODEL_RESPONSE_FORMAT")
     translation_model_reasoning_effort: str | None = Field(default=None, alias="TRANSLATION_MODEL_REASONING_EFFORT")
+    # OpenRouter caps are USD per million tokens, not a per-request budget.
+    translation_max_prompt_price: float = Field(default=0.03, gt=0, allow_inf_nan=False, alias="TRANSLATION_MAX_PROMPT_PRICE")
+    translation_max_completion_price: float = Field(default=0.17, gt=0, allow_inf_nan=False, alias="TRANSLATION_MAX_COMPLETION_PRICE")
     translation_http_referer: str | None = Field(default=None, alias="TRANSLATION_HTTP_REFERER")
     translation_app_title: str | None = Field(default="XAUUSD Event Radar", alias="TRANSLATION_APP_TITLE")
     translation_output_languages_raw: str = Field(default="zh-Hant,en", alias="TRANSLATION_OUTPUT_LANGUAGES")

@@ -47,6 +47,11 @@ class Pair(BaseModel):
     expected: Relationship | None = None
     split: Literal["tuning", "held_out"] | None = None
     slice: str = "unclassified"
+    # Review metadata is never sent to the model. Both developments of an unrelated
+    # pair must be listed so the split validator catches cross-event leakage too.
+    development_groups: list[str] = Field(default_factory=list)
+    reviewed_by: str | None = None
+    rationale: str | None = None
 
     @model_validator(mode="after")
     def distinct_reports(self) -> Pair:
@@ -93,11 +98,12 @@ CRITERIA = {
         "Reposting, paraphrasing, translating or an additional source alone is not a new development."
     ),
     Relationship.MATERIAL_UPDATE: (
-        "Same underlying event but a new decision, figure, reporting period, confirmation, denial, "
+        "Same specific event but a new decision, revised figure for the same release, confirmation, denial, "
         "correction or changed uncertainty. Do not suppress this report."
     ),
     Relationship.UNRELATED: (
-        "Different specific facts or events, even if the actor, country, market or topic overlaps."
+        "Different specific facts, events or data releases for different reporting periods, "
+        "even if the actor, country, market or topic overlaps."
     ),
     Relationship.INSUFFICIENT_EVIDENCE: (
         "The supplied reports do not establish whether they describe the same fact. "
@@ -163,4 +169,4 @@ class JevClient:
             raise ValueError("invalid usage cost")
         # Retain the actual version and usage, but not raw HTTP payloads/credentials.
         return {"decision": decision.model_dump(mode="json"), "model": body["model"],
-                "usage": body["usage"]}
+                "usage": body["usage"], "criteria_version": "news-relationship-v2"}

@@ -1,0 +1,746 @@
+{
+  "provenance": "Public snapshot originals plus recorded Jev responses; reused diagnostic data, not held-out acceptance or current prompt evaluation.",
+  "source_dataset_sha256": "f4d3f78d1110f10687c322d0911930b65023b9dfdfc807035b7d8a8856293d83",
+  "pairs": [
+    {
+      "id": "d31deef3-cbd5-4553-ae91-c21fcbeb874f:1fbb8f25-df5d-4c18-849c-8aec02d11d3c",
+      "expected": "material_update",
+      "current": {
+        "id": "d31deef3-cbd5-4553-ae91-c21fcbeb874f",
+        "title": "VIDEO: Pezeshkian pays tribute to students killed in Minab",
+        "content": "TEHRAN, Sep. 21 (MNA) – President Masoud Pezeshkian pays tribute to the 198 Iranian schoolchildren and teachers killed in the US attack on the Minab school.",
+        "published_at": "2026-09-21T06:59:10Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "1fbb8f25-df5d-4c18-849c-8aec02d11d3c",
+        "title": null,
+        "content": "🇮🇷 President Masoud Pezeshkian pays tribute to the 168 Iranian schoolchildren and teachers killed in the US attack on the Minab school. @PressTV",
+        "published_at": "2026-09-21T06:43:09Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "material_update",
+          "confidence": 0.93,
+          "probabilities": {
+            "material_update": 0.95,
+            "duplicate": 0.04,
+            "insufficient_evidence": 0.01,
+            "unrelated": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 694,
+          "output_tokens": 55,
+          "cost": 0.000029148
+        }
+      }
+    },
+    {
+      "id": "c770ed13-7181-4519-ae1d-32f53539dace:5ae72e5e-c146-405d-acd2-c8c8f2378269",
+      "expected": "duplicate",
+      "current": {
+        "id": "c770ed13-7181-4519-ae1d-32f53539dace",
+        "title": "VIDEO: Woman nabbed in Amsterdam for shouting Free Palestine",
+        "content": "TEHRAN, Sep. 19 (MNA) – Amsterdam police arrested a woman after she shouted “Free Palestine” at a rally, with footage appearing to show officers detaining her moments later.",
+        "published_at": "2026-09-19T08:25:06Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "5ae72e5e-c146-405d-acd2-c8c8f2378269",
+        "title": null,
+        "content": "▶️ Amsterdam police arrested a woman after she shouted “Free Palestine” at a pro-Israel rally, with footage appearing to show officers detaining her moments later. @PressTV",
+        "published_at": "2026-09-19T08:08:03Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.21,
+          "probabilities": {
+            "insufficient_evidence": 0.2,
+            "unrelated": 0.02,
+            "material_update": 0.37,
+            "duplicate": 0.41
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 680,
+          "output_tokens": 54,
+          "cost": 0.00002856
+        }
+      }
+    },
+    {
+      "id": "6598665e-0799-4e5c-bde8-08ce2a3b6bab:0479d963-39f2-4e06-914d-e75939534461",
+      "expected": "duplicate",
+      "current": {
+        "id": "6598665e-0799-4e5c-bde8-08ce2a3b6bab",
+        "title": "Israeli forces abduct 8 Palestinians in occupied West Bank",
+        "content": "TEHRAN, Sep. 20 (MNA) – Israeli forces have abducted eight Palestinians in the village of Ad-Deqaiqa in the Masafer Yatta area south of Hebron following an attack by Israeli settlers.",
+        "published_at": "2026-09-20T06:47:03Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "0479d963-39f2-4e06-914d-e75939534461",
+        "title": null,
+        "content": "Israeli forces abduct eight Palestinians in occupied West Bank amid settler violence Israeli forces have abducted eight Palestinians in the village of Ad-Deqaiqa in the Masafer Yatta area south of Hebron following an attack by Israeli settlers, according to WAFA. @PressTV",
+        "published_at": "2026-09-20T05:05:50Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 1,
+          "probabilities": {
+            "insufficient_evidence": 0,
+            "unrelated": 0,
+            "duplicate": 1,
+            "material_update": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 709,
+          "output_tokens": 54,
+          "cost": 0.000029778
+        }
+      }
+    },
+    {
+      "id": "02f2ed63-64d0-4a4d-9b99-99b31d02d824:e0dba748-731d-4583-a966-2f79e643e8ab",
+      "expected": "duplicate",
+      "current": {
+        "id": "02f2ed63-64d0-4a4d-9b99-99b31d02d824",
+        "title": null,
+        "content": "📄 Foreign Minister Araghchi arrives in New York to attend the UN General Assembly 📌 Tehran, IRNA – Foreign Minister Abbas Araghchi arrived in New York on Monday evening (local time) to attend the 81st session of the United Nations General Assembly. Araghchi, who has traveled to New York at the head of a high-ranking delegation, was welcomed at John F. Kennedy Airport by Gholamhossein Darzi, Iran's permanent representative and chargé d'affaires to the United Nations. ​ En route to New York, Araghchi made a brief stop in Doha, where he held consultations with Qatari officials regarding the latest regional developments. ​ President Masoud Pezeshkian will also depart for New York on Tuesday to attend and address the 81st UN General Assembly; he is scheduled to meet and hold consultations with a number of world leaders and officials on the sidelines of the summit. 📲 @Irna_en​",
+        "published_at": "2026-09-21T20:30:55Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "e0dba748-731d-4583-a966-2f79e643e8ab",
+        "title": null,
+        "content": "Iran’s Foreign Minister Araghchi arrives in New York to attend UN General Assembly - IRNA|FJ",
+        "published_at": "2026-09-21T20:15:08Z",
+        "source_name": "FinancialJuice"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.78,
+          "probabilities": {
+            "duplicate": 0.84,
+            "insufficient_evidence": 0.03,
+            "unrelated": 0,
+            "material_update": 0.13
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 811,
+          "output_tokens": 54,
+          "cost": 0.000034062
+        }
+      }
+    },
+    {
+      "id": "9c33f0c8-8680-420d-89ea-ef63834d50b4:c06bb8e7-7658-4af7-88cc-b38f0a072755",
+      "expected": "duplicate",
+      "current": {
+        "id": "9c33f0c8-8680-420d-89ea-ef63834d50b4",
+        "title": "CPJ condemns Israeli abduction of Press TV journalist",
+        "content": "TEHRAN, Sep. 19 (MNA) – The Committee to Protect Journalists (CPJ) has condemned Israel’s abduction of Press TV journalist Naqaa Hamed and demanded her immediate release.",
+        "published_at": "2026-09-19T11:16:41Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "c06bb8e7-7658-4af7-88cc-b38f0a072755",
+        "title": null,
+        "content": "CPJ slams Israel’s abduction of Press TV journalist, demands her immediate release The Committee to Protect Journalists (CPJ) has condemned Israel’s abduction of Press TV journalist Naqaa Hamed and demanded her immediate release. @PressTV",
+        "published_at": "2026-09-19T10:30:56Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 1,
+          "probabilities": {
+            "insufficient_evidence": 0,
+            "duplicate": 1,
+            "unrelated": 0,
+            "material_update": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 704,
+          "output_tokens": 54,
+          "cost": 0.000029568
+        }
+      }
+    },
+    {
+      "id": "27352342-d4ab-4170-8c2a-7bbac69fc779:0b0e0f32-1337-488e-ac69-004248a67491",
+      "expected": "material_update",
+      "current": {
+        "id": "27352342-d4ab-4170-8c2a-7bbac69fc779",
+        "title": "Iran, Pakistan interior ministers hold talks in Tehran",
+        "content": "TEHRAN, Sep. 21 (MNA) – Iran’s Interior Minister, Eskandar Momeni, has met with Pakistan’s Interior Minister Syed Mohsin Raza Naqvi in Tehran, Iran’s capital.",
+        "published_at": "2026-09-21T16:03:00Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "0b0e0f32-1337-488e-ac69-004248a67491",
+        "title": null,
+        "content": "⚡️ Pakistani interior minister in Tehran for talks with Iranian officials 📌 Tehran, IRNA – Pakistan’s Interior Minister Syed Mohsin Raza Naqvi has arrived in Tehran, Iran’s capital, for talks with Iranian officials. Naqvi arrived in Tehran on Monday and was welcomed by Iran’s Interior Minister, Eskandar Momeni. ​ The visit aims to discuss bilateral relations and review agreements signed by officials from both countries. 📲 @Irna_en​",
+        "published_at": "2026-09-21T12:19:03Z",
+        "source_name": "IRNA English"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.43,
+          "probabilities": {
+            "material_update": 0.38,
+            "duplicate": 0.57,
+            "insufficient_evidence": 0.04,
+            "unrelated": 0.01
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 743,
+          "output_tokens": 54,
+          "cost": 0.000031206
+        }
+      }
+    },
+    {
+      "id": "98230905-41ce-45fb-8523-c975e209b223:618b630a-13ba-41fa-b337-24ff2eafcd56",
+      "expected": "duplicate",
+      "current": {
+        "id": "98230905-41ce-45fb-8523-c975e209b223",
+        "title": "Sirens go off in Riyadh amid Yemeni retaliatory attacks",
+        "content": "TEHRAN, Sep. 19 (MNA) – Sirens warning of incoming missiles and unmanned combat aerial vehicles launched from Yemen have sounded in the Saudi capital Riyadh and elsewhere in the kingdom.",
+        "published_at": "2026-09-19T08:57:59Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "618b630a-13ba-41fa-b337-24ff2eafcd56",
+        "title": null,
+        "content": "Sirens blare in Riyadh, across Saudi Arabia amid amid Yemeni retaliatory strikes Sirens warning of incoming missiles and unmanned combat aerial vehicles launched from Yemen have sounded in the Saudi capital Riyadh and elsewhere in the kingdom. @PressTV",
+        "published_at": "2026-09-19T08:38:47Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 1,
+          "probabilities": {
+            "unrelated": 0,
+            "duplicate": 1,
+            "material_update": 0,
+            "insufficient_evidence": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 702,
+          "output_tokens": 54,
+          "cost": 0.000029484
+        }
+      }
+    },
+    {
+      "id": "df7de16e-363c-424c-9bb6-5522282998cb:b7a7e09d-4d2b-4fa0-af8a-9128d3e7bc54",
+      "expected": "duplicate",
+      "current": {
+        "id": "df7de16e-363c-424c-9bb6-5522282998cb",
+        "title": "VIDEO: Israel settler killed in shooting attack near Halamish",
+        "content": "TEHRAN, Sep. 20 (MNA) – An Israeli settler was reportedly killed in a shooting attack near Halamish settlement, with the gunman escaping.",
+        "published_at": "2026-09-20T10:46:17Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "b7a7e09d-4d2b-4fa0-af8a-9128d3e7bc54",
+        "title": null,
+        "content": "🔴 An Israeli settler was reportedly killed in a shooting attack near Halamish settlement, with the gunman escaping. @PressTV",
+        "published_at": "2026-09-20T10:01:27Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 1,
+          "probabilities": {
+            "unrelated": 0,
+            "material_update": 0,
+            "duplicate": 1,
+            "insufficient_evidence": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 666,
+          "output_tokens": 54,
+          "cost": 0.000027972
+        }
+      }
+    },
+    {
+      "id": "02f2ed63-64d0-4a4d-9b99-99b31d02d824:8defb3db-945c-4184-8bd3-5023b4d68f6f",
+      "expected": "duplicate",
+      "current": {
+        "id": "02f2ed63-64d0-4a4d-9b99-99b31d02d824",
+        "title": null,
+        "content": "📄 Foreign Minister Araghchi arrives in New York to attend the UN General Assembly 📌 Tehran, IRNA – Foreign Minister Abbas Araghchi arrived in New York on Monday evening (local time) to attend the 81st session of the United Nations General Assembly. Araghchi, who has traveled to New York at the head of a high-ranking delegation, was welcomed at John F. Kennedy Airport by Gholamhossein Darzi, Iran's permanent representative and chargé d'affaires to the United Nations. ​ En route to New York, Araghchi made a brief stop in Doha, where he held consultations with Qatari officials regarding the latest regional developments. ​ President Masoud Pezeshkian will also depart for New York on Tuesday to attend and address the 81st UN General Assembly; he is scheduled to meet and hold consultations with a number of world leaders and officials on the sidelines of the summit. 📲 @Irna_en​",
+        "published_at": "2026-09-21T20:30:55Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "8defb3db-945c-4184-8bd3-5023b4d68f6f",
+        "title": null,
+        "content": "🔴 Iran's FM Araghchi arrives in New York to attend 81st session of UN General Assembly @PressTV",
+        "published_at": "2026-09-21T20:18:09Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.94,
+          "probabilities": {
+            "insufficient_evidence": 0.01,
+            "duplicate": 0.96,
+            "material_update": 0.03,
+            "unrelated": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 815,
+          "output_tokens": 54,
+          "cost": 0.00003423
+        }
+      }
+    },
+    {
+      "id": "8c0d8e83-c660-4a3c-93a9-a98678960eae:27352342-d4ab-4170-8c2a-7bbac69fc779",
+      "expected": "material_update",
+      "current": {
+        "id": "8c0d8e83-c660-4a3c-93a9-a98678960eae",
+        "title": null,
+        "content": "📡 Interior Minister: Iran-Pakistan borders to operate around clock 📌 Tehran, IRNA – Emphasizing that relations between Iran and Pakistan are strategic and deep, Iranian Interior Minister Eskandar Momeni said that following bilateral agreements, the two countries' existing border crossings will operate around the clock, and a new crossing will be opened at Kuhak. Momeni, has met with Pakistan’s Interior Minister Syed Mohsin Raza Naqvi in Tehran. ​ During Monday’s meeting, Momeni and Naqvi emphasized finalizing agreements to expand bilateral relations. ​ Naqvi invited Momeni to visit Pakistan. ​ Pakistan’s interior minister has made several trips to Tehran since Pakistan began its mediation efforts between Iran and the United States. ​ During his latest visit on August 10, he met President Masoud Pezeshkian, security chief Major General Mohsen Rezaei, Foreign Minister Abbas Araghchi, and Momeni. 📲 @Irna_en​",
+        "published_at": "2026-09-21T21:17:08Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "27352342-d4ab-4170-8c2a-7bbac69fc779",
+        "title": "Iran, Pakistan interior ministers hold talks in Tehran",
+        "content": "TEHRAN, Sep. 21 (MNA) – Iran’s Interior Minister, Eskandar Momeni, has met with Pakistan’s Interior Minister Syed Mohsin Raza Naqvi in Tehran, Iran’s capital.",
+        "published_at": "2026-09-21T16:03:00Z",
+        "source_name": "Mehr News RSS"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "material_update",
+          "confidence": 0.46,
+          "probabilities": {
+            "duplicate": 0.37,
+            "material_update": 0.58,
+            "insufficient_evidence": 0.04,
+            "unrelated": 0.01
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 853,
+          "output_tokens": 55,
+          "cost": 0.000035826
+        }
+      }
+    },
+    {
+      "id": "2dbfa847-00d7-4383-943e-e08b321baa80:d33acce5-4afe-4571-8848-fce8f5936d08",
+      "expected": "duplicate",
+      "current": {
+        "id": "2dbfa847-00d7-4383-943e-e08b321baa80",
+        "title": "Dozens injured in Israeli strikes on a motorcycle in Gaza",
+        "content": "TEHRAN, Sep. 19 (MNA) – A Palestinian has been killed and several others injured, including a child in critical condition, when Israeli forces bombed a motorcycle in Gaza City.",
+        "published_at": "2026-09-19T06:21:14Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "d33acce5-4afe-4571-8848-fce8f5936d08",
+        "title": null,
+        "content": "Israeli strike on motorcycle kills Palestinian in Gaza City, injures several others, including child A Palestinian has been killed and several others injured, including a child in critical condition, when Israeli forces bombed a motorcycle in Gaza City. @PressTV",
+        "published_at": "2026-09-19T05:54:10Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.97,
+          "probabilities": {
+            "insufficient_evidence": 0,
+            "duplicate": 0.98,
+            "unrelated": 0,
+            "material_update": 0.02
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 693,
+          "output_tokens": 54,
+          "cost": 0.000029106
+        }
+      }
+    },
+    {
+      "id": "52e7ec21-9d39-4928-8474-ac79d8dfcf3d:993ed666-7c3a-4966-b879-7fc467514d2c",
+      "expected": "duplicate",
+      "current": {
+        "id": "52e7ec21-9d39-4928-8474-ac79d8dfcf3d",
+        "title": null,
+        "content": "🎙 Pezeshkian to travel to New York for UN General Assembly 📌 Tehran, IRNA – President Masoud Pezeshkian will travel to New York on Tuesday to attend the 81st session of the United Nations General Assembly, the director-general of the Presidential Office’s Public Relations Department says. Habibollah Abbasi told IRNA on Monday that Pezeshkian will address the UN General Assembly and hold meetings with a number of heads of state and senior officials attending the gathering. ​ The president is also scheduled to meet Iranian expatriates, as well as US intellectuals and representatives of American think tanks, Abbasi said. ​ The 81st session of the UN General Assembly opened on September 8 under the theme “Restoring Trust, Managing Transformation: A United Nations That Delivers for All.” ​ The high-level general debate is scheduled to begin on September 22, with Pezeshkian expected to deliver his address on Wednesday, September 23. ​ The United States has approved visas for Pezeshkian and Foreign Minister Abbas Araghchi to attend the gathering. 📲 @Irna_en​",
+        "published_at": "2026-09-21T09:14:22Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "993ed666-7c3a-4966-b879-7fc467514d2c",
+        "title": null,
+        "content": "Iran's president Pezeshkian to fly to New York for the UN General Assembly on Tuesday - IRNA|FJ",
+        "published_at": "2026-09-21T07:22:26Z",
+        "source_name": "FinancialJuice"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.96,
+          "probabilities": {
+            "duplicate": 0.97,
+            "unrelated": 0,
+            "material_update": 0.02,
+            "insufficient_evidence": 0.01
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 857,
+          "output_tokens": 54,
+          "cost": 0.000035994
+        }
+      }
+    },
+    {
+      "id": "0b0e0f32-1337-488e-ac69-004248a67491:8a98ceb4-d0b8-4909-85de-b33cd770c5c2",
+      "expected": "material_update",
+      "current": {
+        "id": "0b0e0f32-1337-488e-ac69-004248a67491",
+        "title": null,
+        "content": "⚡️ Pakistani interior minister in Tehran for talks with Iranian officials 📌 Tehran, IRNA – Pakistan’s Interior Minister Syed Mohsin Raza Naqvi has arrived in Tehran, Iran’s capital, for talks with Iranian officials. Naqvi arrived in Tehran on Monday and was welcomed by Iran’s Interior Minister, Eskandar Momeni. ​ The visit aims to discuss bilateral relations and review agreements signed by officials from both countries. 📲 @Irna_en​",
+        "published_at": "2026-09-21T12:19:03Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "8a98ceb4-d0b8-4909-85de-b33cd770c5c2",
+        "title": "Pakistani interior minister Naqvi heads to Iran for talks",
+        "content": "TEHRAN, Sep. 21 (MNA) – Pakistani Interior Minister Syed Mohsin Naqvi departed Islamabad for Tehran on Monday to hold high-profile talks with the Iranian officials.",
+        "published_at": "2026-09-21T07:24:40Z",
+        "source_name": "Mehr News RSS"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "material_update",
+          "confidence": 0.44,
+          "probabilities": {
+            "insufficient_evidence": 0.01,
+            "material_update": 0.58,
+            "duplicate": 0.41,
+            "unrelated": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 738,
+          "output_tokens": 55,
+          "cost": 0.000030996
+        }
+      }
+    },
+    {
+      "id": "5bdff932-79ff-4349-9767-6f9f59d77eed:8a98ceb4-d0b8-4909-85de-b33cd770c5c2",
+      "expected": "duplicate",
+      "current": {
+        "id": "5bdff932-79ff-4349-9767-6f9f59d77eed",
+        "title": null,
+        "content": "🌍 Pakistan interior minister departs for Iran 📌 Islamabad, IRNA – Pakistan’s Interior Minister Syed Mohsin Raza Naqvi has left Islamabad for Tehran to hold talks with senior Iranian officials. Naqvi left Islamabad on Monday to meet high‑ranking Iranian authorities and follow up on bilateral cooperation. ​ The visit aims to advance discussions on expanding ties and coordinating ongoing matters between the two neighboring countries. ​ Naqvi has made several trips to Tehran since Pakistan began its mediation efforts between Iran and the United States. ​ During his latest visit on August 10, he met President Masoud Pezeshkian, Major General Mohsen Rezaei, Foreign Minister Abbas Araghchi, and Iran’s Interior Minister Eskandar Momeni. 📲 @Irna_en​",
+        "published_at": "2026-09-21T07:52:08Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "8a98ceb4-d0b8-4909-85de-b33cd770c5c2",
+        "title": "Pakistani interior minister Naqvi heads to Iran for talks",
+        "content": "TEHRAN, Sep. 21 (MNA) – Pakistani Interior Minister Syed Mohsin Naqvi departed Islamabad for Tehran on Monday to hold high-profile talks with the Iranian officials.",
+        "published_at": "2026-09-21T07:24:40Z",
+        "source_name": "Mehr News RSS"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.82,
+          "probabilities": {
+            "duplicate": 0.87,
+            "material_update": 0.12,
+            "unrelated": 0,
+            "insufficient_evidence": 0.01
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 804,
+          "output_tokens": 54,
+          "cost": 0.000033768
+        }
+      }
+    },
+    {
+      "id": "4b8a416f-ebcd-4a1b-88bb-e0f221de8e62:83259239-f842-416a-87d2-b57d87473d34",
+      "expected": "duplicate",
+      "current": {
+        "id": "4b8a416f-ebcd-4a1b-88bb-e0f221de8e62",
+        "title": null,
+        "content": "The Iranian Army says it has destroyed an advanced Orbiter reconnaissance drone over the Strait of Hormuz. @PressTV",
+        "published_at": "2026-09-20T21:20:27Z",
+        "source_name": "Press TV"
+      },
+      "candidate": {
+        "id": "83259239-f842-416a-87d2-b57d87473d34",
+        "title": "Enemy's drone targeted over Hormuz: Iran Army",
+        "content": "TEHRAN, Sep. 20 (MNA) – The Iranian Army announced Sunday evening that an advanced \"Orbiter\" reconnaissance drone was intercepted and destroyed over the Strait of Hormuz.",
+        "published_at": "2026-09-20T17:16:18Z",
+        "source_name": "Mehr News RSS"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 1,
+          "probabilities": {
+            "material_update": 0,
+            "insufficient_evidence": 0,
+            "unrelated": 0,
+            "duplicate": 1
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 661,
+          "output_tokens": 54,
+          "cost": 0.000027762
+        }
+      }
+    },
+    {
+      "id": "d2ebc22d-6878-4a78-9c58-c00af58a65dc:52e7ec21-9d39-4928-8474-ac79d8dfcf3d",
+      "expected": "duplicate",
+      "current": {
+        "id": "d2ebc22d-6878-4a78-9c58-c00af58a65dc",
+        "title": null,
+        "content": "President Pezeshkian to travel to New York on Tuesday to address UN General Assembly Iranian President Masoud Pezeshkian will depart for New York on Tuesday to attend the 81st session of the United Nations General Assembly, the chief executive’s office announces. @PressTV",
+        "published_at": "2026-09-21T11:32:18Z",
+        "source_name": "Press TV"
+      },
+      "candidate": {
+        "id": "52e7ec21-9d39-4928-8474-ac79d8dfcf3d",
+        "title": null,
+        "content": "🎙 Pezeshkian to travel to New York for UN General Assembly 📌 Tehran, IRNA – President Masoud Pezeshkian will travel to New York on Tuesday to attend the 81st session of the United Nations General Assembly, the director-general of the Presidential Office’s Public Relations Department says. Habibollah Abbasi told IRNA on Monday that Pezeshkian will address the UN General Assembly and hold meetings with a number of heads of state and senior officials attending the gathering. ​ The president is also scheduled to meet Iranian expatriates, as well as US intellectuals and representatives of American think tanks, Abbasi said. ​ The 81st session of the UN General Assembly opened on September 8 under the theme “Restoring Trust, Managing Transformation: A United Nations That Delivers for All.” ​ The high-level general debate is scheduled to begin on September 22, with Pezeshkian expected to deliver his address on Wednesday, September 23. ​ The United States has approved visas for Pezeshkian and Foreign Minister Abbas Araghchi to attend the gathering. 📲 @Irna_en​",
+        "published_at": "2026-09-21T09:14:22Z",
+        "source_name": "IRNA English"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.4,
+          "probabilities": {
+            "material_update": 0.45,
+            "duplicate": 0.55,
+            "unrelated": 0,
+            "insufficient_evidence": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 890,
+          "output_tokens": 54,
+          "cost": 0.00003738
+        }
+      }
+    },
+    {
+      "id": "2f523c4b-c7ae-430c-8a31-0e056cdd7d6b:178e2d8e-7bfd-4e76-a6de-4ec66f20c2b2",
+      "expected": "duplicate",
+      "current": {
+        "id": "2f523c4b-c7ae-430c-8a31-0e056cdd7d6b",
+        "title": "Senior Iran MP terms US treasury sec.’s claims baseless lies",
+        "content": "TEHRAN, Sep. 20 (MNA) – The chairman of the Iranian Parliament’s National Security Committee hit back at US Treasury Secretary Scott Bessent over claims that Iranians are waiting three to four hours in line for gasoline, calling them “baseless lies.”",
+        "published_at": "2026-09-20T06:20:45Z",
+        "source_name": "Mehr News RSS"
+      },
+      "candidate": {
+        "id": "178e2d8e-7bfd-4e76-a6de-4ec66f20c2b2",
+        "title": null,
+        "content": "🔴 Ebrahim Azizi, Chairman of the National Security Committee of Iran’s Parliament, hits back at the US Treasury Secretary over claims that Iranians are waiting three to four hours in line for gasoline, calling them “baseless lies.” @PressTV",
+        "published_at": "2026-09-20T05:49:08Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 1,
+          "probabilities": {
+            "insufficient_evidence": 0,
+            "duplicate": 1,
+            "material_update": 0,
+            "unrelated": 0
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 710,
+          "output_tokens": 54,
+          "cost": 0.00002982
+        }
+      }
+    },
+    {
+      "id": "4e201e5d-20cb-4f17-a493-8d2da3dfed79:34259660-f32f-42ad-9a72-f0b003360a44",
+      "expected": "insufficient_evidence",
+      "current": {
+        "id": "4e201e5d-20cb-4f17-a493-8d2da3dfed79",
+        "title": null,
+        "content": "💬 Iran calls for immediate action to halt Israeli genocide of Palestinians 📌 Tehran, IRNA – Iran has called on the international community to take serious and decisive action to put an end to the Israeli genocide, war crimes, and crimes against humanity against Palestinians in the Gaza Strip and the West Bank. In a statement issued ahead of the annual session of the United Nations General Assembly on Monday, the Foreign Ministry expressed deep concern and revulsion over the continuation of Israeli crimes against the Palestinian people, highlighting the international community’s responsibility to act to stop the genocide. ​ The ministry also strongly condemned Israeli Prime Minister Benjamin Netanyahu’s “shameless desecration” of Al-Aqsa Mosque and the violation of the sanctity of al-Buraq. ​ It said Israel, which has been committing one of the largest genocides in modern history in Gaza over the past three years with comprehensive military, financial and political-media support from the United States and certain countries claiming to defend human rights, has simultaneously resorted to systematic and widespread assassination and torture of Palestinians in Gaza and the West Bank. ​ The ministry further said that an average of at least three Palestinian prisoners are killed under torture every month, describing this as evidence of the “apartheid and colonial nature” of Israel and criticizing its supporters for remaining indifferent to serious violations of human rights and international humanitarian law. ​ “Immunity granted to this regime by the United States, including through intimidation and sanctions against international court judges and human rights activists and rapporteurs of Palestinian people, must not disrupt the ideal of pursuing justice and freedom for Palestine or demanding the prosecution and punishment of Israeli criminals,” it added. ​ The ministry also argued that Israel’s occupation, terrorism, lawlessness, and crimes in the occupied Palestinian territories, as well as its actions against regional countries over the past eight decades, have seriously undermined the credibility of the United Nations and international law. ​ It called for immediate steps to halt the genocide, prevent further occupation and seizure of Palestinian land, deliver humanitarian aid to Gaza and hold those responsible for crimes accountable. 📲 @Irna_en​",
+        "published_at": "2026-09-21T06:14:14Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "34259660-f32f-42ad-9a72-f0b003360a44",
+        "title": null,
+        "content": "Iran urges immediate humanitarian aid for Gaza. @PressTV",
+        "published_at": "2026-09-21T04:22:44Z",
+        "source_name": "Press TV"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "insufficient_evidence",
+          "confidence": 0.63,
+          "probabilities": {
+            "material_update": 0.04,
+            "duplicate": 0.01,
+            "unrelated": 0.23,
+            "insufficient_evidence": 0.72
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 1026,
+          "output_tokens": 60,
+          "cost": 0.000043092
+        }
+      }
+    },
+    {
+      "id": "a913d2a9-c93f-42ae-b18c-1bb0500d9fb3:9192226a-3be6-4e26-9b41-976db078fc68",
+      "expected": "duplicate",
+      "current": {
+        "id": "a913d2a9-c93f-42ae-b18c-1bb0500d9fb3",
+        "title": null,
+        "content": "🎙 Baqaei: Attending UNGA not a privilege, a legal right 📌 Tehran, IRNA – Foreign Ministry spokesperson Esmaeil Baqaei says that Iran will not abondon its right to be present in the UN General Assembly, stressing that attending the UN meeting is not a prividlege given by Washington. Baqaei stressed that being in New York held absolutely no charm for Iranian representatives, but it was a trench that must not be abandoned. ​ Speaking in a televised program, the Foreign Ministry spokesperson emphasized that participating in the UN General Assembly was a legal right rather than a favor from others, as Iran was one of the 50 founding member states of the UN. ​ Recalling that seven months had passed since recent conflicts and crimes against Iran, Baqaei stated that the country had a duty to attend the most important international event to make the justice and rights of the Iranian people heard by the world. ​ He pointed out that the opposing side used every tool to prevent the Iranian delegation’s participation, ranging from derogatory remarks and media propaganda to abusing its commitments as the host government by creating delays or refusing to issue visas for several delegation members. ​ Baqaei affirmed that such sabotage and negative propaganda would never cause Iran to back down from its legitimate right to attend the summit and explicitly explain the principled positions of the Islamic Republic and the great Iranian nation. 📲 @Irna_en​",
+        "published_at": "2026-09-19T20:39:31Z",
+        "source_name": "IRNA English"
+      },
+      "candidate": {
+        "id": "9192226a-3be6-4e26-9b41-976db078fc68",
+        "title": "Attending UNGA a legal right, not a privilege: Iran spox",
+        "content": "TEHRAN, Sep. 19 (MNA) – Foreign ministry spokesman says that Iran will not abondon its right to be present in the UN General Assembly, stressing that attending the UN meeting is not a prividlege given by Washington.",
+        "published_at": "2026-09-19T18:50:32Z",
+        "source_name": "Mehr News RSS"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.76,
+          "probabilities": {
+            "duplicate": 0.8099999999999999,
+            "insufficient_evidence": 0.01,
+            "unrelated": 0,
+            "material_update": 0.18
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 953,
+          "output_tokens": 54,
+          "cost": 0.000040026
+        }
+      }
+    },
+    {
+      "id": "8cdfd586-e7b3-45a3-900c-eab5f25d5815:4472b922-7518-48fd-b687-a7f6d45d578e",
+      "expected": "duplicate",
+      "current": {
+        "id": "8cdfd586-e7b3-45a3-900c-eab5f25d5815",
+        "title": null,
+        "content": "آمادگی آمریکا برای اعمال تحریم‌های گسترده علیه دیوان کیفری بین‌المللی 🔹وال استریت ژورنال به نقل از مقامات آمریکایی: دولت ترامپ در حال آماده شدن برای اعمال تحریم‌های گسترده علیه دیوان کیفری بین‌المللی (لاهه) است. @TasnimNews",
+        "published_at": "2026-09-20T20:11:51Z",
+        "source_name": "Tasnim News"
+      },
+      "candidate": {
+        "id": "4472b922-7518-48fd-b687-a7f6d45d578e",
+        "title": null,
+        "content": "Trump administration ready to impose sanctions on International Criminal Court: WSJ|FJ",
+        "published_at": "2026-09-20T18:37:52Z",
+        "source_name": "FinancialJuice"
+      },
+      "recorded": {
+        "decision": {
+          "type": "choice",
+          "choice": "duplicate",
+          "confidence": 0.94,
+          "probabilities": {
+            "material_update": 0.02,
+            "duplicate": 0.96,
+            "unrelated": 0,
+            "insufficient_evidence": 0.02
+          }
+        },
+        "model": "typesafe/jev-1.13-20260917",
+        "usage": {
+          "input_tokens": 744,
+          "output_tokens": 54,
+          "cost": 0.000031248
+        }
+      }
+    }
+  ]
+}

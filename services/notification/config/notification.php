@@ -30,6 +30,17 @@ return [
         'future_tolerance_minutes' => 5,
     ],
     'public_origin' => env('NEWS_PUBLIC_ORIGIN', 'https://news.thetickbase.com'),
+    'dedup' => [
+        'enabled' => (bool) env('NOTIFICATION_DEDUP_ENABLED', false),
+        'endpoint' => env('NOTIFICATION_DEDUP_ENDPOINT'),
+        'api_key' => env('NOTIFICATION_DEDUP_API_KEY'),
+        'model' => env('NOTIFICATION_DEDUP_MODEL'),
+        'window_minutes' => 30,
+        'candidates' => 2,
+        'wait_seconds' => 1,
+        'probability' => 0.95,
+        'confidence' => 0.95,
+    ],
     'delivery' => [
         'max_provider_attempts' => 5,
         'lock_seconds' => 45,

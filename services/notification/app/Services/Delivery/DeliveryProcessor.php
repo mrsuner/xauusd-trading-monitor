@@ -31,6 +31,7 @@ class DeliveryProcessor
         private ContentSelector $content,
         private TelegramMessageFormatter $formatter,
         private TelegramApi $telegram,
+        private NotificationDeduplicator $deduplicator,
     ) {}
 
     /** Return the number of seconds before this job should be released, or null when resolved. */
@@ -91,6 +92,12 @@ class DeliveryProcessor
         }
 
         $target = Crypt::decryptString((string) $channel->encrypted_target);
+        $duplicateOf = $this->deduplicator->duplicateOf($delivery, $event);
+        if ($duplicateOf !== null) {
+            $this->resolve($delivery, DeliveryStatus::Canceled, 'cross_source_duplicate:'.$duplicateOf);
+
+            return null;
+        }
         $rateDelay = $this->claimRateLimit($channel);
         if ($rateDelay > 0) {
             return $this->wait($delivery, $rateDelay, 'provider_rate_wait');
