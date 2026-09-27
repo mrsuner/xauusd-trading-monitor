@@ -100,7 +100,7 @@ services:
       - xauusd
 
   normalizer-classifier:
-    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/normalizer-classifier:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/normalizer-classifier:${NORMALIZER_IMAGE_TAG:-${IMAGE_TAG}}
     restart: unless-stopped
     logging: *default-logging
     depends_on:

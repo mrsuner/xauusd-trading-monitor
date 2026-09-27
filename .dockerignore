@@ -12,6 +12,7 @@ __pycache__
 .ruff_cache
 node_modules
 **/node_modules
+**/vendor
 dist
 **/dist
 build
