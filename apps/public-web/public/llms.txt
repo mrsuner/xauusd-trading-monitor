@@ -1,0 +1,7 @@
+# TickBase News
+
+> TickBase News publishes public event summaries about market-moving gold, macroeconomic, and geopolitical news.
+
+## Start here
+- [Events](https://news.thetickbase.com/en/events): Public event feed.
+- [About](https://news.thetickbase.com/en/about): Editorial and product context.
