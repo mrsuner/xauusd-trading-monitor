@@ -17,7 +17,7 @@ class AccountPushClient
         }
 
         try {
-            return Http::baseUrl($baseUrl)->acceptJson()->asJson()->connectTimeout(2)->timeout(10)
+            return Http::baseUrl($baseUrl)->acceptJson()->asJson()->connectTimeout(2)->timeout(20)
                 ->withHeader('X-Internal-Secret', $secret)
                 ->post('/internal/news/users/'.$accountUserId.'/push', [
                     'delivery_id' => $delivery->id,
@@ -25,6 +25,7 @@ class AccountPushClient
                     'title' => $title,
                     'body' => $body,
                     'url' => $url,
+                    'ttl_seconds' => max(1, min(3600, $delivery->expires_at->getTimestamp() - now('UTC')->getTimestamp())),
                 ])->status();
         } catch (ConnectionException) {
             return 503;

@@ -192,7 +192,7 @@ class DeliveryProcessor
 
     private function cancelPush(Delivery $delivery, int $status): ?int
     {
-        $this->resolve($delivery, DeliveryStatus::Canceled, $status === 409 ? 'no_web_devices' : 'access_inactive');
+        $this->resolve($delivery, DeliveryStatus::Canceled, $status === 409 ? 'no_push_devices' : 'access_inactive');
 
         return null;
     }

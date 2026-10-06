@@ -93,22 +93,23 @@ class DeliveryProcessorTest extends TestCase
         Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/push')
             && $request->data()['delivery_id'] === $delivery->id
             && $request->data()['event_id'] === $delivery->public_event_id
+            && $request->data()['ttl_seconds'] > 0 && $request->data()['ttl_seconds'] <= 3600
             && str_contains($request->data()['url'], '/zh-Hant/events/'.$delivery->public_event_id)
             && $request->hasHeader('X-Internal-Secret', 'account-secret'));
         $this->assertDatabaseMissing('runtime_state', ['key' => 'telegram_last_send']);
     }
 
-    public function test_push_without_registered_browser_is_canceled(): void
+    public function test_push_without_registered_devices_is_canceled(): void
     {
         $delivery = $this->delivery(channelType: 'push');
         Http::fake([
             'http://account:8080/internal/news/users/*/access' => Http::response(['data' => ['news' => ['access_allowed' => true]]]),
-            'http://account:8080/internal/news/users/*/push' => Http::response(['error' => 'no_web_devices'], 409),
+            'http://account:8080/internal/news/users/*/push' => Http::response(['error' => 'no_push_devices'], 409),
         ]);
 
         self::assertNull(app(DeliveryProcessor::class)->process($delivery->id));
         self::assertSame(DeliveryStatus::Canceled, $delivery->fresh()->status);
-        self::assertSame('no_web_devices', $delivery->fresh()->error_code);
+        self::assertSame('no_push_devices', $delivery->fresh()->error_code);
     }
 
     public function test_unknown_access_waits_without_provider_attempt(): void

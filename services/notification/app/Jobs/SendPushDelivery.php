@@ -15,7 +15,7 @@ class SendPushDelivery implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 60;
 
-    public int $timeout = 25;
+    public int $timeout = 30;
 
     public int $tries = 0;
 
