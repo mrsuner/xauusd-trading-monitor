@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Delivery;
 
+use App\Jobs\SendPushDelivery;
 use App\Jobs\SendTelegramDelivery;
 use App\Models\RuntimeState;
 use App\Models\Subscriber;
@@ -110,6 +111,22 @@ class EventScannerTest extends TestCase
 
         $this->assertDatabaseHas('deliveries', ['priority' => 'high']);
         Queue::assertPushedOn('news-telegram-high', SendTelegramDelivery::class);
+    }
+
+    public function test_push_channel_reuses_matching_and_its_own_queue(): void
+    {
+        $subscriber = $this->subscriber((string) Str::ulid());
+        $subscriber->channels()->create([
+            'type' => 'push', 'enabled' => true, 'verified' => true,
+            'revision' => 1, 'enabled_from' => $this->now->subMinutes(9),
+        ]);
+        $this->event();
+        Http::fake(['*' => Http::response(['data' => ['news' => ['access_allowed' => true]]])]);
+
+        self::assertSame(2, app(EventScanner::class)->scan()['deliveries']);
+        $this->assertDatabaseHas('deliveries', ['channel_type' => 'push', 'status' => 'pending']);
+        Queue::assertPushedOn('news-push', SendPushDelivery::class);
+        Queue::assertPushedOn('news-telegram-standard', SendTelegramDelivery::class);
     }
 
     public function test_inactive_access_is_resolved_without_delivery(): void

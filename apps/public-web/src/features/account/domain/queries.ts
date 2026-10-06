@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccountSession, login, logout, register } from "./api";
+import { disableCurrentBrowser } from "../../notifications/domain/webPush";
 
 export const accountKeys = {
   session: ["account", "session"] as const
@@ -37,7 +38,10 @@ export function useRegister() {
 export function useLogout() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: logout,
+    mutationFn: async () => {
+      await disableCurrentBrowser();
+      await logout();
+    },
     onSuccess: () => {
       // Logout changes the identity boundary for every authenticated query.
       // Clearing the whole client prevents active digest/settings observers from

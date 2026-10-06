@@ -14,7 +14,7 @@ export interface NotificationPreferences {
 }
 
 export interface NotificationChannel {
-  type: "telegram";
+  type: "telegram" | "push";
   enabled: boolean;
   verified: boolean;
   targetHint: string | null;
@@ -35,7 +35,7 @@ export interface PreferencesDto {
 }
 
 export interface ChannelDto {
-  type: "telegram";
+  type: "telegram" | "push";
   enabled: boolean;
   verified: boolean;
   target_hint: string | null;

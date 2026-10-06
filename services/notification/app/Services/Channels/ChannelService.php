@@ -81,6 +81,9 @@ class ChannelService
     /** @return array<string, mixed> */
     public function setEnabled(string $accountUserId, string $type, bool $enabled, bool $hasActiveAccess): array
     {
+        if ($type === 'push') {
+            return $this->setPushEnabled($accountUserId, $enabled, $hasActiveAccess);
+        }
         $this->ensureTelegram($type);
         if ($enabled && ! $hasActiveAccess) {
             throw new ChannelException('upgrade_required', 'An active News subscription is required.', 403);
@@ -93,6 +96,35 @@ class ChannelService
                 throw new ChannelException('channel_unverified', 'Telegram must be linked before it can be enabled.', 409);
             }
 
+            if ($channel->enabled !== $enabled) {
+                $channel->enabled = $enabled;
+                $channel->enabled_from = $enabled ? now('UTC') : null;
+                $channel->revision++;
+                $channel->save();
+                if (! $enabled) {
+                    $this->cancelPending($channel->id, 'channel_disabled');
+                }
+            }
+
+            return $this->serialize($channel);
+        });
+    }
+
+    /** @return array<string, mixed> */
+    private function setPushEnabled(string $accountUserId, bool $enabled, bool $hasActiveAccess): array
+    {
+        if ($enabled && ! $hasActiveAccess) {
+            throw new ChannelException('upgrade_required', 'An active News subscription is required.', 403);
+        }
+
+        return DB::transaction(function () use ($accountUserId, $enabled): array {
+            $subscriber = $this->subscriber($accountUserId);
+            $channel = $subscriber->channels()->where('type', 'push')->lockForUpdate()->first();
+            if ($channel === null) {
+                $channel = $subscriber->channels()->create([
+                    'type' => 'push', 'enabled' => false, 'verified' => true, 'revision' => 1,
+                ]);
+            }
             if ($channel->enabled !== $enabled) {
                 $channel->enabled = $enabled;
                 $channel->enabled_from = $enabled ? now('UTC') : null;

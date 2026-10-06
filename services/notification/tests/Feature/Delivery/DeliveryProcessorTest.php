@@ -80,6 +80,37 @@ class DeliveryProcessorTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_push_delivery_uses_account_dispatch_and_marks_provider_acceptance(): void
+    {
+        $delivery = $this->delivery(channelType: 'push');
+        Http::fake([
+            'http://account:8080/internal/news/users/*/access' => Http::response(['data' => ['news' => ['access_allowed' => true]]]),
+            'http://account:8080/internal/news/users/*/push' => Http::response(['data' => ['accepted' => true]], 202),
+        ]);
+
+        self::assertNull(app(DeliveryProcessor::class)->process($delivery->id));
+        self::assertSame(DeliveryStatus::Sent, $delivery->fresh()->status);
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/push')
+            && $request->data()['delivery_id'] === $delivery->id
+            && $request->data()['event_id'] === $delivery->public_event_id
+            && str_contains($request->data()['url'], '/zh-Hant/events/'.$delivery->public_event_id)
+            && $request->hasHeader('X-Internal-Secret', 'account-secret'));
+        $this->assertDatabaseMissing('runtime_state', ['key' => 'telegram_last_send']);
+    }
+
+    public function test_push_without_registered_browser_is_canceled(): void
+    {
+        $delivery = $this->delivery(channelType: 'push');
+        Http::fake([
+            'http://account:8080/internal/news/users/*/access' => Http::response(['data' => ['news' => ['access_allowed' => true]]]),
+            'http://account:8080/internal/news/users/*/push' => Http::response(['error' => 'no_web_devices'], 409),
+        ]);
+
+        self::assertNull(app(DeliveryProcessor::class)->process($delivery->id));
+        self::assertSame(DeliveryStatus::Canceled, $delivery->fresh()->status);
+        self::assertSame('no_web_devices', $delivery->fresh()->error_code);
+    }
+
     public function test_unknown_access_waits_without_provider_attempt(): void
     {
         $delivery = $this->delivery();
@@ -458,6 +489,7 @@ class DeliveryProcessorTest extends TestCase
         string $summaryLanguage = 'zh-Hant',
         ?CarbonImmutable $receivedAt = null,
         string $chatId = '123456789',
+        string $channelType = 'telegram',
     ): Delivery {
         $receivedAt ??= $this->now->subMinute();
         $eventId = (string) Str::uuid();
@@ -492,7 +524,7 @@ class DeliveryProcessorTest extends TestCase
         $subscriber->categories()->create(['key' => 'macro_data']);
         $subscriber->tags()->create(['key' => 'fed']);
         $channel = $subscriber->channels()->create([
-            'type' => 'telegram',
+            'type' => $channelType,
             'enabled' => true,
             'verified' => true,
             'revision' => 1,
@@ -507,7 +539,7 @@ class DeliveryProcessorTest extends TestCase
             'channel_id' => $channel->id,
             'upstream_event_id' => $upstreamId,
             'public_event_id' => $eventId,
-            'channel_type' => 'telegram',
+            'channel_type' => $channelType,
             'subscriber_revision' => 1,
             'channel_revision' => 1,
             'status' => 'pending',

@@ -37,6 +37,14 @@ export async function setTelegramEnabled(enabled: boolean) {
   return mapChannel(body.data);
 }
 
+export async function setPushEnabled(enabled: boolean) {
+  const body = await accountRequest<{ data: ChannelDto }>("/news/channels/push", {
+    method: "PATCH",
+    body: { enabled }
+  });
+  return mapChannel(body.data);
+}
+
 export async function unlinkTelegram(): Promise<void> {
   await accountRequest<null>("/news/channels/telegram", { method: "DELETE" });
 }

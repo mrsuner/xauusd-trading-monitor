@@ -10,6 +10,7 @@ import {
   saveDigestPreferences,
   savePreferences,
   setTelegramEnabled,
+  setPushEnabled,
   unlinkTelegram
 } from "./api";
 import type { DeliveryLanguage, DigestPreferences } from "./models";
@@ -52,6 +53,14 @@ export function useSetTelegramEnabled() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: setTelegramEnabled,
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.channels })
+  });
+}
+
+export function useSetPushEnabled() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: setPushEnabled,
     onSuccess: () => client.invalidateQueries({ queryKey: keys.channels })
   });
 }

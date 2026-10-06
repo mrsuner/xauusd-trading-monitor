@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Services\Account;
+
+use App\Models\Delivery;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
+
+class AccountPushClient
+{
+    public function send(Delivery $delivery, string $accountUserId, string $title, string $body, string $url): int
+    {
+        $baseUrl = rtrim((string) config('notification.account.base_url'), '/');
+        $secret = (string) config('notification.account.secret');
+        if ($baseUrl === '' || $secret === '') {
+            return 503;
+        }
+
+        try {
+            return Http::baseUrl($baseUrl)->acceptJson()->asJson()->connectTimeout(2)->timeout(10)
+                ->withHeader('X-Internal-Secret', $secret)
+                ->post('/internal/news/users/'.$accountUserId.'/push', [
+                    'delivery_id' => $delivery->id,
+                    'event_id' => $delivery->public_event_id,
+                    'title' => $title,
+                    'body' => $body,
+                    'url' => $url,
+                ])->status();
+        } catch (ConnectionException) {
+            return 503;
+        }
+    }
+}

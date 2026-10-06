@@ -2,6 +2,9 @@ import { Bell, ExternalLink, RefreshCw, Send, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AccountApiError } from "../domain/api";
+import { useAccountSession } from "../../account/domain/queries";
+import { disableCurrentBrowser, enableCurrentBrowser, getWebPushStatus, isCurrentBrowserRegistered } from "../domain/webPush";
+import type { WebPushStatus } from "../domain/webPush";
 import type { NotificationPreferences } from "../domain/models";
 import {
   useCreateTelegramLink,
@@ -9,6 +12,7 @@ import {
   useNotificationSettings,
   useSavePreferences,
   useSetTelegramEnabled,
+  useSetPushEnabled,
   useSubscriptionCatalog,
   useUnlinkTelegram
 } from "../domain/queries";
@@ -25,19 +29,36 @@ export function NotificationSettingsPage() {
   const save = useSavePreferences();
   const createLink = useCreateTelegramLink();
   const setChannelEnabled = useSetTelegramEnabled();
+  const setPushEnabled = useSetPushEnabled();
   const unlink = useUnlinkTelegram();
+  const session = useAccountSession();
   const [draft, setDraft] = useState<NotificationPreferences | null>(null);
+  const [webPushStatus, setWebPushStatus] = useState<WebPushStatus | null>(null);
+  const [browserRegistered, setBrowserRegistered] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState(false);
 
   useEffect(() => {
     if (settings.data?.preferences) setDraft(settings.data.preferences);
   }, [settings.data?.preferences]);
 
+  useEffect(() => {
+    const userId = session.data?.user.id;
+    if (!userId) return;
+    let active = true;
+    setBrowserRegistered(isCurrentBrowserRegistered(userId));
+    getWebPushStatus(userId)
+      .then((status) => { if (active) setWebPushStatus(status); });
+    return () => { active = false; };
+  }, [session.data?.user.id]);
+
   const channel = channels.data?.find((item) => item.type === "telegram");
+  const pushChannel = channels.data?.find((item) => item.type === "push");
   const isActive = settings.data?.access === "active";
   const canSave = Boolean(
     draft && settings.data && (isActive || (settings.data.preferences.masterEnabled && !draft.masterEnabled))
   );
-  const error = firstError(save.error, createLink.error, setChannelEnabled.error, unlink.error);
+  const error = firstError(save.error, createLink.error, setChannelEnabled.error, setPushEnabled.error, unlink.error);
 
   if (settings.isPending) return <PageShell><div className="skeleton h-48 w-full" /></PageShell>;
   if (settings.error instanceof AccountApiError && settings.error.status === 401) {
@@ -77,6 +98,7 @@ export function NotificationSettingsPage() {
         </div>
       )}
       {Boolean(error) && <ErrorAlert message={messageFor(error, t.requestError)} />}
+      {pushError && <ErrorAlert message={t.pushError} />}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <form
@@ -189,7 +211,8 @@ export function NotificationSettingsPage() {
           </button>
         </form>
 
-        <section className="h-fit rounded-box border border-base-300 bg-base-200 p-5 sm:p-6">
+        <div className="space-y-6">
+        <section className="rounded-box border border-base-300 bg-base-200 p-5 sm:p-6">
           <div className="flex items-center gap-3"><Send className="h-5 w-5 text-primary" /><h2 className="text-xl font-semibold">Telegram</h2></div>
           <p className="mt-2 text-sm text-base-content/60">{t.telegramBody}</p>
           {channels.isPending && <div className="skeleton mt-5 h-24 w-full" />}
@@ -239,6 +262,50 @@ export function NotificationSettingsPage() {
             </button>
           )}
         </section>
+
+        <section className="rounded-box border border-base-300 bg-base-200 p-5 sm:p-6">
+          <div className="flex items-center gap-3"><Bell className="h-5 w-5 text-primary" /><h2 className="text-xl font-semibold">{t.pushTitle}</h2></div>
+          <p className="mt-2 text-sm text-base-content/60">{t.pushBody}</p>
+          {webPushStatus === "unsupported" && <p className="mt-4 text-sm text-warning">{t.pushUnsupported}</p>}
+          {webPushStatus === "unconfigured" && <p className="mt-4 text-sm text-warning">{t.pushUnconfigured}</p>}
+          {webPushStatus === "blocked" && <p className="mt-4 text-sm text-warning">{t.pushBlocked}</p>}
+          {webPushStatus === "enabled" && <p className="mt-4 text-sm text-success">{t.pushThisBrowserEnabled}</p>}
+          {webPushStatus === "available" && <p className="mt-4 text-sm text-base-content/60">{t.pushThisBrowserOff}</p>}
+          {!settings.data.preferences.masterEnabled && <p className="mt-4 text-sm text-warning">{t.pushMasterRequired}</p>}
+          {webPushStatus === "enabled" && !pushChannel?.enabled && <p className="mt-4 text-sm text-warning">{t.pushAccountPaused}</p>}
+          {browserRegistered ? (
+            <button className="btn btn-outline btn-sm mt-4" type="button" disabled={pushBusy} onClick={async () => {
+              setPushBusy(true); setPushError(false);
+              try {
+                await disableCurrentBrowser();
+                setWebPushStatus(await getWebPushStatus(session.data!.user.id));
+                setBrowserRegistered(false);
+              } catch { setPushError(true); } finally { setPushBusy(false); }
+            }}>{t.pushDisableBrowser}</button>
+          ) : (
+            <button className="btn btn-primary btn-sm mt-4" type="button"
+              disabled={!isActive || pushBusy || !session.data || webPushStatus !== "available"}
+              onClick={async () => {
+                setPushBusy(true); setPushError(false);
+                try {
+                  await enableCurrentBrowser(session.data!.user.id);
+                  if (!pushChannel?.enabled) await setPushEnabled.mutateAsync(true);
+                  setWebPushStatus(await getWebPushStatus(session.data!.user.id));
+                  setBrowserRegistered(true);
+                } catch {
+                  setPushError(true);
+                  setWebPushStatus(await getWebPushStatus(session.data!.user.id));
+                  setBrowserRegistered(isCurrentBrowserRegistered(session.data!.user.id));
+                } finally { setPushBusy(false); }
+              }}>{t.pushEnableBrowser}</button>
+          )}
+          {pushChannel?.enabled && <button className="btn btn-ghost btn-sm mt-4 ml-2" type="button" disabled={setPushEnabled.isPending}
+            onClick={() => setPushEnabled.mutate(false)}>{t.pushDisableAccount}</button>}
+          {!pushChannel?.enabled && webPushStatus === "enabled" && <button className="btn btn-outline btn-sm mt-4 ml-2" type="button" disabled={!isActive || setPushEnabled.isPending}
+            onClick={() => setPushEnabled.mutate(true)}>{t.pushEnableAccount}</button>}
+          <p className="mt-4 text-xs text-base-content/50">{t.pushScope}</p>
+        </section>
+        </div>
       </div>
     </PageShell>
   );

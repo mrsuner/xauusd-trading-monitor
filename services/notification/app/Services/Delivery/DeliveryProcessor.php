@@ -10,6 +10,7 @@ use App\Models\Delivery;
 use App\Models\RuntimeState;
 use App\Models\Subscriber;
 use App\Services\Account\AccountAccessClient;
+use App\Services\Account\AccountPushClient;
 use App\Services\Channels\ChannelService;
 use App\Services\Preferences\EventMatcher;
 use App\Services\Preferences\TaxonomyCatalog;
@@ -27,6 +28,7 @@ class DeliveryProcessor
         private TaxonomyCatalog $taxonomy,
         private EventMatcher $matcher,
         private AccountAccessClient $access,
+        private AccountPushClient $push,
         private ChannelService $channels,
         private ContentSelector $content,
         private TelegramMessageFormatter $formatter,
@@ -86,18 +88,23 @@ class DeliveryProcessor
             return $this->wait($delivery, 60, 'content_wait');
         }
 
-        $cooldown = $this->providerCooldown($now);
-        if ($cooldown > 0) {
-            return $this->wait($delivery, $cooldown, 'provider_cooldown');
-        }
-
-        $target = Crypt::decryptString((string) $channel->encrypted_target);
         $duplicateOf = $this->deduplicator->duplicateOf($delivery, $event);
         if ($duplicateOf !== null) {
             $this->resolve($delivery, DeliveryStatus::Canceled, 'cross_source_duplicate:'.$duplicateOf);
 
             return null;
         }
+
+        if ($channel->type === 'push') {
+            return $this->sendPush($delivery, $subscriber, $content->summary);
+        }
+
+        $cooldown = $this->providerCooldown($now);
+        if ($cooldown > 0) {
+            return $this->wait($delivery, $cooldown, 'provider_cooldown');
+        }
+
+        $target = Crypt::decryptString((string) $channel->encrypted_target);
         $rateDelay = $this->claimRateLimit($channel);
         if ($rateDelay > 0) {
             return $this->wait($delivery, $rateDelay, 'provider_rate_wait');
@@ -140,6 +147,54 @@ class DeliveryProcessor
             TelegramResultType::TransientFailure => $this->retryOrFail($delivery, $this->backoff($delivery), 'provider_transient'),
             TelegramResultType::PayloadInvalid => $this->permanentFailure($delivery, 'payload_invalid'),
         };
+    }
+
+    private function sendPush(Delivery $delivery, Subscriber $subscriber, string $summary): ?int
+    {
+        $attempt = DB::transaction(function () use ($delivery): ?int {
+            $current = Delivery::query()->with(['subscriber', 'channel'])->lockForUpdate()->find($delivery->id);
+            if ($current === null || $current->status->terminal()
+                || $current->expires_at->isPast()
+                || ! $current->subscriber?->master_enabled || ! $current->channel?->enabled
+                || ! $current->channel?->verified
+                || $current->subscriber_revision !== $current->subscriber?->revision
+                || $current->channel_revision !== $current->channel?->revision) {
+                return null;
+            }
+
+            $current->status = DeliveryStatus::Sending;
+            $current->attempt_count++;
+            $current->last_attempt_at = now('UTC');
+            $current->error_code = null;
+            $current->save();
+
+            return $current->attempt_count;
+        });
+        if ($attempt === null) {
+            return null;
+        }
+
+        $language = in_array($subscriber->content_language, ['zh-Hant', 'en'], true)
+            ? $subscriber->content_language : 'en';
+        $title = $language === 'zh-Hant' ? 'TickBase 即時新聞' : 'TickBase News alert';
+        $url = rtrim((string) config('notification.public_origin'), '/')
+            .'/'.$language.'/events/'.$delivery->public_event_id;
+        $status = $this->push->send($delivery, $subscriber->account_user_id, $title, mb_substr($summary, 0, 250), $url);
+        $delivery = Delivery::query()->findOrFail($delivery->id);
+
+        return match ($status) {
+            202 => $this->accepted($delivery, null),
+            403, 409 => $this->cancelPush($delivery, $status),
+            422 => $this->permanentFailure($delivery, 'push_payload_invalid'),
+            default => $this->retryOrFail($delivery, $this->backoff($delivery), 'push_unavailable'),
+        };
+    }
+
+    private function cancelPush(Delivery $delivery, int $status): ?int
+    {
+        $this->resolve($delivery, DeliveryStatus::Canceled, $status === 409 ? 'no_web_devices' : 'access_inactive');
+
+        return null;
     }
 
     private function stillMatches(Subscriber $subscriber, PublicEventData $event): bool
@@ -202,10 +257,12 @@ class DeliveryProcessor
         $delivery->provider_message_id = $messageId;
         $delivery->error_code = null;
         $delivery->save();
-        RuntimeState::query()->updateOrCreate(
-            ['key' => 'telegram_last_send'],
-            ['value' => ['sent_at' => now('UTC')->toIso8601String()]],
-        );
+        if ($delivery->channel_type === 'telegram') {
+            RuntimeState::query()->updateOrCreate(
+                ['key' => 'telegram_last_send'],
+                ['value' => ['sent_at' => now('UTC')->toIso8601String()]],
+            );
+        }
 
         return null;
     }

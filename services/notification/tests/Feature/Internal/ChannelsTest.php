@@ -160,6 +160,21 @@ class ChannelsTest extends TestCase
         ]);
     }
 
+    public function test_paid_user_can_enable_and_pause_push_without_telegram_binding(): void
+    {
+        $this->internal('PATCH', 'channels/push', ['enabled' => true], false)
+            ->assertForbidden()->assertJsonPath('error', 'upgrade_required');
+        $this->internal('PATCH', 'channels/push', ['enabled' => true], true)
+            ->assertOk()->assertJsonPath('data.type', 'push')->assertJsonPath('data.enabled', true);
+        $channel = Channel::query()->where('type', 'push')->firstOrFail();
+        self::assertTrue($channel->verified);
+        self::assertNotNull($channel->enabled_from);
+
+        $this->internal('PATCH', 'channels/push', ['enabled' => false], false)
+            ->assertOk()->assertJsonPath('data.enabled', false);
+        self::assertNull($channel->fresh()->enabled_from);
+    }
+
     private function subscriber(): Subscriber
     {
         return Subscriber::query()->create([

@@ -15,6 +15,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { accountDashboardUrl } from "../config/account";
 import { AccountApiError } from "../features/account/domain/api";
 import { useAccountSession, useLogout } from "../features/account/domain/queries";
+import { refreshCurrentBrowser } from "../features/notifications/domain/webPush";
 import {
   languageLabels,
   localizedPath,
@@ -34,6 +35,7 @@ export function Layout() {
   const to = useLocalizedPath();
   const currentPath = stripLanguagePrefix(location.pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const session = useAccountSession();
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -42,6 +44,10 @@ export function Layout() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (session.data?.user.id) void refreshCurrentBrowser(session.data.user.id).catch(() => undefined);
+  }, [session.data?.user.id]);
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
