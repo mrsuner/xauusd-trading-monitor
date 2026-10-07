@@ -6,6 +6,7 @@ import "./styles.css";
 import { Layout } from "./components/Layout";
 import { defaultLanguage, isLanguage, localizedPath } from "./i18n";
 import { AboutPage } from "./pages/AboutPage";
+import { AppPage } from "./pages/AppPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { EventsPage } from "./pages/EventsPage";
 import { RawItemDetailPage } from "./pages/RawItemDetailPage";
@@ -39,6 +40,7 @@ const router = createBrowserRouter([
   { path: "/tags/:tag", element: <LegacyRedirect /> },
   { path: "/topics", element: <LegacyRedirect /> },
   { path: "/about", element: <LegacyRedirect /> },
+  { path: "/app", element: <LegacyRedirect /> },
   { path: "/status", element: <LegacyRedirect /> },
   { path: "/support", element: <LegacyRedirect /> },
   { path: "/notifications", element: <LegacyRedirect /> },
@@ -59,6 +61,7 @@ const router = createBrowserRouter([
       { path: "tags/:tag", element: <TagPage /> },
       { path: "topics", element: <TopicsPage /> },
       { path: "about", element: <AboutPage /> },
+      { path: "app", element: <AppPage /> },
       { path: "status", element: <StatusPage /> },
       { path: "support", element: <SupportPage /> },
       { path: "notifications", element: <NotificationSettingsPage /> },

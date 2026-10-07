@@ -5,18 +5,24 @@ import path from 'node:path';
 const appRoot = fileURLToPath(new URL('..', import.meta.url));
 const dist = path.join(appRoot, 'dist');
 const origin = 'https://news.thetickbase.com';
-const routes = ['events', 'topics', 'raw', 'about', 'status', 'support'];
+const routes = ['events', 'topics', 'raw', 'about', 'status', 'support', 'app'];
 const labels = {
-  en: ['Events', 'Topics', 'Raw Source Feed', 'About', 'Status', 'Support'],
-  'zh-Hant': ['事件', '主題', '原始資料源', '關於', '狀態', '支援'],
-  ja: ['イベント', 'トピック', '元情報', '概要', '稼働状況', 'サポート'],
-  th: ['เหตุการณ์', 'หัวข้อ', 'แหล่งข้อมูล', 'เกี่ยวกับ', 'สถานะ', 'ช่วยเหลือ'],
+  en: ['Events', 'Topics', 'Raw Source Feed', 'About', 'Status', 'Support', 'Mobile App'],
+  'zh-Hant': ['事件', '主題', '原始資料源', '關於', '狀態', '支援', '行動 App'],
+  ja: ['イベント', 'トピック', '元情報', '概要', '稼働状況', 'サポート', 'モバイルアプリ'],
+  th: ['เหตุการณ์', 'หัวข้อ', 'แหล่งข้อมูล', 'เกี่ยวกับ', 'สถานะ', 'ช่วยเหลือ', 'แอปมือถือ'],
 };
 const descriptions = {
   en: 'Public-safe summaries of market-moving gold, macroeconomic, and geopolitical events.',
   'zh-Hant': '追蹤影響黃金市場的宏觀經濟與地緣政治事件，閱讀可公開的消息摘要。',
   ja: '金市場に影響するマクロ経済・地政学イベントの公開要約を確認できます。',
   th: 'สรุปเหตุการณ์เศรษฐกิจมหภาคและภูมิรัฐศาสตร์ที่อาจส่งผลต่อตลาดทองคำ',
+};
+const appDescriptions = {
+  en: 'TheTickBase News mobile app: news, source references, reading preferences and News Pro daily digests. App Store and Google Play downloads coming soon.',
+  'zh-Hant': 'TheTickBase News 行動 App：閱讀新聞、多方來源、閱讀偏好與 News Pro 每日摘要。App Store 與 Google Play 下載即將推出。',
+  ja: 'TheTickBase News モバイルアプリ。ニュース、情報源、閲覧設定、News Pro デイリーダイジェスト。App Store と Google Play で近日公開。',
+  th: 'แอป TheTickBase News สำหรับอ่านข่าว ตรวจสอบแหล่งข่าว ตั้งค่าการอ่าน และสรุปรายวัน News Pro เร็ว ๆ นี้บน App Store และ Google Play',
 };
 const escapeHtml = (value) => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 const template = await readFile(path.join(dist, 'index.html'), 'utf8');
@@ -28,7 +34,7 @@ for (const [locale, names] of Object.entries(labels)) {
     if (!sitemap.includes(`<loc>${url}</loc>`)) throw new Error(`Missing sitemap URL: ${url}`);
 
     const title = `${names[index]} · TickBase News`;
-    const description = descriptions[locale];
+    const description = route === 'app' ? appDescriptions[locale] : descriptions[locale];
     const alternates = Object.keys(labels)
       .map((lang) => `<link rel="alternate" hreflang="${lang}" href="${origin}/${lang}/${route}" />`)
       .join('');

@@ -1,6 +1,25 @@
 import type { ConfirmationState } from "../../api/types";
 
 export const en = {
+  app: {
+    nav: "App",
+    title: "Market news, wherever you are.",
+    body: "Read important events, compare sources, and get alerts for the news you follow.",
+    featuresTitle: "A clearer way to follow the news.",
+    feedTitle: "Important events, at a glance",
+    feedBody: "Filter the latest news by topic and impact. Open an event to read its details and follow the developments that matter to you.",
+    sourcesTitle: "More sources, more context",
+    sourcesBody: "See related reports from different channels, with source counts and links for your own cross-checking.",
+    readerTitle: "Your reading, your way",
+    readerBody: "Save articles and choose your reading preferences, even before signing in. Sign in to sync preferences and enable news alerts.",
+    digestTitle: "The day's events, brought together.",
+    digestBody: "Daily digests turn important events into a concise overview you can read on the go.",
+    proNote: "Daily digests and news alerts require a signed-in account with News Pro. Reading the news and saving articles are free.",
+    downloadTitle: "Coming to your phone.",
+    languagesBody: "Available in Chinese, English, Thai, and Japanese. The interface follows your device language, with English as the fallback. You can change it without signing in.",
+    feedAlt: "TheTickBase News iOS app showing the latest news feed",
+    digestAlt: "TheTickBase News iOS app showing a daily digest",
+  },
   nav: {
     latest: "Latest",
     raw: "Raw Feed",

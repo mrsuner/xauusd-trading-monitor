@@ -1,6 +1,25 @@
 import type { Dictionary } from "./en";
 
 export const zhHant = {
+  app: {
+    nav: "App",
+    title: "市場新聞，隨時掌握。",
+    body: "閱讀重要事件、查看多方來源，接收你關注的新聞通知。",
+    featuresTitle: "更清楚地掌握新聞。",
+    feedTitle: "重要事件，一眼掌握",
+    feedBody: "依主題與影響程度篩選最新新聞，開啟事件查看詳細內容，追蹤你關注的發展。",
+    sourcesTitle: "多方來源，交叉參考",
+    sourcesBody: "查看不同渠道對同一事件的相關報導，透過來源數量與參考連結，自行交叉查證。",
+    readerTitle: "按照你的習慣閱讀",
+    readerBody: "未登入也能收藏新聞與設定閱讀偏好；登入後可同步偏好，並啟用新聞通知。",
+    digestTitle: "將每日事件，整理成脈絡。",
+    digestBody: "把重要事件整理成容易閱讀的每日摘要，隨時快速掌握重點。",
+    proNote: "每日摘要與新聞通知需要登入並具備 News Pro。新聞閱讀與收藏免費提供。",
+    downloadTitle: "即將來到你的手機。",
+    languagesBody: "支援中文、英文、泰文與日文。介面依裝置語言自動選擇，不支援的語言預設使用英文；未登入也能自行切換。",
+    feedAlt: "TheTickBase News iOS App 的最新新聞畫面",
+    digestAlt: "TheTickBase News iOS App 的每日摘要畫面",
+  },
   nav: {
     latest: "最新",
     raw: "原始 feed",

@@ -1,6 +1,25 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  app: {
+    nav: "App",
+    title: "市場ニュースを、いつでも。",
+    body: "重要な出来事を読み、複数の情報源を確認し、関心のあるニュースの通知を受け取れます。",
+    featuresTitle: "ニュースの動きを、わかりやすく。",
+    feedTitle: "重要な出来事をひと目で",
+    feedBody: "トピックや影響度で最新ニュースを絞り込み、詳細を開いて関心のある出来事を追えます。",
+    sourcesTitle: "複数の情報源を比較",
+    sourcesBody: "同じ出来事に関する複数の報道を、情報源の件数と参照リンクで確認できます。",
+    readerTitle: "自分に合った読み方で",
+    readerBody: "ログイン前でも記事の保存や閲覧設定ができます。ログインすると設定を同期し、ニュース通知を有効にできます。",
+    digestTitle: "一日の出来事を、ひとつの流れに。",
+    digestBody: "重要な出来事を読みやすいデイリーダイジェストにまとめ、外出先でも要点を確認できます。",
+    proNote: "デイリーダイジェストとニュース通知には、ログインと News Pro が必要です。ニュースの閲覧と記事の保存は無料です。",
+    downloadTitle: "まもなく、あなたのスマートフォンに。",
+    languagesBody: "中国語、英語、タイ語、日本語に対応。端末の言語を自動で選び、未対応の場合は英語で表示します。ログインせずに変更できます。",
+    feedAlt: "TheTickBase News iOS アプリの最新ニュース画面",
+    digestAlt: "TheTickBase News iOS アプリのデイリーダイジェスト画面",
+  },
   nav: {
     latest: "最新",
     raw: "Raw Feed",

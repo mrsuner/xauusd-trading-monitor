@@ -77,6 +77,9 @@ export function Layout() {
             <li className="flex h-full items-center">
               <ExploreMenu active={currentPath === "/topics" || currentPath.startsWith("/tags/") || currentPath.startsWith("/raw")} />
             </li>
+            <li className="h-full">
+              <HeaderNavLink to={to("/app")} active={currentPath === "/app"}>{t.app.nav}</HeaderNavLink>
+            </li>
           </ul>
 
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
@@ -103,6 +106,7 @@ export function Layout() {
               <MobileNavLink to={to("/events", "?severity=S")} active={isNavActive("/events", "?severity=S", currentPath, location.search)}>{t.nav.highImpact}</MobileNavLink>
               <MobileNavLink to={to("/raw")} active={currentPath.startsWith("/raw")}>{t.nav.raw}</MobileNavLink>
               <MobileNavLink to={to("/topics")} active={currentPath === "/topics" || currentPath.startsWith("/tags/")}>{t.nav.topics}</MobileNavLink>
+              <MobileNavLink to={to("/app")} active={currentPath === "/app"}>{t.app.nav}</MobileNavLink>
               <div className="mt-3 border-t border-base-300/60 pt-3">
                 <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.14em] text-base-content/45">
                   {t.nav.language}
@@ -416,6 +420,7 @@ function Footer() {
           <NavLink to={to("/topics")}>{t.footer.topics}</NavLink>
         </FooterGroup>
         <FooterGroup title={t.footer.product}>
+          <NavLink to={to("/app")}>{t.app.nav}</NavLink>
           <NavLink to={to("/about")}>{t.footer.methodology}</NavLink>
           <NavLink to={to("/status")}>{t.footer.apiStatus}</NavLink>
           <NavLink to={to("/support")}>{t.footer.support}</NavLink>

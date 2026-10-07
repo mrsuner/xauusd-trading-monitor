@@ -192,4 +192,36 @@
     <xhtml:link rel="alternate" hreflang="th" href="https://news.thetickbase.com/th/support" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://news.thetickbase.com/en/support" />
   </url>
+  <url>
+    <loc>https://news.thetickbase.com/en/app</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://news.thetickbase.com/en/app" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://news.thetickbase.com/zh-Hant/app" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://news.thetickbase.com/ja/app" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://news.thetickbase.com/th/app" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://news.thetickbase.com/en/app" />
+  </url>
+  <url>
+    <loc>https://news.thetickbase.com/zh-Hant/app</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://news.thetickbase.com/en/app" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://news.thetickbase.com/zh-Hant/app" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://news.thetickbase.com/ja/app" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://news.thetickbase.com/th/app" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://news.thetickbase.com/en/app" />
+  </url>
+  <url>
+    <loc>https://news.thetickbase.com/ja/app</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://news.thetickbase.com/en/app" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://news.thetickbase.com/zh-Hant/app" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://news.thetickbase.com/ja/app" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://news.thetickbase.com/th/app" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://news.thetickbase.com/en/app" />
+  </url>
+  <url>
+    <loc>https://news.thetickbase.com/th/app</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://news.thetickbase.com/en/app" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://news.thetickbase.com/zh-Hant/app" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://news.thetickbase.com/ja/app" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://news.thetickbase.com/th/app" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://news.thetickbase.com/en/app" />
+  </url>
 </urlset>
