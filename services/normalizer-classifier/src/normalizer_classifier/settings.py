@@ -27,11 +27,13 @@ class Settings(BaseSettings):
     local_model_response_format: str = Field(default="none", alias="LOCAL_MODEL_RESPONSE_FORMAT")
     local_model_reasoning_effort: str | None = Field(default=None, alias="LOCAL_MODEL_REASONING_EFFORT")
 
-    cloud_model_base_url: str | None = Field(default="https://api.openai.com/v1", alias="CLOUD_MODEL_BASE_URL")
+    cloud_model_base_url: str | None = Field(default="https://openrouter.ai/api/v1", alias="CLOUD_MODEL_BASE_URL")
     cloud_model_api_key: str | None = Field(default=None, alias="CLOUD_MODEL_API_KEY")
-    cloud_model_name: str | None = Field(default=None, alias="CLOUD_MODEL_NAME")
-    cloud_model_response_format: str = Field(default="json_object", alias="CLOUD_MODEL_RESPONSE_FORMAT")
-    cloud_model_reasoning_effort: str | None = Field(default=None, alias="CLOUD_MODEL_REASONING_EFFORT")
+    cloud_model_name: str | None = Field(default="openai/gpt-6-luna", alias="CLOUD_MODEL_NAME")
+    cloud_model_response_format: str = Field(default="json_schema", alias="CLOUD_MODEL_RESPONSE_FORMAT")
+    cloud_model_reasoning_effort: str | None = Field(default="none", alias="CLOUD_MODEL_REASONING_EFFORT")
+    cloud_model_max_prompt_price: float = Field(default=0.10, gt=0, allow_inf_nan=False, alias="CLOUD_MODEL_MAX_PROMPT_PRICE")
+    cloud_model_max_completion_price: float = Field(default=0.50, gt=0, allow_inf_nan=False, alias="CLOUD_MODEL_MAX_COMPLETION_PRICE")
 
     auxiliary_model_enabled: bool = Field(default=False, alias="AUXILIARY_MODEL_ENABLED")
     auxiliary_model_route: str = Field(default="disabled", alias="AUXILIARY_MODEL_ROUTE")
@@ -52,17 +54,17 @@ class Settings(BaseSettings):
     )
     translation_model_api_key: str | None = Field(default=None, alias="TRANSLATION_MODEL_API_KEY")
     translation_primary_model_name: str = Field(
-        default="openai/gpt-oss-20b:free", alias="TRANSLATION_PRIMARY_MODEL_NAME"
+        default="openai/gpt-6-luna", alias="TRANSLATION_PRIMARY_MODEL_NAME"
     )
     translation_fallback_model_name: str | None = Field(
-        default="openai/gpt-oss-20b", alias="TRANSLATION_FALLBACK_MODEL_NAME"
+        default=None, alias="TRANSLATION_FALLBACK_MODEL_NAME"
     )
-    translation_paid_fallback_enabled: bool = Field(default=True, alias="TRANSLATION_PAID_FALLBACK_ENABLED")
-    translation_model_response_format: str = Field(default="none", alias="TRANSLATION_MODEL_RESPONSE_FORMAT")
-    translation_model_reasoning_effort: str | None = Field(default=None, alias="TRANSLATION_MODEL_REASONING_EFFORT")
+    translation_paid_fallback_enabled: bool = Field(default=False, alias="TRANSLATION_PAID_FALLBACK_ENABLED")
+    translation_model_response_format: str = Field(default="json_schema", alias="TRANSLATION_MODEL_RESPONSE_FORMAT")
+    translation_model_reasoning_effort: str | None = Field(default="none", alias="TRANSLATION_MODEL_REASONING_EFFORT")
     # OpenRouter caps are USD per million tokens, not a per-request budget.
-    translation_max_prompt_price: float = Field(default=0.03, gt=0, allow_inf_nan=False, alias="TRANSLATION_MAX_PROMPT_PRICE")
-    translation_max_completion_price: float = Field(default=0.17, gt=0, allow_inf_nan=False, alias="TRANSLATION_MAX_COMPLETION_PRICE")
+    translation_max_prompt_price: float = Field(default=0.10, gt=0, allow_inf_nan=False, alias="TRANSLATION_MAX_PROMPT_PRICE")
+    translation_max_completion_price: float = Field(default=0.50, gt=0, allow_inf_nan=False, alias="TRANSLATION_MAX_COMPLETION_PRICE")
     translation_http_referer: str | None = Field(default=None, alias="TRANSLATION_HTTP_REFERER")
     translation_app_title: str | None = Field(default="XAUUSD Event Radar", alias="TRANSLATION_APP_TITLE")
     translation_output_languages_raw: str = Field(default="zh-Hant,en", alias="TRANSLATION_OUTPUT_LANGUAGES")

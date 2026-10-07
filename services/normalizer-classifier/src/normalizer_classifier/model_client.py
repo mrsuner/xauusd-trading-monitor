@@ -68,6 +68,7 @@ class OpenAIStyleModelClient:
         translation_language_labels: dict[str, str] | None = None,
         translation_require_all_languages: bool = True,
         translation_provider_options: dict[str, Any] | None = None,
+        classification_provider_options: dict[str, Any] | None = None,
     ) -> None:
         self.provider = provider
         self.base_url = base_url.rstrip("/")
@@ -82,6 +83,7 @@ class OpenAIStyleModelClient:
         self.translation_language_labels = translation_language_labels or {}
         self.translation_require_all_languages = translation_require_all_languages
         self.translation_provider_options = translation_provider_options
+        self.classification_provider_options = classification_provider_options
 
     async def classify(
         self,
@@ -147,8 +149,13 @@ class OpenAIStyleModelClient:
         }
         self._apply_common_payload_options(
             payload,
-            classification_json_schema_response_format(enabled_domain_keys=enabled_domain_keys),
+            classification_json_schema_response_format(
+                enabled_domain_keys=enabled_domain_keys,
+                enabled_category_keys=sorted(taxonomy_context.category_keys) if taxonomy_context else None,
+            ),
         )
+        if self.api_provider == "openrouter" and self.classification_provider_options:
+            payload["provider"] = self.classification_provider_options
         started = time.perf_counter()
         try:
             body = await self._post_chat_completions(
@@ -269,7 +276,7 @@ class OpenAIStyleModelClient:
                 require_all_languages=self.translation_require_all_languages,
             ),
         )
-        # Only translation requests use price routing, never classification requests.
+        # Translation routing uses its own price caps, independently of classification.
         if self.api_provider == "openrouter" and self.translation_provider_options:
             payload["provider"] = self.translation_provider_options
         started = time.perf_counter()
@@ -412,13 +419,19 @@ class OpenAIStyleModelClient:
             return response_body
 
     def _apply_common_payload_options(self, payload: dict[str, Any], schema_response_format: dict[str, Any]) -> None:
+        # Luna does not advertise temperature support on OpenRouter. Sending it
+        # with require_parameters=true leaves no eligible provider.
+        if self.model.rsplit("/", 1)[-1] == "gpt-6-luna":
+            payload.pop("temperature", None)
         if self.response_format == "json_object":
             payload["response_format"] = {"type": "json_object"}
         elif self.response_format == "json_schema":
             payload["response_format"] = schema_response_format
         elif self.response_format == "text":
             payload["response_format"] = {"type": "text"}
-        if self.reasoning_effort:
+        if self.api_provider == "openrouter" and self.reasoning_effort == "none":
+            payload["reasoning"] = {"enabled": False}
+        elif self.reasoning_effort:
             payload["reasoning_effort"] = self.reasoning_effort
 
     def _build_usage(
@@ -501,6 +514,12 @@ def build_model_client(settings: Settings) -> OpenAIStyleModelClient:
             timeout_seconds=settings.model_timeout_seconds,
             response_format=settings.cloud_model_response_format,
             reasoning_effort=settings.cloud_model_reasoning_effort,
+            classification_provider_options={
+                "sort": "price",
+                "require_parameters": True,
+                "max_price": {"prompt": settings.cloud_model_max_prompt_price,
+                              "completion": settings.cloud_model_max_completion_price},
+            },
         )
 
     raise ValueError(f"unsupported MODEL_ROUTE: {settings.model_route}")
@@ -719,9 +738,13 @@ def auxiliary_text_system_prompt(
 def classification_json_schema_response_format(
     *,
     enabled_domain_keys: list[str] | None = None,
+    enabled_category_keys: list[str] | None = None,
 ) -> dict[str, Any]:
     domain_schema: dict[str, Any] = {"type": "string"}
     primary_domain_schema: dict[str, Any] = {"type": ["string", "null"]}
+    category_schema: dict[str, Any] = {"type": "string"}
+    if enabled_category_keys:
+        category_schema["enum"] = sorted(set(enabled_category_keys) | {"other"})
     if enabled_domain_keys:
         domain_schema["enum"] = enabled_domain_keys
         primary_domain_schema["enum"] = [*enabled_domain_keys, None]
@@ -729,6 +752,7 @@ def classification_json_schema_response_format(
         "type": "json_schema",
         "json_schema": {
             "name": "xauusd_event_classification",
+            "strict": True,
             "schema": {
                 "type": "object",
                 "additionalProperties": False,
@@ -756,7 +780,7 @@ def classification_json_schema_response_format(
                             "required": ["language", "summary"],
                         },
                     },
-                    "content_category": {"type": "string"},
+                    "content_category": category_schema,
                     "topic_tags": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
                     "primary_domain": primary_domain_schema,
                     "relevant_domains": {"type": "array", "items": domain_schema, "maxItems": 4},
@@ -818,6 +842,7 @@ def auxiliary_text_json_schema_response_format(
         "type": "json_schema",
         "json_schema": {
             "name": "xauusd_auxiliary_text",
+            "strict": True,
             "schema": {
                 "type": "object",
                 "additionalProperties": False,

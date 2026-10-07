@@ -49,9 +49,17 @@ def test_settings_accepts_translation_model_defaults() -> None:
     )
 
     assert settings.translation_model_enabled is True
-    assert settings.translation_primary_model_name == "openai/gpt-oss-20b:free"
-    assert settings.translation_fallback_model_name == "openai/gpt-oss-20b"
-    assert settings.translation_paid_fallback_enabled is True
+    assert settings.translation_primary_model_name == "openai/gpt-6-luna"
+    assert settings.translation_fallback_model_name is None
+    assert settings.translation_paid_fallback_enabled is False
+    assert settings.cloud_model_name == "openai/gpt-6-luna"
+    assert settings.cloud_model_base_url == "https://openrouter.ai/api/v1"
+    assert settings.cloud_model_response_format == "json_schema"
+    assert settings.cloud_model_reasoning_effort == "none"
+    assert settings.translation_model_reasoning_effort == "none"
+    assert settings.translation_model_response_format == "json_schema"
+    assert settings.cloud_model_max_prompt_price == settings.translation_max_prompt_price == 0.10
+    assert settings.cloud_model_max_completion_price == settings.translation_max_completion_price == 0.50
     assert settings.translation_high_priority_max_chars == 100000
     assert settings.translation_output_languages == ("zh-Hant", "en")
     assert settings.translation_require_all_languages is True
