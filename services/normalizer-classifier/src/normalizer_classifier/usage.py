@@ -9,6 +9,7 @@ import tiktoken
 
 
 PRICE_PER_MILLION: dict[tuple[str, str], tuple[Decimal, Decimal]] = {
+    ("openrouter", "openai/gpt-6-luna"): (Decimal("0.10"), Decimal("0.50")),
     ("openai_compatible", "gpt-5.4-mini"): (Decimal("0.75"), Decimal("4.5")),
     ("openrouter", "openai/gpt-oss-20b"): (Decimal("0.029"), Decimal("0.14")),
     ("openrouter", "openai/gpt-oss-20b:free"): (Decimal("0"), Decimal("0")),

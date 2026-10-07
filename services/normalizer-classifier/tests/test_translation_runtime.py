@@ -40,7 +40,8 @@ def test_worker_rejects_invalid_translations(failure):
 async def test_runtime_120b_price_routing_and_failure_usage(monkeypatch, finish, refusal):
     settings = Settings(DATABASE_URL="postgresql://test:test@localhost/test", TRANSLATION_MODEL_API_KEY="test-key", TRANSLATION_PRIMARY_MODEL_NAME="openai/gpt-oss-120b",
         TRANSLATION_PAID_FALLBACK_ENABLED=False, TRANSLATION_OUTPUT_LANGUAGES="zh-Hant,en,th,ja",
-        TRANSLATION_MODEL_REASONING_EFFORT="low", TRANSLATION_MODEL_RESPONSE_FORMAT="json_schema")
+        TRANSLATION_MODEL_REASONING_EFFORT="low", TRANSLATION_MODEL_RESPONSE_FORMAT="json_schema",
+        TRANSLATION_MAX_PROMPT_PRICE=0.03, TRANSLATION_MAX_COMPLETION_PRICE=0.17)
     client, = build_translation_model_clients(settings)
 
     async def fake_post(payload, **kwargs):
