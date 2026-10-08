@@ -39,7 +39,7 @@ class DigestBatchProcessor
             return $this->resolve($batch, 'canceled', 'configuration_changed');
         }
 
-        $access = $this->access->check($batch->subscriber->account_user_id);
+        $access = $this->access->check($batch->subscriber->account_user_id, fresh: true);
         if ($access === AccessDecision::Unknown) {
             return $this->wait($batch, 60, 'account_unavailable');
         }

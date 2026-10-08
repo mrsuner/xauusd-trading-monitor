@@ -64,7 +64,7 @@ class DeliveryProcessor
             return null;
         }
 
-        $access = $this->access->check($subscriber->account_user_id);
+        $access = $this->access->check($subscriber->account_user_id, fresh: true);
         if ($access === AccessDecision::Unknown) {
             return $this->wait($delivery, 60, 'account_unavailable');
         }

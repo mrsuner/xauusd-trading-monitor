@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Internal\AccountDeletionController;
 use App\Http\Controllers\Internal\CapacityController;
 use App\Http\Controllers\Internal\ChannelsController;
 use App\Http\Controllers\Internal\DigestPreferencesController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\Internal\PreferencesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('users/{accountUserId}/preferences', [PreferencesController::class, 'show']);
+Route::post('users/{accountUserId}/account-deletion/suspend', [AccountDeletionController::class, 'suspend']);
+Route::delete('users/{accountUserId}/account-deletion', [AccountDeletionController::class, 'destroy']);
 Route::put('users/{accountUserId}/preferences', [PreferencesController::class, 'update']);
 Route::get('users/{accountUserId}/channels', [ChannelsController::class, 'index']);
 Route::post('users/{accountUserId}/channels/telegram/link', [ChannelsController::class, 'linkTelegram']);

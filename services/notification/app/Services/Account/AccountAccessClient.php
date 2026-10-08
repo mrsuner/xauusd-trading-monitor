@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\Http;
 
 class AccountAccessClient
 {
-    public function check(string $accountUserId): AccessDecision
+    public function check(string $accountUserId, bool $fresh = false): AccessDecision
     {
         $cacheKey = 'news-access:'.$accountUserId;
         $cached = Cache::get($cacheKey);
-        if (is_string($cached) && ($decision = AccessDecision::tryFrom($cached)) !== null) {
+        if (! $fresh && is_string($cached) && ($decision = AccessDecision::tryFrom($cached)) !== null) {
             return $decision;
         }
 
