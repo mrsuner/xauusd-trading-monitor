@@ -1,5 +1,9 @@
 # 部署與使用方式
 
+> Scope clarification (2026-10-16): this is the historical V1/HomeLab guide,
+> not current VPS authority. Use [VPS production](vps-deployment.md) for the
+> public API and active notifications. V1 exclusions, model/provider assumptions
+> and default-off statements below are dated context, not current runtime facts.
 ## 1. 部署目標
 
 XAUUSD Event Radar V1 將部署在 HomeLab 上，以 Docker Compose 啟動所有服務。
@@ -392,7 +396,7 @@ TRANSLATION_SINGLE_CALL_MAX_CHARS=100000
 
 `TRANSLATION_MODEL_API_KEY` 可留空，此時 service 會 fallback 使用 `OPENROUTER_MODEL_API_KEY`。V1 預設 paid fallback 開啟；development 可用 `MAX_TRANSLATION_CALLS_PER_RUN` 與 `MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN` 控制成本。
 
-若只想比較模型品質，使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md) 在 OpenRouter UI 中測試。
+若只想比較模型品質，使用 [OpenRouter 測試 Prompt](model-evaluation-openrouter.md) 在 OpenRouter UI 中測試。
 
 ### 9.4 Claude Code Agent SDK，備選
 

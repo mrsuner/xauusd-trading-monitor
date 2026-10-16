@@ -1,0 +1,27 @@
+# Local production alignment candidate; not uploaded or applied to VPS82.
+# Exact running image identities captured on 2026-10-16; review before release.
+services:
+  notification-horizon:
+    image: ghcr.io/mrsuner/xauusd-trading-monitor/notification@sha256:8e5fdc31e2b6f72bc7935d55b9a293a4f51f83383c46377affcfbd404c82bff7
+    pull_policy: never
+  notification-api:
+    image: ghcr.io/mrsuner/xauusd-trading-monitor/notification@sha256:8e5fdc31e2b6f72bc7935d55b9a293a4f51f83383c46377affcfbd404c82bff7
+    pull_policy: never
+  notification-scheduler:
+    image: ghcr.io/mrsuner/xauusd-trading-monitor/notification@sha256:8e5fdc31e2b6f72bc7935d55b9a293a4f51f83383c46377affcfbd404c82bff7
+    pull_policy: never
+  public-api:
+    image: ghcr.io/mrsuner/xauusd-trading-monitor/public-api@sha256:ae1fef09a507cc4c1e6b916f0793c9ee066757fe44305170aee5daaaea6d800e
+    pull_policy: never
+  notification-redis:
+    image: redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    pull_policy: never
+  public-postgres:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    pull_policy: never
+  public-api-migrate:
+    image: ghcr.io/mrsuner/xauusd-trading-monitor/public-api@sha256:ae1fef09a507cc4c1e6b916f0793c9ee066757fe44305170aee5daaaea6d800e
+    pull_policy: never
+  notification-migrate:
+    image: ghcr.io/mrsuner/xauusd-trading-monitor/notification@sha256:8e5fdc31e2b6f72bc7935d55b9a293a4f51f83383c46377affcfbd404c82bff7
+    pull_policy: never

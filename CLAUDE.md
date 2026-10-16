@@ -115,6 +115,11 @@ npm run typecheck  # tsc -b
 
 ## Deployment
 
+VPS public/notification authority: [docs/vps-deployment.md](docs/vps-deployment.md).
+The `notifications` profile is active on82. Its new local canonical bundle is
+prepared but not installed. The following paragraph describes **HomeLab only**.
+
+
 HomeLab via Docker Compose pulling images from GHCR: `ghcr.io/mrsuner/xauusd-trading-monitor/<service>:<tag>`. Boot order: `postgres` (healthy) → `db-migrate` (completed) → app services. Prod config: `infra/docker-compose.prod.yml` + `infra/.env.example`. Constraint: only **one** `telegram-collector` instance per Telegram user session (session file needs a persistent volume). See `docs/deployment.md`.
 
 ## Where things are
