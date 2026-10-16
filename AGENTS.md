@@ -29,7 +29,7 @@ For code-related content, including code, identifiers, comments, commit messages
 - Production directory: `/home/luke/xauusd-trading-monitor`.
 - Production deployment files live under `/home/luke/xauusd-trading-monitor/infra`.
 - Production runtime data must live outside `infra/`; `infra/` is managed by deployment rsync.
-- Local production deployment files live under `/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/infra`.
+- Local production deployment files live under `/Users/lukesun/Projects/trading-sys/repos/xauusd-trading-monitor/infra`.
 - Production Docker Compose file: `infra/docker-compose.prod.yml`.
 - Production environment file on HomeLab: `infra/.env`.
 - Do not overwrite HomeLab `infra/.env` during `rsync`; it contains runtime credentials.
@@ -52,3 +52,10 @@ For code-related content, including code, identifiers, comments, commit messages
 - `ALERT_DRY_RUN=true` is safe for deployment testing. Confirm with the user before changing it to `false`.
 - Telegram user session is persisted on HomeLab through `TELEGRAM_SESSION_HOST_DIR`; keep it outside `/home/luke/xauusd-trading-monitor/infra`, do not sync local `infra/data/`, and do not delete the session volume/directory unless re-authorization is intended.
 - If Telegram authorization is needed, run the collector interactively on HomeLab and ask the user for the phone/code/password step by step.
+
+## VPS Production Authority
+
+For82 public API/notification infra, use `docs/vps-deployment.md` and the umbrella
+`infra/README.md`. Canonical production envs are project-local under `infra/`;
+the active notification profile and existing identities must be preserved. The
+2026-10-16 candidate is local-only. HomeLab commands above are not VPS commands.
