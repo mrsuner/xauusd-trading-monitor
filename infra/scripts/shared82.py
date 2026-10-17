@@ -61,13 +61,18 @@ def prepare(credentials):
     print('Prepared private shared82 inputs; existing application/provider identities retained. No deployment.')
 
 
-def render():
+def invocation():
     files=[INFRA/('.env.shared82.'+p) for p in PARTS]
     for path in files:private(path)
     env={k:v for k,v in os.environ.items() if k in ('PATH','HOME','LANG','LC_ALL','TMPDIR','DOCKER_CONFIG')}
     for key,path in zip(('SHARED82_PUBLIC_ENV','SHARED82_PUBLIC_MIGRATOR_ENV','SHARED82_NOTIFICATION_ENV','SHARED82_NOTIFICATION_MIGRATOR_ENV'),files[1:]):env[key]=str(path)
     argv=['docker','--context','default','compose','--project-name','xauusd-shared82','--env-file',str(files[0]),
           '-f',str(INFRA/'docker-compose.shared82.yml'),'--profile','notifications','--profile','migration']
+    return argv, env
+
+
+def render():
+    argv, env = invocation()
     result=subprocess.run(argv+['config','--format','json'],env=env,capture_output=True,text=True,timeout=45)
     require(result.returncode==0,'Shared82 Compose rejected; diagnostics suppressed')
     model=json.loads(result.stdout);validate(model);return model
