@@ -1,7 +1,6 @@
 # XAUUSD VPS production authority
 
-Updated:2026-10-17. Shared82 migration is prepared; installation and final
-acceptance remain gated by fresh frozen source recovery. This document owns
+Updated:2026-10-17. Shared82 migration is deployed and accepted. This document owns
 VPS public API/notification only. HomeLab200 pipeline and Pages are separate.
 The [dedicated82 runbook](vps-deployment-dedicated82-historical.md) is historical.
 
@@ -75,7 +74,8 @@ Use the exact frozen point for API/HMAC/idempotency and a synthetic65s Horizon
 job with a competing consumer and graceful drain; no provider calls.
 
 Only restore the empty shared target. Preserve schema ownership/default grants
-and sequences. Transfer business/cache/queue keys with logical value/type and
+and sequences. Run scoped ANALYZE after a logical restore and before opening
+traffic; source optimizer statistics are not transferred by pg_dump. Transfer business/cache/queue keys with logical value/type and
 absolute expiry checks, rejecting collisions; archive old Horizon process/metric
 keys in source RDB without reviving stale process metadata. Never FLUSH shared
 Redis or restore a whole RDB over it. Start only the four new services, verify
@@ -103,3 +103,44 @@ claim OCI revision labels absent from these historical images. No build, image
 tag reuse, main merge, HomeLab full deployment or Pages release is required.
 Local development and HomeLab `docker-compose.prod.yml`/image build commands
 remain valid for their own scope.
+
+
+## Accepted production evidence —2026-10-17
+
+Frozen ciphertext `4854d6d781e9d2bfea9064561653c98042ec83576db9fb59929ce52dca680367`
+is retained on Mac and HomeLab199. Logical PG16/18 and exact physical PG16 cold
+recovery passed:29 tables,2,059,614 rows,3 sequences, source extension versions,
+files/modes/owners and native source RDB. Same-point API/HMAC/idempotency/replay
+and a measured65s Horizon job under two consumers passed; one attempt and
+64.12s graceful drain, no provider calls. Source queues were all empty.
+
+The empty permanent target restored exactly; migrations remained
+`0009_digest_content_lifecycle|7`.29 target table statistics were refreshed after
+observed cold query timeouts; all three public health/event/raw APIs then passed.
+Real runtime roles18.6 reject DDL; Redis cache/locks and a real provider-free
+Horizon job pass. TickBase account's existing notification secret returns200,
+missing secret401.22 public and32 notification app/provider settings match the
+original. Enabled delivery/admission/digest and dry_run=false are preserved.
+
+All six original runtime/PG/Redis containers keep exact IDs/volumes, stopped and
+restart=no.303 old Horizon keys are archived, not revived; business/cache keys
+had naturally expired, so zero stale keys were copied. The existing shared
+Tunnel, DNS, Pages and HomeLab200 pipeline/env/images are unchanged. The same
+paused syncer resumed with its original restart policy; two pending events became
+sent, with the existing failed count remaining1. No collector/model/session was
+started, rebuilt or recreated.
+
+First actual `xauusd_backup` export from permanent18.6 is independently stored:
+`d32c7723520fc94387e286e270b056981e45d15d395e9c3ca823d0ad8457e619`.
+Native HomeLab recovery passed29 tables/2,059,696 rows/3 sequences, both schema
+roles, configuration file readback and shared-state RDB load. Its later row count
+reflects resumed production writes, not a mismatch with the frozen point.
+Application/provider calls are not executed from restored daily Redis payloads.
+The frozen point's application proof and current runtime acceptance are separate.
+
+The one-time central apply adapter is closed by its production acceptance marker.
+Do not reuse its old recovery point for a later release. Scheduled3/14/7 adoption
+and the normal future release/backup gate remain cross-project M8/M9 work; old
+backup jobs and data remain intact. HomeLab200 private pipeline is a separate
+recovery scope: its native checkpoint does not imply an ongoing VPS82 schedule
+covers private collectors, inference state, publishers or Telegram sessions.
