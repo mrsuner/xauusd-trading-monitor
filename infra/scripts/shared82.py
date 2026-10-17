@@ -102,7 +102,7 @@ def validate(model):
             required=dict(DB_CONNECTION='pgsql',DB_SEARCH_PATH='notify,public',REDIS_HOST='shared-redis-state',REDIS_USERNAME='xauusd_state',REDIS_DB='0',REDIS_CACHE_DB='0',
                           REDIS_URL='',REDIS_PREFIX='xauusd:',HORIZON_PREFIX='xauusd:horizon:',CACHE_STORE='redis',REDIS_QUEUE_RETRY_AFTER='240')
             require(all(e.get(k)==v for k,v in required.items()),'Notification state binding mismatch')
-            require(s.get('stop_signal')=='SIGTERM','CLI stop signal mismatch')
+            require(s.get('stop_signal')==('SIGINT' if name=='notification-api' else 'SIGTERM'),'CLI stop signal mismatch')
         if name=='notification-migrate':
             e=s['environment']
             require(e.get('NOTIFICATION_ENABLED')=='false' and e.get('NOTIFICATION_DRY_RUN')=='true' and e.get('DIGEST_ENABLED')=='false'

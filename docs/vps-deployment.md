@@ -52,7 +52,8 @@ These are read-only validation; neither deploys. Each runtime's entrypoint
 rejects the wrong DB identity/command. Migrations run explicitly in data-only
 services, never automatically on app start. Per-container config cache is
 cleared before the original entrypoint; no migrator cache is shared with runtime.
-All runtime containers use init; Horizon retry_after and stop grace are240s,
+All runtime containers use init; notification HTTP stops with SIGINT, while
+Horizon/scheduler use SIGTERM. Horizon retry_after and stop grace are240s,
 above the existing180s job timeout.
 
 ## Migration and recovery gates
