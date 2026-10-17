@@ -55,7 +55,45 @@ All runtime containers use init; notification HTTP stops with SIGINT, while
 Horizon/scheduler use SIGTERM. Horizon retry_after and stop grace are240s,
 above the existing180s job timeout.
 
-## Migration and recovery gates
+## Normal updates
+
+Use `infra/scripts/shared82-release.py`; on VPS82 it lives under the canonical
+infra root above and runs with `sudo python3`. Real M9 native/candidate/runtime
+acceptance passed20:12:56Z. The
+[operator sequence](/Users/lukesun/Projects/infra/platform/82/maintenance/README.md)
+requires published infra/digests and recent full native recovery → plan → graceful
+freeze → NEW frozen backup → HomeLab full native recovery plus public/notify
+migrator and post-migration backup/role rehearsal → admit → explicit migrate
+→ scoped four-service up → actual API/HMAC/Horizon/runtime checks → finish.
+No shared engine, Tunnel, Pages, DNS or private pipeline rollout is implied.
+
+Before pausing the HomeLab200 public syncer, create and independently restore-verify
+a current private checkpoint/config custody. Pause only its exact current ID at
+zero sending/inflight rows; retain image/env/restart policy and resume that same
+ID after VPS acceptance. Ready/delayed queues remain in Redis state; drain active
+jobs gracefully without forcing a long job to exit. Private collectors/session
+data stay outside this scoped update and82 regular daily coverage.
+
+The [central backup authority](/Users/lukesun/Projects/infra/docs/82-centralized-backup-deployment-2026-10-18.md)
+now has first full source/HomeLab/FTPS acceptance. Post-window native recovery
+passed20:42:05Z; five new82 timers were enabled/active20:45UTC. Regular3/14/7 retention covers shared public+notify DB/state and
+files/config custody; the separate private pipeline checkpoint is protected
+maintenance custody, not a claim of daily private-pipeline backup.
+
+Operation `xauusd-20261017T192321Z-7c6c0ac6` used fresh frozen generation
+`vps82-20261017T192443Z-pre-migration-c8917f44` and actual full36-dataset/seven-migrator
+HomeLab acceptance before Production commands. A fresh private writer checkpoint
+also passed native PG16.14 recovery (25 tables/1,106,656 rows). The original public
+syncer ID was paused at zero inflight and resumed unchanged20:10:25Z. Public API,
+internal account authentication200/missing-secret401, actual Horizon provider-free
+job/state/role checks passed. Finish verified images/env and restored restart
+policies. The private pipeline, Pages, original fenced sources and old jobs remain.
+
+## Historical one-time migration and recovery gates
+
+The following PG16 cold-target/namespace-transfer steps describe the completed
+17Oct architecture cutover. They are not a normal update path; never restore over
+the authoritative shared database or replay stale delivery queues.
 
 The central operation `20261017t101521z` owns the one-time apply and receipts in
 `/Users/lukesun/Projects/infra/docs/82-shared-rollout-execution-plan-2026-10-17.md`.
@@ -86,9 +124,9 @@ restart=no. Source-specific PostgreSQL16 and Redis volumes are rollback evidence
 After new writes, the old DB is stale. Before rollback, freeze current writers,
 create and actually restore a new current point, reconcile DB/queue/provider
 side effects, and explicitly select a recovery coordinate. Never blindly restart
-old writers or replay old deliveries. Normal future release/backup adapters and
-central3/14/7 scheduling are completed by the cross-project closure milestones;
-old dedicated shortcuts are not a fallback update path.
+old writers or replay old deliveries. Current normal updates use the installed
+controller and fresh per-operation gate above; old dedicated shortcuts are not
+a fallback update path.
 
 ## Image and source boundaries
 
@@ -139,8 +177,8 @@ Application/provider calls are not executed from restored daily Redis payloads.
 The frozen point's application proof and current runtime acceptance are separate.
 
 The one-time central apply adapter is closed by its production acceptance marker.
-Do not reuse its old recovery point for a later release. Scheduled3/14/7 adoption
-and the normal future release/backup gate remain cross-project M8/M9 work; old
-backup jobs and data remain intact. HomeLab200 private pipeline is a separate
+Do not reuse its old recovery point for a later release. That M5 phase did not
+enable schedules. M8/M9 subsequently installed the normal release gate and
+central3/14/7 timers; current acceptance is above. Old backup jobs/data remain intact. HomeLab200 private pipeline is a separate
 recovery scope: its native checkpoint does not imply an ongoing VPS82 schedule
 covers private collectors, inference state, publishers or Telegram sessions.
