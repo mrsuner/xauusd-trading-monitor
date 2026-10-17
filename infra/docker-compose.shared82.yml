@@ -1,0 +1,110 @@
+name: xauusd-shared82
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: 100m, max-file: '14'}
+
+x-notification: &notification
+  image: ${XAUUSD_NOTIFICATION_IMAGE:?Immutable notification digest required}
+  platform: linux/amd64
+  pull_policy: never
+  profiles: [notifications]
+  restart: unless-stopped
+  init: true
+  stop_signal: SIGTERM
+  env_file:
+    - path: ${SHARED82_NOTIFICATION_ENV:?Private runtime input required}
+      format: raw
+  environment: {XAUUSD_SHARED82_ROLE: notify-runtime}
+  entrypoint: [/bin/sh, /opt/ops/shared82-notification-entrypoint.sh]
+  volumes: ['./scripts/shared82-notification-entrypoint.sh:/opt/ops/shared82-notification-entrypoint.sh:ro']
+  networks: [app, data, edge]
+  logging: *logging
+
+services:
+  public-api:
+    image: ${XAUUSD_PUBLIC_IMAGE:?Immutable public API digest required}
+    platform: linux/amd64
+    pull_policy: never
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ${SHARED82_PUBLIC_ENV:?Private runtime input required}
+        format: raw
+    environment: {XAUUSD_SHARED82_ROLE: public-runtime}
+    entrypoint: [python, /opt/ops/shared82-public-entrypoint.py]
+    command: [public-api, run]
+    volumes: ['./scripts/shared82-public-entrypoint.py:/opt/ops/shared82-public-entrypoint.py:ro']
+    networks:
+      app: {}
+      data: {}
+      edge: {aliases: [xauusd-public-api]}
+    mem_limit: 512m
+    cpus: '1.00'
+    stop_grace_period: 60s
+    logging: *logging
+    healthcheck:
+      test: [CMD, python, -c, 'import urllib.request,json; r=json.load(urllib.request.urlopen("http://127.0.0.1:8080/health",timeout=3)); assert r["database"]=="ok"']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  public-api-migrate:
+    image: ${XAUUSD_PUBLIC_IMAGE:?Immutable public API digest required}
+    platform: linux/amd64
+    pull_policy: never
+    profiles: [migration]
+    restart: 'no'
+    env_file:
+      - path: ${SHARED82_PUBLIC_MIGRATOR_ENV:?Private migrator input required}
+        format: raw
+    environment: {XAUUSD_SHARED82_ROLE: public-migrator}
+    entrypoint: [python, /opt/ops/shared82-public-entrypoint.py]
+    command: [alembic, -c, alembic.ini, upgrade, head]
+    volumes: ['./scripts/shared82-public-entrypoint.py:/opt/ops/shared82-public-entrypoint.py:ro']
+    networks: [data]
+    mem_limit: 512m
+    logging: *logging
+  notification-api:
+    <<: *notification
+    command: [php, -S, '0.0.0.0:8080', -t, public, public/index.php]
+    networks:
+      app: {}
+      data: {}
+      tickbase: {aliases: [xauusd-notification]}
+    mem_limit: 256m
+    cpus: '0.50'
+    stop_grace_period: 60s
+  notification-horizon:
+    <<: *notification
+    command: [php, artisan, horizon]
+    stop_grace_period: 240s
+    mem_limit: 512m
+    cpus: '1.00'
+  notification-scheduler:
+    <<: *notification
+    command: [php, artisan, 'schedule:work']
+    mem_limit: 256m
+    cpus: '0.25'
+    stop_grace_period: 60s
+  notification-migrate:
+    image: ${XAUUSD_NOTIFICATION_IMAGE:?Immutable notification digest required}
+    platform: linux/amd64
+    pull_policy: never
+    profiles: [migration]
+    restart: 'no'
+    env_file:
+      - path: ${SHARED82_NOTIFICATION_MIGRATOR_ENV:?Private migrator input required}
+        format: raw
+    environment: {XAUUSD_SHARED82_ROLE: notify-migrator}
+    entrypoint: [/bin/sh, /opt/ops/shared82-notification-entrypoint.sh]
+    command: [php, artisan, migrate, --force]
+    volumes: ['./scripts/shared82-notification-entrypoint.sh:/opt/ops/shared82-notification-entrypoint.sh:ro']
+    networks: [data]
+    mem_limit: 512m
+    logging: *logging
+
+networks:
+  app: {}
+  data: {external: true, name: platform82_xauusd_data}
+  edge: {external: true, name: thetickbase-edge}
+  tickbase: {external: true, name: tickbase_internal}
