@@ -27,10 +27,14 @@ class OpenRouterClient:
         translation_provider_options: dict[str, Any] | None = None,
         classification_provider_options: dict[str, Any] | None = None,
     ) -> None:
+        if not api_key or not api_key.strip():
+            raise ValueError("an OpenRouter API key is required")
+        if not model or not model.strip():
+            raise ValueError("an explicit OpenRouter model is required")
         self.provider = provider
         self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.model = model
+        self.api_key = api_key.strip()
+        self.model = model.strip()
         self.api_provider = "openrouter"
         self.timeout_seconds = timeout_seconds
         self.response_format = response_format
@@ -84,10 +88,10 @@ class OpenRouterClient:
             payload["response_format"] = schema_response_format
         elif self.response_format == "text":
             payload["response_format"] = {"type": "text"}
-        if self.api_provider == "openrouter" and self.reasoning_effort == "none":
+        if self.reasoning_effort == "none":
             payload["reasoning"] = {"enabled": False}
         elif self.reasoning_effort:
             payload["reasoning_effort"] = self.reasoning_effort
         options = self.classification_provider_options if ai_layer == "classification_reasoning" else self.translation_provider_options
-        if self.api_provider == "openrouter" and options:
+        if options:
             payload["provider"] = options

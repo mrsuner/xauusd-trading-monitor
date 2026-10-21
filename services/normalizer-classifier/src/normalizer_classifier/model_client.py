@@ -6,19 +6,6 @@ from .ollama_cloud_client import OllamaCloudClient
 from .settings import Settings
 
 def build_model_client(settings: Settings) -> ModelClient:
-    if settings.model_route == "local_8b":
-        if not settings.local_model_base_url or not settings.local_model_name:
-            raise ValueError("LOCAL_MODEL_BASE_URL and LOCAL_MODEL_NAME are required for local_8b route")
-        return OpenRouterClient(
-            provider="local_8b",
-            base_url=settings.local_model_base_url,
-            api_key=settings.local_model_api_key,
-            model=settings.local_model_name,
-            timeout_seconds=settings.model_timeout_seconds,
-            response_format=settings.local_model_response_format,
-            reasoning_effort=settings.local_model_reasoning_effort,
-        )
-
     if settings.model_route == "cloud_small" and settings.classification_model_provider == "ollama_cloud":
         return OllamaCloudClient(
             provider="cloud_small", base_url=settings.ollama_cloud_base_url, api_key=settings.ollama_api_key,

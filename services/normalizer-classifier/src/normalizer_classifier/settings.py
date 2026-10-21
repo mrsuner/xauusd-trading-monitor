@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     db_pool_max_size: int = Field(default=0, alias="DB_POOL_MAX_SIZE")
     poll_interval_seconds: float = Field(default=2.0, alias="POLL_INTERVAL_SECONDS")
     stale_task_timeout_seconds: int = Field(default=900, alias="STALE_TASK_TIMEOUT_SECONDS")
-    model_route: str = Field(default="cloud_small", alias="MODEL_ROUTE")
+    model_route: Literal["cloud_small"] = Field(default="cloud_small", alias="MODEL_ROUTE")
 
     classification_model_provider: Literal["openrouter", "ollama_cloud"] = Field(default="openrouter", alias="CLASSIFICATION_MODEL_PROVIDER")
     translation_model_provider: Literal["openrouter", "ollama_cloud"] = Field(default="openrouter", alias="TRANSLATION_MODEL_PROVIDER")
@@ -36,12 +36,6 @@ class Settings(BaseSettings):
     ollama_cloud_translation_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False, alias="OLLAMA_CLOUD_TRANSLATION_TIMEOUT_SECONDS")
     ollama_cloud_classification_reasoning_effort: str | None = Field(default=None, alias="OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT")
     ollama_cloud_translation_reasoning_effort: str | None = Field(default=None, alias="OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT")
-
-    local_model_base_url: str | None = Field(default=None, alias="LOCAL_MODEL_BASE_URL")
-    local_model_api_key: str | None = Field(default=None, alias="LOCAL_MODEL_API_KEY")
-    local_model_name: str | None = Field(default=None, alias="LOCAL_MODEL_NAME")
-    local_model_response_format: str = Field(default="none", alias="LOCAL_MODEL_RESPONSE_FORMAT")
-    local_model_reasoning_effort: str | None = Field(default=None, alias="LOCAL_MODEL_REASONING_EFFORT")
 
     cloud_model_base_url: str | None = Field(default="https://openrouter.ai/api/v1", alias="CLOUD_MODEL_BASE_URL")
     cloud_model_api_key: str | None = Field(default=None, alias="CLOUD_MODEL_API_KEY")
@@ -104,6 +98,11 @@ class Settings(BaseSettings):
     max_attempts: int = Field(default=3, alias="MAX_ATTEMPTS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    @field_validator("translation_fallback_provider", "cloud_model_timeout_seconds", "translation_model_timeout_seconds", mode="before")
+    @classmethod
+    def normalize_optional_route_setting(cls, value):
+        return None if isinstance(value, str) and not value.strip() else value
+
     @field_validator("worker_concurrency")
     @classmethod
     def validate_worker_concurrency(cls, value: int) -> int:
@@ -164,7 +163,6 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
-        "local_model_response_format",
         "cloud_model_response_format",
         "openrouter_model_response_format",
         "translation_model_response_format",
@@ -177,12 +175,14 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
+        "cloud_model_api_key",
+        "openrouter_model_api_key",
+        "cloud_model_name",
         "ollama_api_key",
         "ollama_cloud_classification_model",
         "ollama_cloud_translation_model",
         "ollama_cloud_classification_reasoning_effort",
         "ollama_cloud_translation_reasoning_effort",
-        "local_model_reasoning_effort",
         "cloud_model_reasoning_effort",
         "openrouter_model_reasoning_effort",
         "openrouter_http_referer",

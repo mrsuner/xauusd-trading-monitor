@@ -19,12 +19,6 @@ PRICE_PER_MILLION: dict[tuple[str, str], tuple[Decimal, Decimal]] = {
 }
 
 
-def infer_api_provider(base_url: str) -> str:
-    if "openrouter.ai" in base_url:
-        return "openrouter"
-    return "openai_compatible"
-
-
 def request_hash(payload: dict[str, Any]) -> str:
     safe_payload = {
         "model": payload.get("model"),

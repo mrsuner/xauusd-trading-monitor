@@ -295,9 +295,9 @@ docker compose --env-file infra/.env -f infra/docker-compose.prod.yml down
 V1 支援：
 
 ```text
-MODEL_ROUTE=local_8b
 MODEL_ROUTE=cloud_small
-MODEL_ROUTE=claude_code_agent
+CLASSIFICATION_MODEL_PROVIDER=openrouter
+TRANSLATION_MODEL_PROVIDER=openrouter
 TRANSLATION_MODEL_ENABLED=true
 ```
 
@@ -327,23 +327,11 @@ NORMALIZER_STALE_TASK_TIMEOUT_SECONDS=900
 - `alert-dispatcher`：V1 暫時單實例，避免重複通知。
 - `telegram-channel-publisher`：V1+ 暫時單實例，避免公共 Channel 重複發布。
 
-### 9.1 Local LLM
+### 9.1 雲端 provider 與 local route 退役
 
-Local LLM 適合：
+Local LLM route 已移除，不再啟動或維護本機推論。舊 local route 選擇會在啟動時失敗，應移除私有 env 中已無效的 local 設定；本次程式更新不直接修改任何 production env。
 
-- 低成本批量摘要。
-- 翻譯波斯語、希伯來語、阿拉伯語等非英文內容。
-- 低風險預處理與輔助資訊抽取。
-- HomeLab 內網可用時。
-
-V1 不建議 Local LLM 單獨負責最終事件分類、相關度分數、claim direction 或 severity input。這些欄位預設由 `cloud_small` 產生。
-
-必要設定：
-
-```text
-LOCAL_MODEL_BASE_URL=http://192.168.1.50:11434
-LOCAL_MODEL_NAME=...
-```
+OpenRouter／Ollama Cloud 使用獨立實作，Layer 1／Layer 2 可各自選 provider。Ollama Cloud 使用 `OLLAMA_API_KEY` 與明確的 Cloud model 名稱，直接連 `https://ollama.com/v1`。現有 OpenRouter 輸入保留、預設不切換 provider。完整設定、能力限制與備援行為見 [normalizer-classifier](services/normalizer-classifier.md#17-設定項)。新增程式能力不代表已部署或完成真實 API 品質驗收。
 
 ### 9.2 Cloud Small Model
 
@@ -352,15 +340,15 @@ Cloud small model 適合：
 - V1 預設事件分類。
 - 高優先級來源。
 - 相關度、claim direction、impact channel 與 confidence。
-- Local LLM / nano summary 後的最終判斷。
+- 直接根據原始新聞與規則初篩進行判斷。
 
 必要設定：
 
 ```text
-CLOUD_MODEL_BASE_URL=https://api.openai.com/v1
+CLOUD_MODEL_BASE_URL=https://openrouter.ai/api/v1
 CLOUD_MODEL_API_KEY=...
-CLOUD_MODEL_NAME=gpt-5.4-mini
-CLOUD_MODEL_RESPONSE_FORMAT=json_object
+CLOUD_MODEL_NAME=openai/gpt-6-luna
+CLOUD_MODEL_RESPONSE_FORMAT=json_schema
 ```
 
 `gpt-5.4-nano` 可作 summary / translation 輔助，但 V1 不作主分類模型。
@@ -370,8 +358,8 @@ CLOUD_MODEL_RESPONSE_FORMAT=json_object
 OpenRouter 適合：
 
 - 測試 free / cheap models 的繁中摘要與翻譯品質。
-- 作為 local LLM 之外的外部 translation-summary route。
-- 處理 `summary_zh`、`summary_en`、`full_translation_zh`、`full_translation_en` 等低風險任務。
+- 作為預設雲端 translation-summary provider，或 Ollama Cloud 的明確備援。
+- 產生 `translations[]`，依 language 儲存摘要與全文翻譯。
 
 V1 不建議 OpenRouter free model 單獨負責最終事件分類、相關度分數、claim direction 或 severity input。這些欄位預設由 `cloud_small` 產生。
 
@@ -385,16 +373,16 @@ OPENROUTER_APP_TITLE=XAUUSD Event Radar
 TRANSLATION_MODEL_ENABLED=true
 TRANSLATION_MODEL_BASE_URL=https://openrouter.ai/api/v1
 TRANSLATION_MODEL_API_KEY=
-TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-oss-20b:free
-TRANSLATION_FALLBACK_MODEL_NAME=openai/gpt-oss-20b
-TRANSLATION_PAID_FALLBACK_ENABLED=true
-TRANSLATION_MODEL_RESPONSE_FORMAT=none
+TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-6-luna
+TRANSLATION_FALLBACK_MODEL_NAME=
+TRANSLATION_PAID_FALLBACK_ENABLED=false
+TRANSLATION_MODEL_RESPONSE_FORMAT=json_schema
 TRANSLATION_DEFAULT_MAX_CHARS=20000
 TRANSLATION_HIGH_PRIORITY_MAX_CHARS=100000
 TRANSLATION_SINGLE_CALL_MAX_CHARS=100000
 ```
 
-`TRANSLATION_MODEL_API_KEY` 可留空，此時 service 會 fallback 使用 `OPENROUTER_MODEL_API_KEY`。V1 預設 paid fallback 開啟；development 可用 `MAX_TRANSLATION_CALLS_PER_RUN` 與 `MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN` 控制成本。
+`TRANSLATION_MODEL_API_KEY` 可留空，此時 service 會 fallback 使用 `OPENROUTER_MODEL_API_KEY`。預設 fallback 停用；明確啟用後，development 可用 `MAX_TRANSLATION_CALLS_PER_RUN` 與 `MAX_TRANSLATION_PAID_FALLBACK_CALLS_PER_RUN` 控制成本。
 
 若只想比較模型品質，使用 [OpenRouter 測試 Prompt](model-evaluation-openrouter.md) 在 OpenRouter UI 中測試。
 

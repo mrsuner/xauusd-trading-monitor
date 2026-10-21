@@ -52,7 +52,7 @@ def make_objects() -> tuple[RawItem, SourceMetadata, NormalizedItem]:
     return raw_item, source, normalized
 
 
-async def test_openai_style_model_client_parses_json_response(monkeypatch) -> None:
+async def test_openrouter_client_parses_json_response(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert url == "https://api.example.test/v1/chat/completions"
         assert headers["Authorization"] == "Bearer test-key"
@@ -121,7 +121,7 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
     assert response.result.topic_tags == ["iran", "nuclear"]
 
 
-async def test_openai_style_model_client_rejects_unknown_domain(monkeypatch) -> None:
+async def test_openrouter_client_rejects_unknown_domain(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         content = {
             "is_relevant": True,
@@ -163,7 +163,7 @@ async def test_openai_style_model_client_rejects_unknown_domain(monkeypatch) -> 
         )
 
 
-async def test_openai_style_model_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
+async def test_openrouter_client_logs_api_request_and_response(monkeypatch, caplog) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert headers["Authorization"] == "Bearer test-key"
         content = {
@@ -207,7 +207,7 @@ async def test_openai_style_model_client_logs_api_request_and_response(monkeypat
     assert "test-key" not in json.dumps(request_record.headers)
 
 
-async def test_openai_style_model_client_can_omit_json_response_format(monkeypatch) -> None:
+async def test_openrouter_client_can_omit_json_response_format(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert "response_format" not in json
         content = {
@@ -231,9 +231,9 @@ async def test_openai_style_model_client_can_omit_json_response_format(monkeypat
 
     raw_item, source, normalized = make_objects()
     client = OpenRouterClient(
-        provider="local_8b",
-        base_url="http://localhost:11434/v1",
-        api_key=None,
+        provider="cloud_small",
+        base_url="https://openrouter.ai/api/v1",
+        api_key="test-key",
         model="test-model",
         timeout_seconds=5,
         response_format="none",
@@ -241,11 +241,11 @@ async def test_openai_style_model_client_can_omit_json_response_format(monkeypat
 
     response = await client.classify(raw_item, source, normalized)
 
-    assert response.provider == "local_8b"
+    assert response.provider == "cloud_small"
     assert response.result.is_relevant is False
 
 
-async def test_openai_style_model_client_supports_json_schema_reasoning_content(monkeypatch) -> None:
+async def test_openrouter_client_supports_json_schema_reasoning_content(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert json["response_format"]["type"] == "json_schema"
         content = {
@@ -279,9 +279,9 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
 
     raw_item, source, normalized = make_objects()
     client = OpenRouterClient(
-        provider="local_8b",
-        base_url="http://localhost:1234/v1",
-        api_key=None,
+        provider="cloud_small",
+        base_url="https://openrouter.ai/api/v1",
+        api_key="test-key",
         model="test-model",
         timeout_seconds=5,
         response_format="json_schema",
@@ -293,7 +293,7 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
     assert response.result.event_type == "US_FED"
 
 
-async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> None:
+async def test_openrouter_client_sends_reasoning_effort(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert json["reasoning_effort"] == "low"
         content = {
@@ -317,9 +317,9 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
 
     raw_item, source, normalized = make_objects()
     client = OpenRouterClient(
-        provider="local_8b",
-        base_url="http://localhost:11434/v1",
-        api_key=None,
+        provider="cloud_small",
+        base_url="https://openrouter.ai/api/v1",
+        api_key="test-key",
         model="test-model",
         timeout_seconds=5,
         response_format="json_object",
@@ -331,7 +331,7 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
     assert response.result.relevance_score == 20
 
 
-async def test_openai_style_model_client_summarizes_with_openrouter_headers(monkeypatch) -> None:
+async def test_openrouter_client_summarizes_with_openrouter_headers(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         assert url == "https://openrouter.ai/api/v1/chat/completions"
         assert headers["Authorization"] == "Bearer openrouter-key"
@@ -387,7 +387,7 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     assert zh_translation.full_translation == "Trump 表示伊朗協議已接近完成。"
 
 
-async def test_openai_style_model_client_parses_auxiliary_translations_array(monkeypatch) -> None:
+async def test_openrouter_client_parses_auxiliary_translations_array(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         content = {
             "translations": [
@@ -442,7 +442,7 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
     assert response.result.translation_for("ja") is not None
 
 
-async def test_openai_style_model_client_requires_configured_translation_languages(monkeypatch) -> None:
+async def test_openrouter_client_requires_configured_translation_languages(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
         user_payload = json_module.loads(json["messages"][1]["content"])
         assert user_payload["translation_scope"]["output_languages"] == ["zh-Hant", "en", "ja"]
