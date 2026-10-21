@@ -1,0 +1,302 @@
+{
+  "checked_at": "2026-10-21T09:24:43.414805+00:00",
+  "source_commit": "24da7ba",
+  "target": "HomeLab200 normalizer-classifier only",
+  "private_override_path": "infra/.env.ollama-cloud.preflight",
+  "private_override_mode": "0o600",
+  "remote": {
+    "installed_compose_config_valid": true,
+    "installed_config_image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+    "installed_compose_model_settings": {
+      "MODEL_ROUTE": "cloud_small",
+      "CLASSIFICATION_MODEL_PROVIDER": null,
+      "TRANSLATION_MODEL_PROVIDER": null,
+      "OLLAMA_CLOUD_CLASSIFICATION_MODEL": null,
+      "OLLAMA_CLOUD_TRANSLATION_MODEL": null,
+      "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": null,
+      "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": null,
+      "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+      "WORKER_CONCURRENCY": "2",
+      "TRANSLATION_PAID_FALLBACK_ENABLED": "false",
+      "MAX_CLASSIFICATION_CALLS_PER_RUN": "0",
+      "MAX_TRANSLATION_CALLS_PER_RUN": "0",
+      "AI_DAILY_REQUEST_LIMIT": "0"
+    },
+    "containers": [
+      {
+        "Name": "xauusd-event-radar-alert-dispatcher-1",
+        "Service": "alert-dispatcher",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-dashboard-api-1",
+        "Service": "dashboard-api",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-dashboard-web-1",
+        "Service": "dashboard-web",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-db-migrate-1",
+        "Service": "db-migrate",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:v0.1.0",
+        "State": "exited",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-event-router-1",
+        "Service": "event-router",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/event-router:c8dbf85",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-normalizer-classifier-3",
+        "Service": "normalizer-classifier",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-normalizer-classifier-4",
+        "Service": "normalizer-classifier",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-postgres-1",
+        "Service": "postgres",
+        "Image": "postgres:16.14-alpine",
+        "State": "running",
+        "Health": "healthy"
+      },
+      {
+        "Name": "xauusd-event-radar-public-syncer-1",
+        "Service": "public-syncer",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:c8dbf85",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-rss-collector-1",
+        "Service": "rss-collector",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-telegram-channel-publisher-1",
+        "Service": "telegram-channel-publisher",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-telegram-collector-1",
+        "Service": "telegram-collector",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-tickbase-anomaly-consumer-1",
+        "Service": "tickbase-anomaly-consumer",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/tickbase-anomaly-consumer:v0.1.0",
+        "State": "running",
+        "Health": ""
+      },
+      {
+        "Name": "xauusd-event-radar-x-publisher-1",
+        "Service": "x-publisher",
+        "Image": "ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:v0.1.0",
+        "State": "running",
+        "Health": ""
+      }
+    ],
+    "running_normalizers": [
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-3",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+        "image_id": "sha256:2a66dea1ef43be7ce89bf7ca6dec5ad14fb8cbcbe46b84b0fc5279b372d6bf3e",
+        "started_at": "2026-10-07T09:55:48.753427671Z",
+        "restart_count": 0,
+        "settings": {
+          "MODEL_ROUTE": "cloud_small",
+          "CLASSIFICATION_MODEL_PROVIDER": null,
+          "TRANSLATION_MODEL_PROVIDER": null,
+          "OLLAMA_CLOUD_CLASSIFICATION_MODEL": null,
+          "OLLAMA_CLOUD_TRANSLATION_MODEL": null,
+          "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": null,
+          "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": null,
+          "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+          "WORKER_CONCURRENCY": "2",
+          "TRANSLATION_PAID_FALLBACK_ENABLED": "false",
+          "MAX_CLASSIFICATION_CALLS_PER_RUN": "0",
+          "MAX_TRANSLATION_CALLS_PER_RUN": "0",
+          "AI_DAILY_REQUEST_LIMIT": "0"
+        },
+        "ollama_key_present": false,
+        "ollama_key_matches_local": false
+      },
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-4",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+        "image_id": "sha256:2a66dea1ef43be7ce89bf7ca6dec5ad14fb8cbcbe46b84b0fc5279b372d6bf3e",
+        "started_at": "2026-10-07T09:55:48.267982891Z",
+        "restart_count": 0,
+        "settings": {
+          "MODEL_ROUTE": "cloud_small",
+          "CLASSIFICATION_MODEL_PROVIDER": null,
+          "TRANSLATION_MODEL_PROVIDER": null,
+          "OLLAMA_CLOUD_CLASSIFICATION_MODEL": null,
+          "OLLAMA_CLOUD_TRANSLATION_MODEL": null,
+          "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": null,
+          "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": null,
+          "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+          "WORKER_CONCURRENCY": "2",
+          "TRANSLATION_PAID_FALLBACK_ENABLED": "false",
+          "MAX_CLASSIFICATION_CALLS_PER_RUN": "0",
+          "MAX_TRANSLATION_CALLS_PER_RUN": "0",
+          "AI_DAILY_REQUEST_LIMIT": "0"
+        },
+        "ollama_key_present": false,
+        "ollama_key_matches_local": false
+      }
+    ],
+    "schema_query_valid": true,
+    "schema_rows": [
+      "0026_ai_daily_budgets",
+      "ai_daily_budgets",
+      "domain_keywords",
+      "domains",
+      "event_translations",
+      "prompt_modules",
+      "raw_item_translations",
+      "routing_config_snapshots",
+      "source_domains"
+    ],
+    "candidate_compose_valid": true,
+    "candidate_image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:24da7ba",
+    "candidate_settings": {
+      "MODEL_ROUTE": "cloud_small",
+      "CLASSIFICATION_MODEL_PROVIDER": "ollama_cloud",
+      "TRANSLATION_MODEL_PROVIDER": "ollama_cloud",
+      "OLLAMA_CLOUD_CLASSIFICATION_MODEL": "glm-5.3-flash",
+      "OLLAMA_CLOUD_TRANSLATION_MODEL": "glm-5.3-flash",
+      "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": "low",
+      "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": "low",
+      "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+      "WORKER_CONCURRENCY": "2",
+      "TRANSLATION_PAID_FALLBACK_ENABLED": "false",
+      "MAX_CLASSIFICATION_CALLS_PER_RUN": "0",
+      "MAX_TRANSLATION_CALLS_PER_RUN": "0",
+      "AI_DAILY_REQUEST_LIMIT": "0"
+    },
+    "candidate_key_matches_local": true,
+    "candidate_environment_retains_openrouter_key": true,
+    "unrelated_service_images_unchanged": true,
+    "disk": [
+      "Filesystem      Size  Used Avail Use% Mounted on",
+      "/dev/md0p3      430G   59G  349G  15% /"
+    ]
+  },
+  "production_mutated": false,
+  "key_value_in_report": false,
+  "additional_remote_checks": {
+    "compatibility_sql_success": true,
+    "compatibility_sql_rows": [
+      "ai_model_calls_latency_check|CHECK (((latency_ms IS NULL) OR (latency_ms >= 0)))",
+      "ai_model_calls_ai_layer_check|CHECK ((ai_layer = ANY (ARRAY['translation_summary'::text, 'classification_reasoning'::text, 'advanced_reasoning'::text])))",
+      "ai_model_calls_token_check|CHECK ((((input_tokens IS NULL) OR (input_tokens >= 0)) AND ((output_tokens IS NULL) OR (output_tokens >= 0)) AND ((total_tokens IS NULL) OR (total_tokens >= 0))))",
+      "ai_model_calls_cost_check|CHECK (((estimated_cost_usd IS NULL) OR (estimated_cost_usd >= (0)::numeric)))",
+      "YES"
+    ],
+    "dashboard_health": {
+      "status": "ok",
+      "database": "ok",
+      "service": "dashboard-api"
+    },
+    "current_registry_manifest_readable": true
+  },
+  "local_checks": {
+    "normalizer_pytest": {
+      "passed": 261,
+      "warnings": 874,
+      "seconds": 1.18,
+      "warning_type": "existing Python 3.14 pytest-asyncio deprecations"
+    },
+    "git_diff_check": true,
+    "production_example_compose_config": true,
+    "source_scope_excludes_unrelated_dirty_work": true,
+    "production_schema_migrations_in_candidate": []
+  },
+  "public_api_health": {
+    "status": "ok",
+    "database": "ok",
+    "service": "public-api"
+  },
+  "source_publication": {
+    "candidate_commit": "24da7ba",
+    "origin_develop": "1ee96ae2be7153ad4f2559d19b1be18c744bf696",
+    "origin_main": "3de3c102cda3f82635eb5a6885fb301a2cd2cea0",
+    "develop_diverged": true,
+    "pushed": false,
+    "merged_to_main": false,
+    "unrelated_dirty_changes_excluded": true
+  },
+  "pending_before_deployment": [
+    "Fresh affected-state HomeLab backup, off-host verification, and required restore gate before production mutation.",
+    "Reconcile or explicitly select scoped Git publication; never force-push the diverged branch or release unrelated changes.",
+    "Publish the verified normalizer image under its immutable candidate commit tag.",
+    "After deployment authorization and backup gates, patch selected production env keys using the private override, preserve existing env, upload the scoped Compose change, and recreate only the two normalizer replicas.",
+    "Verify real four-language production results, API payload/usage, and pipeline flow after the authorized rollout."
+  ],
+  "image_checks": {
+    "local_tag": "xauusd-normalizer-preflight:24da7ba",
+    "id": "sha256:f2a9c5d2d026831ede667894fd870b23a83e37b6fd6294c4ffed64fc15918dba",
+    "architecture": "amd64",
+    "os": "linux",
+    "build_passed": true,
+    "source": "git archive 24da7ba; service Dockerfile/pyproject/src only",
+    "published": false,
+    "secret_in_image_config": false,
+    "entrypoint_help_passed": true,
+    "runtime_smoke": {
+      "python": "3.12.15",
+      "machine": "x86_64",
+      "clients": [
+        {
+          "route": "cloud_small",
+          "provider": "ollama_cloud",
+          "model": "glm-5.3-flash",
+          "reasoning_effort": "low"
+        },
+        {
+          "route": "translation_primary",
+          "provider": "ollama_cloud",
+          "model": "glm-5.3-flash",
+          "reasoning_effort": "low"
+        }
+      ],
+      "languages": [
+        "zh-Hant",
+        "en",
+        "th",
+        "ja"
+      ],
+      "network": "none",
+      "api_calls": 0,
+      "db_connections": 0
+    }
+  },
+  "status": "technical_preflight_passed_deployment_gates_pending"
+}
