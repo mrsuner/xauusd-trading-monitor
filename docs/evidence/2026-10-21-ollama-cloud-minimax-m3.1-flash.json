@@ -1,0 +1,613 @@
+{
+  "timestamp_utc": "2026-10-21T08:45:08.906014+00:00",
+  "kind": "matched-live-cloud-comparison",
+  "api_model": "minimax-m3.1-flash",
+  "baseline_model": "glm-5.3-flash",
+  "endpoint": "https://ollama.com/v1/chat/completions",
+  "runtime_source_commit": "d3ec333",
+  "baseline_evidence_commit": "89f7cf6",
+  "max_inference_requests": 6,
+  "max_completion_tokens_per_request": 4096,
+  "languages": [
+    "zh-Hant",
+    "en",
+    "th",
+    "ja"
+  ],
+  "fixtures_are_authored": true,
+  "db_writes": false,
+  "worker_started": false,
+  "runtime_env_modified": false,
+  "metadata_probe": {
+    "endpoint": "/api/show",
+    "http_status": 200,
+    "thinking": null,
+    "capabilities": [
+      "completion",
+      "tools",
+      "thinking",
+      "vision"
+    ]
+  },
+  "reasoning_equivalence_confirmed": false,
+  "results": [
+    {
+      "case": "reported-explosion",
+      "layer": "classification",
+      "input": {
+        "id": "reported-explosion",
+        "language": "en",
+        "domain": "geopolitics",
+        "expected_relevant": true,
+        "title": "Unconfirmed report of an explosion near a fuel depot",
+        "text": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+      },
+      "input_sha256": "32d749157305697948c51448dafce2986360edbca58ad2759ef7d1ac3e229e73",
+      "test_variant": "default_reasoning",
+      "reasoning_effort": null,
+      "max_completion_tokens": 4096,
+      "baseline_success": true,
+      "baseline_latency_ms": 28321,
+      "baseline_input_tokens": 1164,
+      "baseline_output_tokens": 2811,
+      "baseline_request_hash_match": true,
+      "response_metadata": {
+        "response_model": "minimax-m3.1-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1365,
+          "completion_tokens": 2335,
+          "total_tokens": 3700,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        }
+      },
+      "relevance_matches_fixture": true,
+      "success": true,
+      "result": {
+        "is_relevant": true,
+        "relevance_score": 46,
+        "event_type": "unconfirmed_fuel_depot_explosion",
+        "source_stance": null,
+        "claim_direction": "unknown",
+        "claim_text": "區域新聞機構報導港口外一處燃料庫附近發生爆炸，但原因、傷亡及責任方均未獲確認。",
+        "summaries": [
+          {
+            "language": "zh-Hant",
+            "summary": "區域媒體報導，默里迪恩港外一處燃料庫附近發生爆炸；截至目前，原因、傷亡及責任歸屬均未獲當局確認。"
+          }
+        ],
+        "content_category": "conflict",
+        "topic_tags": [
+          "fuel-depot-explosion",
+          "unconfirmed-report",
+          "energy-infrastructure",
+          "geopolitical-risk"
+        ],
+        "primary_domain": "geopolitics",
+        "relevant_domains": [
+          "geopolitics"
+        ],
+        "actors": [
+          "區域新聞機構",
+          "Port Meridian當局"
+        ],
+        "xauusd_impact_channel": [
+          "geopolitics",
+          "safe-haven",
+          "oil-supply-risk"
+        ],
+        "requires_confirmation": true,
+        "confidence": 40,
+        "reason": "事件若獲確認並造成燃料供應中斷或涉及安全衝突，可能透過能源供應與避險需求通道產生相關性；目前缺乏官方確認、責任歸屬及實際供應影響資訊。",
+        "region": "Port Meridian",
+        "primary_actor": null,
+        "secondary_actor": null,
+        "market_relevance": "目前僅屬未核實的能源設施事故；只有在確認供應中斷或涉及衝突後，避險與油價通道才具有實質相關性。"
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "classification_reasoning",
+        "route_name": "cloud_small",
+        "provider": "ollama_cloud",
+        "model_name": "minimax-m3.1-flash",
+        "request_kind": "classify_raw_item",
+        "input_tokens": 1365,
+        "output_tokens": 2335,
+        "total_tokens": 3700,
+        "estimated_cost_usd": null,
+        "latency_ms": 31028,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1365,
+          "completion_tokens": 2335,
+          "total_tokens": 3700,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        },
+        "request_hash": "4c892f0d5ba7590da62b880069859c5592cfc239bba108a52a9641a9ef265213"
+      }
+    },
+    {
+      "case": "reported-explosion",
+      "layer": "translation",
+      "input": {
+        "id": "reported-explosion",
+        "language": "en",
+        "domain": "geopolitics",
+        "expected_relevant": true,
+        "title": "Unconfirmed report of an explosion near a fuel depot",
+        "text": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+      },
+      "input_sha256": "32d749157305697948c51448dafce2986360edbca58ad2759ef7d1ac3e229e73",
+      "test_variant": "default_reasoning",
+      "reasoning_effort": null,
+      "max_completion_tokens": 4096,
+      "baseline_success": false,
+      "baseline_latency_ms": 32712,
+      "baseline_input_tokens": 962,
+      "baseline_output_tokens": 4096,
+      "baseline_request_hash_match": true,
+      "response_metadata": {
+        "response_model": "minimax-m3.1-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1160,
+          "completion_tokens": 3110,
+          "total_tokens": 4270,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        }
+      },
+      "success": true,
+      "result": {
+        "translations": [
+          {
+            "language": "zh-Hant",
+            "summary": "據報，某區域新聞機構稱，Port Meridian 外一處燃料庫附近週一發生爆炸。當局尚未確認原因或傷亡人數，報道亦未指明責任人。",
+            "full_translation": "Port Meridian 外一處燃料庫附近發生爆炸的未確認報告\n\n據報，某區域新聞機構稱，Port Meridian 外一處燃料庫附近於週一發生爆炸。當局尚未確認原因或傷亡人數。該報道未指明誰應為此事負責。"
+          },
+          {
+            "language": "en",
+            "summary": "A regional news agency reportedly said an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures, and the report did not identify who was responsible.",
+            "full_translation": "Unconfirmed report of an explosion near a fuel depot\n\nA regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+          },
+          {
+            "language": "th",
+            "summary": "มีรายงานว่า สำนักข่าวระดับภูมิภาคระบุว่าเกิดระเบิดใกล้คลังเชื้อเพลิงนอก Port Meridian เมื่อวันจันทร์ ทางการยังไม่ได้ยืนยันสาเหตุหรือจำนวนผู้บาดเจ็บและเสียชีวิต และรายงานไม่ได้ระบุว่าใครเป็นผู้รับผิดชอบ",
+            "full_translation": "รายงานที่ยังไม่ได้รับการยืนยันเกี่ยวกับการระเบิดใกล้คลังเชื้อเพลิง\n\nมีรายงานว่า สำนักข่าวระดับภูมิภาคระบุว่าเกิดระเบิดใกล้คลังเชื้อเพลิงนอก Port Meridian เมื่อวันจันทร์ ทางการยังไม่ได้ยืนยันสาเหตุหรือจำนวนผู้บาดเจ็บและเสียชีวิต รายงานไม่ได้ระบุว่าใครเป็นผู้รับผิดชอบ"
+          },
+          {
+            "language": "ja",
+            "summary": "地域ニュース機関によると、Port Meridianの外の燃料デポ付近で月曜日に爆発が発生したと報じられた。当局は原因や負傷者・死者の数をまだ確認していない。報道は責任者の特定にも至っていない。",
+            "full_translation": "燃料デポ付近で爆発したとの未確認の報告\n\n地域ニュース機関によると、Port Meridianの外にある燃料デポ付近で月曜日に爆発が発生したと報じられた。当局は原因や負傷者・死者の数についてまだ確認していない。報道は誰が責任を負っていたかを特定していない。"
+          }
+        ],
+        "detected_language": "en",
+        "notes": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "translation_summary",
+        "route_name": "translation_primary",
+        "provider": "ollama_cloud",
+        "model_name": "minimax-m3.1-flash",
+        "request_kind": "translate_summary",
+        "input_tokens": 1160,
+        "output_tokens": 3110,
+        "total_tokens": 4270,
+        "estimated_cost_usd": null,
+        "latency_ms": 28101,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1160,
+          "completion_tokens": 3110,
+          "total_tokens": 4270,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        },
+        "request_hash": "7683732fd0cf4133d8676d8e0e7c30681f150df3876460ffd30eeebfcf29050e"
+      }
+    },
+    {
+      "case": "reported-explosion",
+      "layer": "translation",
+      "input": {
+        "id": "reported-explosion",
+        "language": "en",
+        "domain": "geopolitics",
+        "expected_relevant": true,
+        "title": "Unconfirmed report of an explosion near a fuel depot",
+        "text": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+      },
+      "input_sha256": "32d749157305697948c51448dafce2986360edbca58ad2759ef7d1ac3e229e73",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "baseline_success": true,
+      "baseline_latency_ms": 5635,
+      "baseline_input_tokens": 962,
+      "baseline_output_tokens": 722,
+      "baseline_request_hash_match": true,
+      "response_metadata": {
+        "response_model": "minimax-m3.1-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1160,
+          "completion_tokens": 2986,
+          "total_tokens": 4146,
+          "prompt_tokens_details": {
+            "cached_tokens": 1158
+          }
+        }
+      },
+      "success": true,
+      "result": {
+        "translations": [
+          {
+            "language": "zh-Hant",
+            "summary": "區域新聞機構據報，星期一在 Port Meridian 外的一處燃料庫附近發生爆炸。當局尚未證實起因及傷亡數字，報導亦未指明責任人。",
+            "full_translation": "未經證實的爆炸報導：燃料庫附近發生爆炸\n\n區域新聞機構據報，星期一在 Port Meridian 外的一處燃料庫附近發生爆炸。當局尚未證實起因或傷亡數字。該報導未指明誰應為此負責。"
+          },
+          {
+            "language": "en",
+            "summary": "A regional news agency reportedly described a Monday explosion near a fuel depot outside Port Meridian. The cause, casualties and responsibility remain unconfirmed.",
+            "full_translation": "Unconfirmed report of an explosion near a fuel depot\n\nA regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+          },
+          {
+            "language": "th",
+            "summary": "มีรายงานว่าสำนักข่าวในภูมิภาคระบุว่าเกิดระเบิดเมื่อวันจันทร์ใกล้คลังเชื้อเพลิงนอก Port Meridian เจ้าหน้าที่ยังไม่ยืนยันสาเหตุ จำนวนผู้เสียชีวิตและผู้บาดเจ็บ และรายงานไม่ระบุว่าใครรับผิดชอบ",
+            "full_translation": "รายงานยังไม่ยืนยันเกิดระเบิดใกล้คลังเชื้อเพลิง\n\nมีรายงานว่าสำนักข่าวในภูมิภาคระบุว่าเกิดระเบิดเมื่อวันจันทร์ใกล้คลังเชื้อเพลิงนอก Port Meridian เจ้าหน้าที่ยังไม่ยืนยันสาเหตุหรือจำนวนผู้เสียชีวิตและผู้บาดเจ็บ รายงานไม่ระบุว่าใครเป็นผู้รับผิดชอบ"
+          },
+          {
+            "language": "ja",
+            "summary": "地域の報道機関は、月曜日、Port Meridian 外の燃料庫付近で爆発が発生したと報じられた。当局は原因や負傷者数を確認しておらず、報道は責任者の特定にも言及していない。",
+            "full_translation": "未確認の報道：燃料庫付近で爆発\n\n地域の報道機関は、月曜日、Port Meridian の外にある燃料庫付近で爆発が発生したと報じられた。当局は原因や負傷者数を確認していない。どの報道でも、責任者が誰であるかは特定されていない。"
+          }
+        ],
+        "detected_language": "en",
+        "notes": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "translation_summary",
+        "route_name": "translation_primary",
+        "provider": "ollama_cloud",
+        "model_name": "minimax-m3.1-flash",
+        "request_kind": "translate_summary",
+        "input_tokens": 1160,
+        "output_tokens": 2986,
+        "total_tokens": 4146,
+        "estimated_cost_usd": null,
+        "latency_ms": 23149,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1160,
+          "completion_tokens": 2986,
+          "total_tokens": 4146,
+          "prompt_tokens_details": {
+            "cached_tokens": 1158
+          }
+        },
+        "request_hash": "7683732fd0cf4133d8676d8e0e7c30681f150df3876460ffd30eeebfcf29050e"
+      }
+    },
+    {
+      "case": "central-bank-hold",
+      "layer": "classification",
+      "input": {
+        "id": "central-bank-hold",
+        "language": "zh-Hant",
+        "domain": "monetary",
+        "expected_relevant": true,
+        "title": "中央銀行維持利率不變",
+        "text": "中央銀行週三宣布將政策利率維持在4.50%。聲明表示，未來決策取決於通膨與就業數據，並未承諾下次會議降息。"
+      },
+      "input_sha256": "eae9ada9c7746cfa824cf5740cbe872653cea83490a05c1ff228ae714cd26d39",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "baseline_success": true,
+      "baseline_latency_ms": 2297,
+      "baseline_input_tokens": 1175,
+      "baseline_output_tokens": 344,
+      "baseline_request_hash_match": true,
+      "response_metadata": {
+        "response_model": "minimax-m3.1-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1363,
+          "completion_tokens": 2284,
+          "total_tokens": 3647,
+          "prompt_tokens_details": {
+            "cached_tokens": 1172
+          }
+        }
+      },
+      "relevance_matches_fixture": true,
+      "success": true,
+      "result": {
+        "is_relevant": true,
+        "relevance_score": 82,
+        "event_type": "central_bank_policy_rate_decision",
+        "source_stance": null,
+        "claim_direction": "neutral",
+        "claim_text": "政策利率維持在4.50%，後續決策取決於通膨與就業數據，未承諾下次會議降息。",
+        "summaries": [
+          {
+            "language": "zh-Hant",
+            "summary": "央行將政策利率維持在4.50%，表示後續將依通膨與就業數據決定，未承諾下次會議調整利率；文中未指明是哪一央行，需另行核實。"
+          }
+        ],
+        "content_category": "monetary-policy",
+        "topic_tags": [
+          "central-bank",
+          "policy-rate",
+          "inflation",
+          "employment"
+        ],
+        "primary_domain": "monetary",
+        "relevant_domains": [
+          "monetary"
+        ],
+        "actors": [
+          "未指明央行"
+        ],
+        "xauusd_impact_channel": [
+          "real_rate",
+          "inflation"
+        ],
+        "requires_confirmation": true,
+        "confidence": 78,
+        "reason": "內容明確涉及央行政策利率與前瞻指引，可透過實質利率及通膨路徑影響黃金定價；央行身分、日期及聲明細節仍待確認。",
+        "region": null,
+        "primary_actor": "未指明央行",
+        "secondary_actor": null,
+        "market_relevance": "政策利率與利率路徑資訊與黃金的實質利率及政策預期相關，但央行身分與聲明背景未明。"
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "classification_reasoning",
+        "route_name": "cloud_small",
+        "provider": "ollama_cloud",
+        "model_name": "minimax-m3.1-flash",
+        "request_kind": "classify_raw_item",
+        "input_tokens": 1363,
+        "output_tokens": 2284,
+        "total_tokens": 3647,
+        "estimated_cost_usd": null,
+        "latency_ms": 28435,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1363,
+          "completion_tokens": 2284,
+          "total_tokens": 3647,
+          "prompt_tokens_details": {
+            "cached_tokens": 1172
+          }
+        },
+        "request_hash": "f130142d72994004efeff4884db9e31d788667275c0978d02891a1663fc35696"
+      }
+    },
+    {
+      "case": "central-bank-hold",
+      "layer": "translation",
+      "input": {
+        "id": "central-bank-hold",
+        "language": "zh-Hant",
+        "domain": "monetary",
+        "expected_relevant": true,
+        "title": "中央銀行維持利率不變",
+        "text": "中央銀行週三宣布將政策利率維持在4.50%。聲明表示，未來決策取決於通膨與就業數據，並未承諾下次會議降息。"
+      },
+      "input_sha256": "eae9ada9c7746cfa824cf5740cbe872653cea83490a05c1ff228ae714cd26d39",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "baseline_success": true,
+      "baseline_latency_ms": 4358,
+      "baseline_input_tokens": 974,
+      "baseline_output_tokens": 715,
+      "baseline_request_hash_match": true,
+      "response_metadata": {
+        "response_model": "minimax-m3.1-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1159,
+          "completion_tokens": 2113,
+          "total_tokens": 3272,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        }
+      },
+      "success": true,
+      "result": {
+        "translations": [
+          {
+            "language": "zh-Hant",
+            "summary": "中央銀行公布政策利率續留4.50%；聲明稱後續決策將依通膨及就業數據而定，未承諾下次會議降息。",
+            "full_translation": "中央銀行維持利率不變\n\n中央銀行週三宣布將政策利率維持在4.50%。聲明表示，未來決策取決於通膨與就業數據，並未承諾下次會議降息。"
+          },
+          {
+            "language": "en",
+            "summary": "The central bank announced on Wednesday that it kept its policy rate at 4.50%. It said future decisions will depend on inflation and employment data and made no commitment to cut rates at the next meeting.",
+            "full_translation": "Central bank keeps interest rates unchanged\n\nThe central bank announced on Wednesday that it would keep the policy rate at 4.50%. The statement said future decisions would depend on inflation and employment data and did not commit to a rate cut at the next meeting."
+          },
+          {
+            "language": "th",
+            "summary": "ธนาคารกลางประกาศเมื่อวันพุธว่าคงอัตราดอกเบี้ยนโยบายไว้ที่ 4.50% โดยระบุว่าการตัดสินใจในอนาคตขึ้นอยู่กับข้อมูลเงินเฟ้อและการจ้างงาน และไม่ได้ให้คำมั่นว่าจะลดอัตราดอกเบี้ยในการประชุมครั้งถัดไป",
+            "full_translation": "ธนาคารกลางคงอัตราดอกเบี้ยไม่เปลี่ยนแปลง\n\nธนาคารกลางประกาศเมื่อวันพุธว่าจะคงอัตราดอกเบี้ยนโยบายไว้ที่ 4.50% คำแถลงระบุว่าการตัดสินใจในอนาคตขึ้นอยู่กับข้อมูลเงินเฟ้อและการจ้างงาน และไม่ได้ให้คำมั่นว่าจะลดอัตราดอกเบี้ยในการประชุมครั้งถัดไป"
+          },
+          {
+            "language": "ja",
+            "summary": "中央銀行は水曜日に政策金利を4.50%に据え置くと発表した。声明では、今後の決定は物価・雇用統計に左右されると説明し、次回会合での利下げについては約束しなかった。",
+            "full_translation": "中央銀行、金利を据え置き\n\n中央銀行は水曜日に政策金利を4.50%に据え置くと発表した。声明では、今後の決定は物価と雇用統計に依存するとされ、次回会合で利下げを行うことについては約束しなかった。"
+          }
+        ],
+        "detected_language": "zh-Hant",
+        "notes": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "translation_summary",
+        "route_name": "translation_primary",
+        "provider": "ollama_cloud",
+        "model_name": "minimax-m3.1-flash",
+        "request_kind": "translate_summary",
+        "input_tokens": 1159,
+        "output_tokens": 2113,
+        "total_tokens": 3272,
+        "estimated_cost_usd": null,
+        "latency_ms": 21116,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1159,
+          "completion_tokens": 2113,
+          "total_tokens": 3272,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        },
+        "request_hash": "d75044401b788468d535c773041d1828c8a3f09c2e2ebb2819cd1c34206d422d"
+      }
+    },
+    {
+      "case": "unrelated-interface-update",
+      "layer": "classification",
+      "input": {
+        "id": "unrelated-interface-update",
+        "language": "en",
+        "domain": null,
+        "expected_relevant": false,
+        "title": "Interface color update",
+        "text": "A community library updated its website buttons from blue to green. The change only affects the appearance of its online book catalog. No fees, opening hours, services, or lending rules changed."
+      },
+      "input_sha256": "d36279650e4071f5854625608e77faeab4f8deb9ee235896e521ae2a501856c4",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "baseline_success": true,
+      "baseline_latency_ms": 4431,
+      "baseline_input_tokens": 1151,
+      "baseline_output_tokens": 286,
+      "baseline_request_hash_match": true,
+      "response_metadata": {
+        "response_model": "minimax-m3.1-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1353,
+          "completion_tokens": 637,
+          "total_tokens": 1990,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        }
+      },
+      "relevance_matches_fixture": true,
+      "success": true,
+      "result": {
+        "is_relevant": false,
+        "relevance_score": 0,
+        "event_type": "website_interface_update",
+        "source_stance": null,
+        "claim_direction": "neutral",
+        "claim_text": "社區圖書館僅將網站按鈕由藍色改為綠色，線上目錄以外的功能、服務與借閱規則均未改變。",
+        "summaries": [
+          {
+            "language": "zh-Hant",
+            "summary": "社區圖書館更新網站按鈕顏色，僅影響線上書目介面顯示，收費、開放時間、服務及借閱規則不變。"
+          }
+        ],
+        "content_category": "other",
+        "topic_tags": [],
+        "primary_domain": null,
+        "relevant_domains": [],
+        "actors": [
+          "社區圖書館"
+        ],
+        "xauusd_impact_channel": [],
+        "requires_confirmation": true,
+        "confidence": 99,
+        "reason": "內容僅涉及網站介面外觀，未涉及安全避險、實質利率、通膨、美元、流動性、油價、制裁、地緣政治或聯準會政策預期。",
+        "region": null,
+        "primary_actor": "社區圖書館",
+        "secondary_actor": null,
+        "market_relevance": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "classification_reasoning",
+        "route_name": "cloud_small",
+        "provider": "ollama_cloud",
+        "model_name": "minimax-m3.1-flash",
+        "request_kind": "classify_raw_item",
+        "input_tokens": 1353,
+        "output_tokens": 637,
+        "total_tokens": 1990,
+        "estimated_cost_usd": null,
+        "latency_ms": 7531,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1353,
+          "completion_tokens": 637,
+          "total_tokens": 1990,
+          "prompt_tokens_details": {
+            "cached_tokens": 185
+          }
+        },
+        "request_hash": "9e9442d396a2b6516470266be205d2ea454447091dc1c0d80c7a482358962f84"
+      }
+    }
+  ],
+  "inference_requests": 6,
+  "summary": {
+    "successful_responses": 6,
+    "failed_responses": 0,
+    "input_tokens": 7560,
+    "output_tokens": 13465,
+    "cost_usd": null,
+    "all_baseline_prompt_hashes_match": true,
+    "low_reasoning_requests": 4,
+    "low_reasoning_successes": 4,
+    "low_mean_latency_ms": 20057.75,
+    "glm_low_mean_latency_ms": 4180.25,
+    "low_output_tokens": 8020,
+    "glm_low_output_tokens": 2067,
+    "quality_admission_passed": false,
+    "quality_review_notes": [
+      "MiniMax central-bank classification did not introduce the unsupported Fed-specific impact channel observed in the GLM fixture.",
+      "MiniMax low-effort Japanese explosion translation narrowed casualty figures to injuries and broadened the report to all reports; the reporting clause is awkward.",
+      "The default-effort MiniMax Japanese wording is more natural in this fixture, but comparing it against GLM low effort does not hold reasoning effort constant.",
+      "MiniMax full translations retain the supplied headline; GLM translations omit it, so output coverage also affects token counts."
+    ],
+    "comparison_limits": [
+      "Six authored fixture requests per model; historical, non-simultaneous runs without randomized repeated trials.",
+      "Prompts and requested reasoning effort match per pair, but effective reasoning-level equivalence is unconfirmed.",
+      "Tokenizer, reasoning-token accounting, cache hits, output coverage, provider load, and model behavior can affect latency and token counts.",
+      "Observed format/business-validation success is not production quality admission; actual billing was not returned."
+    ]
+  }
+}
