@@ -2,12 +2,12 @@
 
 ## Status
 
-- 狀態：Done（P0–P4／R1、T1–T3 完成；已接受現有限制，P5 技術 preflight 通過；部署 gates 未執行，尚未部署）
+- 狀態：Done（P0–P4／R1、T1–T3、P5–P6 完成；HomeLab normalizer 已部署 GLM／low 並通過真實新聞驗證；VPS／公開網站未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
 - 範圍：News normalizer-classifier 的 Layer 1／Layer 2；保留 OpenRouter，新增直接呼叫 Ollama Cloud 的獨立 client，退役早期 local LLM route。
-- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1／T2／T3 的有界真實 Cloud 測試，結果另列於本文；正式模型品質／延遲驗收、production 啟用、發布與部署仍不在本次範圍。
+- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1／T2／T3 的有界真實 Cloud 測試，結果另列於本文；P6 後續已明確授權並完成 HomeLab normalizer-only 發布與部署；完整語言品質與長期容量認證仍不在本輪範圍。
 
 ## 決策與目前實作
 
@@ -245,7 +245,7 @@ P5 結果：**技術 preflight 通過；正式 deployment gates 尚待執行**�
 完整非敏感 preflight 證據見 [P5 evidence](evidence/2026-10-21-ollama-cloud-deployment-preflight.json)。本輪未變更任何 production 檔案、DB、runtime 或 image，未建立 VPS／Pages release。已接受的內容缺陷不再作為本次候選的阻擋項；上述尚待部署的實際 gates 仍須完成。
 
 
-## HomeLab scoped 部署（P6，2026-10-21，進行中）
+## HomeLab scoped 部署（P6，2026-10-21，完成）
 
 使用者明確授權完成備份／還原、處理 Git 發布分歧、推送 image 並部署 HomeLab，只更新 normalizer，沿用同 key，兩層固定 `glm-5.3-flash`／`low`，部署後檢查真實新聞。VPS 與公開網站不在部署範圍。
 
@@ -261,4 +261,38 @@ P5 結果：**技術 preflight 通過；正式 deployment gates 尚待執行**�
 
 只在 Ollama client 的 `translation_summary` prompt 加上保守的單句摘要目標：繁中 120 字元、其他語言 220 字元，保留歸因／不確定性；細節放在全文翻譯。既有繁中 280／其他 400 的 hard validation、分類 prompt、OpenRouter、key、model、effort 與 retry/fallback 契約均保持。沒有截字、JSON 修復或新增隱藏重試。
 
-同一真實輸入的有界 live 檢查通過（1 request、20.346 s；摘要長度 zh-Hant=46、en=162、th=141、ja=78，四語全文齊全，未寫 DB）。新增四個摘要邊界回歸案例，完整 mock suite 265 passed。這是 prompt headroom 的實測改善，仍不是 Cloud 原生 structured-output 或永不超長的保證。見 [summary headroom evidence](evidence/2026-10-21-ollama-cloud-summary-headroom.json)。修正 image 發布、第二次 scoped 切換與真實新聞驗收完成後，續寫本節。
+同一真實輸入的有界 live 檢查通過（1 request、20.346 s；摘要長度 zh-Hant=46、en=162、th=141、ja=78，四語全文齊全，未寫 DB）。新增四個摘要邊界回歸案例，完整 mock suite 265 passed。這是 prompt headroom 的實測改善，仍不是 Cloud 原生 structured-output 或永不超長的保證。見 [summary headroom evidence](evidence/2026-10-21-ollama-cloud-summary-headroom.json)。修正 image 發布、第二次 scoped 切換與真實新聞驗收已完成，結果如下。
+
+
+### P6 最終部署與驗收
+
+19:01:54 Asia/Bangkok 已只更新兩個 normalizer 至 application commit／image tag `abc6107`。Registry manifest digest 為 `sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5`，config digest 為 `sha256:40e358b3752f77a6063d4a51037abf84499b726b61bb5423a91579de3e456566`。修正 image 從已驗證的前版 manifest 固定基底，僅以 `pip install --no-deps --force-reinstall .` 重裝本次 application source；比對確認 runtime dependency names／versions 全部不變，容器內實際載入的 Ollama client SHA256 與提交內容一致。
+
+第二次切換前另建立 `glm-cloud-config-20261021T115700Z` 加密設定 checkpoint，HomeLab／Mac 密文 SHA256 相符，解密後 `.env`／Compose 檔案 hash 全部驗證，明文已清理。完整 DB 還原 gate 沿用同一 migration-free 發布流程已通過的 `glm-cloud-20261021T111037Z`；這個 checkpoint 只新增當前設定保護，沒有宣稱產生第二份完整 DB 備份。正式 env 只合併本次選定 keys，並保留原檔的 timestamp backup；沒有用 development env 覆蓋 production。
+
+最終兩個 replicas 均 running、restart_count=0；有效 client factory 與實際 request 都核對到 Ollama Cloud `glm-5.3-flash`、requested `reasoning_effort=low`，key 與本地私有 key 比對為相同。四語保持 `zh-Hant,en,th,ja`，OpenRouter 設定保留。自首次部署前至最終驗收，所有非 normalizer 容器的 IDs／images／started_at／restart count 一致，HomeLab dashboard／DB health 正常。沒有 migration、VPS 部署、main 更新或公開網站發布。
+
+真實新聞皆由既有 collectors 自然進入 production，未插入 fixture、重新排程已完成分類或改動 source 設定。5 則樣本的分類與四語翻譯最終全部 completed，共 20 筆語言結果：
+
+| Source／樣本 | Score | Layer 2 | Layer 1 成功耗時 | 結果 |
+| --- | --- | --- | --- | --- |
+| Tasnim／教授網絡成立 `453031` | 10 | 6.248 s | 20.460 s | 初始英文摘要超長；修正後只補跑翻譯成功 |
+| Press TV／地拉那抗議現場 `211677` | 5 | 4.297 s | 6.818 s | 自然 worker 處理完成 |
+| Tasnim／演習圖文報導 `453033` | 10 | 4.504 s | 7.523 s | 自然 worker 處理完成 |
+| Tasnim／海底電纜依賴分析 `453044` | 25 | 5.909 s | 21.091 s | 初始英文摘要超長；修正後只補跑翻譯成功 |
+| Mehr／UKMTO 海事事件 `248798` | 55 | 5.778 s | 5.785 s | 修正 image 上新的自然 worker 完整流程成功 |
+
+Layer 2 平均 5.347 s（4.297–6.248 s），成功的 Layer 1 四語呼叫平均 12.335 s（5.785–21.091 s）；這是不同長度／語言的真實輸入，不與 T1 人工短 fixture 直接作速度排名。觀察期間 production 共 13 次呼叫，10 成功、3 次英文摘要超長失敗（2 則新聞，其中一則有一次明確重試），失敗 usage 全部保留。修正後 4 次 production 呼叫全成功：2 次明確 translation-only 補跑，加上 1 則新新聞的 Layer 2／Layer 1；沒有新增失敗，沒有重跑分類或新增隱藏重試。另有 1 次本地新 prompt 的真實輸入檢查，不寫 DB，不混入 production 計數。
+
+繁中／英文人工抽查看到來源歸因、95–99%／30% 數值與海事事件未確認性保留；泰文／日文驗證欄位、目標 script、長度與非空全文，沒有宣稱母語品質認證。UKMTO 例保留 requires_confirmation=true。樣本分數均低於既有事件門檻 70，因此未建立 event，這輪沒有驗證 production event 插入／發布分支。成本 API 未回，維持未知。先前已接受的 tag／重複輸入缺陷未擴大修復。
+
+備份產物（加密，禁止提交內容）：
+
+- HomeLab：`/home/luke/backups/xauusd-event-radar/glm-cloud-20261021T111037Z.tar.gz.age`。
+- Mac off-host：`/Users/lukesun/Projects/trading-sys/infra/backups/glm-cloud-20261021T111037Z.tar.gz.age`。
+- 設定 checkpoint：上述兩個目錄內的 `glm-cloud-config-20261021T115700Z.tar.gz.age`。
+- 正式設定的 timestamp backups 與各階段 image／container identities 記錄於下方 evidence；只回滾 normalizer 時，優先恢復該階段 env／Compose 與原 image，僅以 `--no-deps --scale normalizer-classifier=2` 重建 normalizer，不自動還原 DB 或回退整個 stack。
+
+Git：首次 scope 從 `1ee96ae` fast-forward 至 `293a5f0`，摘要修正再 fast-forward 至 `abc6107`；原本 11 個階段 commit 保留為重放後的獨立提交，修正另有獨立 commit。原本 32 檔未提交內容經逐檔 SHA256 保留，其他本機既有未發布 commits 未推送，本機 develop 已整合遠端而無 behind 分歧。main 維持 `3de3c102`。本節與證據另以文件 commit 同步到 develop，不更動已部署 application image。
+
+完整非敏感的備份／還原 receipts、兩次 rollout、image config／manifest 身分、runtime clients、實際 request 參數、逐筆 usage、樣本翻譯長度／hash 與 Git 邊界見 [P6 deployment evidence](evidence/2026-10-21-ollama-cloud-homelab-deployment.json)。完整新聞文字與輸出只留在 ignored 本地 evidence，沒有提交 production env、API key 或 DB dump。
