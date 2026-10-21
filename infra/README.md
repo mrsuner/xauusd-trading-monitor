@@ -1,9 +1,9 @@
 # Infra
 
 > VPS public API/notification authority: [VPS runbook](../docs/vps-deployment.md).
-> Its canonical envs and final overlay were prepared locally on2026-10-16 and
-> are not installed on82. The commands below describe **HomeLab only**; they do
-> not start current VPS services. Existing HomeLab/development commands remain.
+> Shared82 uses `docker-compose.shared82.yml` and `.env.shared82.*`; read-only
+> validation is `scripts/vps.sh config`. The dedicated82 configuration is
+> historical. Commands below apply to HomeLab200 only, never VPS82.
 本目錄保存 XAUUSD Event Radar 的生產部署相關文件。
 
 V1 部署目標是 HomeLab Docker Compose。所有服務 image 由開發機或 CI build 後推送到 GHCR，HomeLab 只負責 pull image 並啟動。

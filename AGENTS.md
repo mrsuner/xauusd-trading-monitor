@@ -58,4 +58,5 @@ For code-related content, including code, identifiers, comments, commit messages
 For82 public API/notification infra, use `docs/vps-deployment.md` and the umbrella
 `infra/README.md`. Canonical production envs are project-local under `infra/`;
 the active notification profile and existing identities must be preserved. The
-2026-10-16 candidate is local-only. HomeLab commands above are not VPS commands.
+shared82 authority uses `docker-compose.shared82.yml` and `.env.shared82.*`.
+Dedicated82 commands are historical. HomeLab commands above are not VPS commands.
