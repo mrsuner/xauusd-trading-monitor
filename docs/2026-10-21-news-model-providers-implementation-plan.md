@@ -2,7 +2,7 @@
 
 ## Status
 
-- 狀態：Done（P0–P4／R1 實作完成；T1／T2 冒煙與對比、T3 本地真實 RSS 處理完成，正式模型品質尚未驗收；未部署）
+- 狀態：Done（P0–P4／R1、T1–T3 完成；已接受現有限制，P5 技術 preflight 通過；部署 gates 未執行，尚未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
@@ -218,4 +218,28 @@ MiniMax 共 7560 input tokens、13465 output tokens，程式結構／業務驗�
 
 本輪只授權提交與 preflight；檢查本地程式／Compose、候選 image、HomeLab 現況與 schema 相容性。既有 runtime／測試證據已分階段提交至 `b03abdd`。VPS、Cloudflare Pages、production env 寫入、image push、服務重建、migration 執行與正式部署不在本輪範圍。所有既有無關 dirty changes 均排除。
 
-Preflight 進度與結果另於完成後回寫；若存在生產相容性、發布來源或備份 gate 缺口，須如實列為待處理，不能把本地通過視為 production admission。
+P5 結果：**技術 preflight 通過；正式 deployment gates 尚待執行**。接受決策 commit 為 `24da7ba`，前述實作與測試證據均已提交；本輪沒有 push、merge main 或發布。
+
+| 檢查 | 結果 |
+| --- | --- |
+| normalizer 完整 mock pytest | 261 passed；874 筆既有 Python 3.14／pytest-asyncio deprecation warnings，1.18 s |
+| whitespace／production Compose template | `git diff --check`、`docker compose --env-file infra/.env.example -f infra/docker-compose.prod.yml config --quiet` 通過 |
+| HomeLab 現況 | 兩個 normalizer replicas 均 running、restart_count=0；舊 image 為 `normalizer-classifier:3de3c10`，目前尚無 Ollama key／新 provider env |
+| DB 相容性 | production schema 已為 `0026_ai_daily_budgets`；required routing／translation／budget tables 齊全，usage layer／nullable token-cost constraints 相容，`events.summary_zh` 可為 null；本次候選沒有新增 migration，無須為此執行 schema migration 或其 restore rehearsal |
+| 候選 Compose | 將 committed Compose 經 stdin 唯讀送至 HomeLab，用既有 production env 加程序內 override 渲染；兩層 GLM／low、Cloud URL、同 key 全部相符；保留四語 `zh-Hant,en,th,ja`、OpenRouter key、原有兩個 replicas／每個 worker_concurrency=2 的規模，fallback 維持關閉；其他既有 service 的 image 宣告不變 |
+| 健康／空間 | HomeLab dashboard 與 public API 均回 `status=ok`、`database=ok`；HomeLab project filesystem 約 349 GiB 可用；原 normalizer registry manifest 可讀 |
+| 候選 image | 以 `git archive 24da7ba` 的 service Dockerfile／pyproject／src 建置，排除所有未提交變更與 env；`linux/amd64` 建置成功，local tag=`xauusd-normalizer-preflight:24da7ba`，未 push |
+| image 內載入 | Python 3.12.15／x86_64；兩層 client 與 payload 參數檢查、四語設定、CLI help 全部通過；檢查容器 `--network none`，沒有 API 呼叫或 DB 連線 |
+| secret custody | 已建立 ignored、mode 0600 的私有 `infra/.env.ollama-cloud.preflight`，只包含本次選定 override 與同一把 key；同 key 比對僅輸出 boolean；未寫入 production env、Git 或 image |
+
+候選 application source 固定為 `24da7ba`。本地 image ID 為 `sha256:f2a9c5d2d026831ede667894fd870b23a83e37b6fd6294c4ffed64fc15918dba`；這是本地 image ID，並非已發布的 registry manifest digest。後續可將該已驗證 image 發布為 `ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:24da7ba`，並只用 `NORMALIZER_IMAGE_TAG` 指向它；不要全域變更 `IMAGE_TAG` 或重建無關服務。此 P5 報告後續 commit 只更新文件，不改變上述候選 application source。
+
+部署前尚待完成：
+
+1. 按當前受影響 HomeLab 狀態建立新備份、off-host 校驗與要求的 restore gate；本輪僅唯讀 preflight，沒有建立 production 備份，也沒有宣稱歷史備份足以部署。
+2. 確認 scoped Git 發布來源：當前 `develop` 與 `origin/develop` 分歧，origin head 為 `1ee96ae`；本機也有其他工作的 dirty changes／既有未發布 commits。沒有 force-push、rebase、merge main、暫存無關修改或全樹 rsync。候選 image 已從指定 commit 的必要 service paths 建置；後續應只整合／發布授權範圍，不能直接整批推送。
+3. 發布已驗證的 immutable candidate image，記錄 registry digest。這輪沒有 registry push。
+4. 取得正式部署授權並通過備份 gate 後，先備份 production env，再只合併私有 override 的選定 keys，套用本次 Compose delta，只重建現有兩個 normalizer replicas；保留其餘 env、服務、DB 與 sessions。不要用 `.env.dev` 或該 partial override 整份覆蓋 production env。
+5. 部署後檢查實際 Cloud payload／usage、四語新聞產出與管線狀態。T3 的真實 RSS 回寫只驗證繁中／英文；四語 GLM 的 bounded 冒煙證據在 T1，並不替代 production 驗收。
+
+完整非敏感 preflight 證據見 [P5 evidence](evidence/2026-10-21-ollama-cloud-deployment-preflight.json)。本輪未變更任何 production 檔案、DB、runtime 或 image，未建立 VPS／Pages release。已接受的內容缺陷不再作為本次候選的阻擋項；上述尚待部署的實際 gates 仍須完成。
