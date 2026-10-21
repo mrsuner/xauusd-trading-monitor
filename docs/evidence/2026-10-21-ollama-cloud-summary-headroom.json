@@ -26,5 +26,11 @@
     "warnings": 910,
     "seconds": 43.54
   },
-  "production_updated_with_fix": false
+  "production_updated_with_fix": true,
+  "deployed_application_commit": "abc6107",
+  "production_recovered_item_ids": [
+    "0d004001-40c0-44be-ae91-6efd767ad843",
+    "ee0898f8-facf-4820-8d2a-fc148f4cdd4a"
+  ],
+  "production_post_fix_failed_calls": 0
 }

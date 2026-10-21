@@ -1,0 +1,1545 @@
+{
+  "kind": "homelab-normalizer-only-deployment",
+  "status": "deployed_and_real_news_verified",
+  "source_commit": "abc61070c900edc0d374c8f9159d7ca7cb905d7a",
+  "observation_started_at": "2026-10-21T11:39:02.869146+00:00",
+  "observation_completed_at": "2026-10-21T12:09:19.024257+00:00",
+  "backup": {
+    "generation": "glm-cloud-20261021T111037Z",
+    "remote_archive": "/home/luke/backups/xauusd-event-radar/glm-cloud-20261021T111037Z.tar.gz.age",
+    "ciphertext_sha256": "b8fb72055104425c28a3ac66c7783cedb7af8daabba591c06bae56bd43b601e2",
+    "ciphertext_bytes": 234096150,
+    "schema_revision": "0026_ai_daily_budgets",
+    "snapshot_tables": {
+      "ai_daily_budgets": {
+        "rows": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "ai_model_calls": {
+        "rows": 141288,
+        "fingerprint": "d416d5ad525f2c502a0db34ba4ddd152"
+      },
+      "alembic_version": {
+        "rows": 1
+      },
+      "alerts": {
+        "rows": 13162
+      },
+      "content_categories": {
+        "rows": 13
+      },
+      "domain_keywords": {
+        "rows": 76,
+        "fingerprint": "03f7cffbd9d5011d051642b97abaf8d1"
+      },
+      "domains": {
+        "rows": 4,
+        "fingerprint": "8f5d55fa44a1520812431275b2e1fc7e"
+      },
+      "event_claims": {
+        "rows": 18973
+      },
+      "event_route_decisions": {
+        "rows": 94100
+      },
+      "event_translations": {
+        "rows": 37123,
+        "fingerprint": "aa69ce01bb1826ea3a8ebf5e5b6f1dce"
+      },
+      "events": {
+        "rows": 19298,
+        "fingerprint": "c7b0b9e0df39c594af9fb250bd7998d8"
+      },
+      "prompt_modules": {
+        "rows": 4,
+        "fingerprint": "e5b8112e31cd72ccb58d98a6690d33e5"
+      },
+      "public_outbox": {
+        "rows": 11990
+      },
+      "public_outbox_translations": {
+        "rows": 41552
+      },
+      "public_raw_item_sync_state": {
+        "rows": 30832
+      },
+      "raw_item_processing": {
+        "rows": 93700,
+        "fingerprint": "b0167271a417bcdf42873306563afdeb"
+      },
+      "raw_item_tags": {
+        "rows": 200332,
+        "fingerprint": "0c22d3019fedd1ed270ef366cc83eb15"
+      },
+      "raw_item_translations": {
+        "rows": 334815,
+        "fingerprint": "8234659de469caf6933095db68dc4c60"
+      },
+      "raw_items": {
+        "rows": 93700,
+        "fingerprint": "22d0e917636d2125d79cc4ae8c2ef589"
+      },
+      "routing_config_snapshots": {
+        "rows": 1,
+        "fingerprint": "1dcb8e2b9471590814d4b9816c2bf197"
+      },
+      "source_domains": {
+        "rows": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "source_health": {
+        "rows": 22
+      },
+      "sources": {
+        "rows": 23,
+        "fingerprint": "cdbf49af0323597d1aeb8b886f9c3ba5"
+      },
+      "tags": {
+        "rows": 4228,
+        "fingerprint": "e70788042b7dd5c87077faa5f9f63185"
+      },
+      "tickbase_anomaly_ingest": {
+        "rows": 325
+      }
+    },
+    "created_at": "2026-10-21T11:13:28.850701+00:00",
+    "local_archive": "/Users/lukesun/Projects/trading-sys/infra/backups/glm-cloud-20261021T111037Z.tar.gz.age",
+    "off_host_hash_verified": true
+  },
+  "restore": {
+    "generation": "glm-cloud-20261021T111037Z",
+    "verified_at": "2026-10-21T11:33:32.205503+00:00",
+    "ciphertext_sha256": "b8fb72055104425c28a3ac66c7783cedb7af8daabba591c06bae56bd43b601e2",
+    "off_host_source": "/Users/lukesun/Projects/trading-sys/infra/backups/glm-cloud-20261021T111037Z.tar.gz.age",
+    "native_restore_passed": true,
+    "all_table_counts_match": true,
+    "critical_fingerprints_match": true,
+    "tables_checked": 25,
+    "fingerprints_checked": 15,
+    "schema_revision": "0026_ai_daily_budgets",
+    "source_roles_restored": true,
+    "source_ownership_restored": true,
+    "network": "none",
+    "postgres_image": "postgres:16.14-alpine",
+    "disposable_container": "news-glm-restore-20261021t111037z",
+    "disposable_volume": "news-glm-restore-20261021t111037z-data",
+    "disposable_resources_and_plaintext_cleaned": true
+  },
+  "config_checkpoint": {
+    "generation": "glm-cloud-config-20261021T115700Z",
+    "remote_archive": "/home/luke/backups/xauusd-event-radar/glm-cloud-config-20261021T115700Z.tar.gz.age",
+    "ciphertext_sha256": "cd0e65f352239b469e37ce843d92793fe839ce1191ef89fb244a5a391d0ce3ae",
+    "ciphertext_bytes": 6736,
+    "files": {
+      "files/.env": {
+        "bytes": 7322,
+        "sha256": "f3f363aff35b36f9c6ee9d2ea71a6e881c32488835422e02a7a4a5ea2f57e5ce"
+      },
+      "files/docker-compose.prod.yml": {
+        "bytes": 24736,
+        "sha256": "42aa6bc2030d0c18ee7cd83727da9be2b2b52da45b50ce50d58845c9bb9f2961"
+      }
+    },
+    "base_database_backup_generation": "glm-cloud-20261021T111037Z",
+    "local_archive": "/Users/lukesun/Projects/trading-sys/infra/backups/glm-cloud-config-20261021T115700Z.tar.gz.age",
+    "off_host_hash_verified": true,
+    "decrypted_config_file_hashes_verified": true,
+    "plaintext_cleaned": true
+  },
+  "git_reconciliation": {
+    "published_develop": "293a5f0aae43cb8885b9a1e6f7bbc555f54e710f",
+    "local_head": "fd41452460ec1297cd97909e3f8c3a4bd0cbd292",
+    "original_local_commits_preserved": true,
+    "unrelated_local_commits_not_pushed": true,
+    "original_dirty_file_count": 32,
+    "dirty_file_bytes_preserved": true,
+    "stash_apply_exit_code": 1,
+    "stash_removed_after_verified_restore": true,
+    "local_branch": "develop",
+    "divergence_resolved": true,
+    "main_unchanged": true
+  },
+  "initial_image": {
+    "published_at": "2026-10-21T11:36:01.609056+00:00",
+    "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:293a5f0",
+    "registry_digest": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+    "image_id": "sha256:f2a9c5d2d026831ede667894fd870b23a83e37b6fd6294c4ffed64fc15918dba",
+    "architecture": "amd64",
+    "source_commit": "293a5f0aae43cb8885b9a1e6f7bbc555f54e710f",
+    "preflight_image_reused": true,
+    "preflight_application_source_equal": true,
+    "origin_develop_fast_forwarded": true,
+    "origin_main_unchanged": "3de3c102cda3f82635eb5a6885fb301a2cd2cea0"
+  },
+  "final_image": {
+    "published_at": "2026-10-21T12:01:42.354835+00:00",
+    "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+    "registry_digest": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+    "image_id": "sha256:40e358b3752f77a6063d4a51037abf84499b726b61bb5423a91579de3e456566",
+    "architecture": "amd64",
+    "source_commit": "abc61070c900edc0d374c8f9159d7ca7cb905d7a",
+    "runtime_dependencies_unchanged": true,
+    "base_image_manifest": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+    "origin_develop_fast_forwarded": true,
+    "origin_main_unchanged": "3de3c102cda3f82635eb5a6885fb301a2cd2cea0"
+  },
+  "hotfix_image_checks": {
+    "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+    "image_config_digest": "sha256:40e358b3752f77a6063d4a51037abf84499b726b61bb5423a91579de3e456566",
+    "base_manifest": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+    "runtime_dependency_versions_unchanged": true,
+    "installed_client_source_hash_matches": true,
+    "client_sha256": "3d4e11c5e85728ae695650a67a23906cc73d07e034293bce9280dabffe236b23",
+    "architecture": "amd64",
+    "build_recipe": "FROM ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier@sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5\nCOPY services/normalizer-classifier/pyproject.toml /app/pyproject.toml\nCOPY services/normalizer-classifier/src /app/src\nRUN pip install --no-cache-dir --no-deps --force-reinstall .\nLABEL org.opencontainers.image.revision=\"abc61070c900edc0d374c8f9159d7ca7cb905d7a\"\n"
+  },
+  "initial_deployment": {
+    "cutover_at": "2026-10-21T11:39:02.869146+00:00",
+    "completed_at": "2026-10-21T11:39:18.056841+00:00",
+    "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:293a5f0",
+    "image_id": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+    "registry_digest": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+    "image_config_digest": "sha256:f2a9c5d2d026831ede667894fd870b23a83e37b6fd6294c4ffed64fc15918dba",
+    "filesystem_layers_verified": true,
+    "env_backup": "/home/luke/xauusd-trading-monitor/infra/.env.backup.20261021T113902Z.before-ollama",
+    "compose_backup": "/home/luke/xauusd-trading-monitor/infra/docker-compose.prod.yml.backup.20261021T113902Z.before-ollama",
+    "backup_generation": "glm-cloud-20261021T111037Z",
+    "backup_ciphertext_sha256": "b8fb72055104425c28a3ac66c7783cedb7af8daabba591c06bae56bd43b601e2",
+    "normalizer_runtime": [
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-3",
+        "model_settings": {
+          "MODEL_ROUTE": "cloud_small",
+          "CLASSIFICATION_MODEL_PROVIDER": "ollama_cloud",
+          "TRANSLATION_MODEL_PROVIDER": "ollama_cloud",
+          "OLLAMA_CLOUD_CLASSIFICATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_TRANSLATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": "low",
+          "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": "low",
+          "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+          "LOG_LEVEL": "DEBUG"
+        },
+        "key_matches_local": true
+      },
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-4",
+        "model_settings": {
+          "MODEL_ROUTE": "cloud_small",
+          "CLASSIFICATION_MODEL_PROVIDER": "ollama_cloud",
+          "TRANSLATION_MODEL_PROVIDER": "ollama_cloud",
+          "OLLAMA_CLOUD_CLASSIFICATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_TRANSLATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": "low",
+          "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": "low",
+          "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+          "LOG_LEVEL": "DEBUG"
+        },
+        "key_matches_local": true
+      }
+    ],
+    "before": {
+      "xauusd-event-radar-alert-dispatcher-1": {
+        "id": "ec9d35973f67fafc546616c9ce968ce16764810746eb0288493d84fd5f321665",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:v0.1.0",
+        "image_id": "sha256:1a0d39221a4ebfa6a0de55c8c283fae25168b50ee324e097b40662d8b5b44d7b",
+        "started_at": "2026-10-06T09:31:16.939817408Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "alert-dispatcher"
+      },
+      "xauusd-event-radar-dashboard-api-1": {
+        "id": "974e9ffe21eaa90d891c6f9b89126b664f923226f689cb66924799ce88fa3339",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:v0.1.0",
+        "image_id": "sha256:cf53ae8e315491c505d11ec40d17aaad362bf2a82009d330d42891ffc0491cc7",
+        "started_at": "2026-10-06T09:31:16.463998983Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-api"
+      },
+      "xauusd-event-radar-dashboard-web-1": {
+        "id": "2e6bfa780568840193ca709da65a745c48d6573bc659e43b45ffe484fb066e15",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:v0.1.0",
+        "image_id": "sha256:f91cec61cc025525c9f5f53275137c7d698fba931a5818dbb2b83b5526bbe0d7",
+        "started_at": "2026-10-06T09:31:16.563217846Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-web"
+      },
+      "xauusd-event-radar-db-migrate-1": {
+        "id": "d93ac99a07327b1b57dc1ec0d52b4b60176ca87958d0b4a21884f702ce39467c",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:v0.1.0",
+        "image_id": "sha256:6ed3e13ecd94fa74bd25c31b294c95a930ecd21146d5dc0b0eab8647d037ad7b",
+        "started_at": "2026-09-11T11:51:53.589162254Z",
+        "state": "exited",
+        "restart_count": 0,
+        "service": "db-migrate"
+      },
+      "xauusd-event-radar-event-router-1": {
+        "id": "9ebfdd978e6c6c2e218f3b8f5c061c1d08f139ac3b531bbaf99c086bfd9056a1",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/event-router:c8dbf85",
+        "image_id": "sha256:395c49b4bc51697092416256925bc103406a527105d9332c9cc890e5782153be",
+        "started_at": "2026-10-06T09:31:16.981779321Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "event-router"
+      },
+      "xauusd-event-radar-normalizer-classifier-3": {
+        "id": "69819cf348a417835125c6634af4831d099fbd3b1f4a0d995b03ba951f3a76e4",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+        "image_id": "sha256:2a66dea1ef43be7ce89bf7ca6dec5ad14fb8cbcbe46b84b0fc5279b372d6bf3e",
+        "started_at": "2026-10-07T09:55:48.753427671Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-normalizer-classifier-4": {
+        "id": "acfa7f31521f421408f2c74d1f523f7abdfbe6fad7bba540aef276a8826c3bf5",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:3de3c10",
+        "image_id": "sha256:2a66dea1ef43be7ce89bf7ca6dec5ad14fb8cbcbe46b84b0fc5279b372d6bf3e",
+        "started_at": "2026-10-07T09:55:48.267982891Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-postgres-1": {
+        "id": "3fa7698c96aa4a50e9b9d217d5f2186290e93a2c19e3269e2d18a7045d0a1c8c",
+        "image": "postgres:16.14-alpine",
+        "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777",
+        "started_at": "2026-10-06T09:31:16.497795021Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "postgres"
+      },
+      "xauusd-event-radar-public-syncer-1": {
+        "id": "a91f68963c384f262e3c3e7d76adc937e313f6ed44f8580e8128f0049ac632e3",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:c8dbf85",
+        "image_id": "sha256:f0335c3312285174607ef68a3453b38d43437e5ce81b339052e66404222c09a4",
+        "started_at": "2026-10-06T09:31:16.642192683Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "public-syncer"
+      },
+      "xauusd-event-radar-rss-collector-1": {
+        "id": "f3d7e7b557859407a71fa91843a099af34b9ef54eab83d3decd2f411229c6bfc",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:v0.1.0",
+        "image_id": "sha256:3eae410c6d57c29c6dc665662db5b1a26da697586d65a352ca368874ff51bbfa",
+        "started_at": "2026-10-06T09:31:15.758590596Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "rss-collector"
+      },
+      "xauusd-event-radar-telegram-channel-publisher-1": {
+        "id": "35f8cfca1caacb993e05172bea14fb444bc97e2f730c0a8c76bdaeef9452e218",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:v0.1.0",
+        "image_id": "sha256:dbee9c89211329a5a95b0f33d289c552ef7966131e5401a022e19193de569937",
+        "started_at": "2026-10-06T09:31:15.664752496Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-channel-publisher"
+      },
+      "xauusd-event-radar-telegram-collector-1": {
+        "id": "b5386dc6ee1a46c5bc7b0cba259f846f6d288d19ed89f2ba388e04205e617fa9",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:v0.1.0",
+        "image_id": "sha256:02b8184c0c0b48d2aab8206509652e05a75fd93181a14a549033a06269d32986",
+        "started_at": "2026-10-06T09:31:16.028266121Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-collector"
+      },
+      "xauusd-event-radar-tickbase-anomaly-consumer-1": {
+        "id": "27a56a492dca96056955ecc432ad627783a86280d080d1ec1efe0c4d3a28defb",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/tickbase-anomaly-consumer:v0.1.0",
+        "image_id": "sha256:09422bf923f02c506bb620404c613b50dd5ebe96d4a7e81e91d6aca24d109014",
+        "started_at": "2026-10-06T09:31:16.168794208Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "tickbase-anomaly-consumer"
+      },
+      "xauusd-event-radar-x-publisher-1": {
+        "id": "72dd4ea37384aae50ecee42ba4d1b3962155b6e35b93e3d16f15eb8309642741",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:v0.1.0",
+        "image_id": "sha256:ced4117c91a4f829d527f48113845925b879dc3d2c75ea14d949a179bdd39f52",
+        "started_at": "2026-10-06T09:31:15.900964658Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "x-publisher"
+      }
+    },
+    "after": {
+      "xauusd-event-radar-alert-dispatcher-1": {
+        "id": "ec9d35973f67fafc546616c9ce968ce16764810746eb0288493d84fd5f321665",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:v0.1.0",
+        "image_id": "sha256:1a0d39221a4ebfa6a0de55c8c283fae25168b50ee324e097b40662d8b5b44d7b",
+        "started_at": "2026-10-06T09:31:16.939817408Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "alert-dispatcher"
+      },
+      "xauusd-event-radar-dashboard-api-1": {
+        "id": "974e9ffe21eaa90d891c6f9b89126b664f923226f689cb66924799ce88fa3339",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:v0.1.0",
+        "image_id": "sha256:cf53ae8e315491c505d11ec40d17aaad362bf2a82009d330d42891ffc0491cc7",
+        "started_at": "2026-10-06T09:31:16.463998983Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-api"
+      },
+      "xauusd-event-radar-dashboard-web-1": {
+        "id": "2e6bfa780568840193ca709da65a745c48d6573bc659e43b45ffe484fb066e15",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:v0.1.0",
+        "image_id": "sha256:f91cec61cc025525c9f5f53275137c7d698fba931a5818dbb2b83b5526bbe0d7",
+        "started_at": "2026-10-06T09:31:16.563217846Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-web"
+      },
+      "xauusd-event-radar-db-migrate-1": {
+        "id": "d93ac99a07327b1b57dc1ec0d52b4b60176ca87958d0b4a21884f702ce39467c",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:v0.1.0",
+        "image_id": "sha256:6ed3e13ecd94fa74bd25c31b294c95a930ecd21146d5dc0b0eab8647d037ad7b",
+        "started_at": "2026-09-11T11:51:53.589162254Z",
+        "state": "exited",
+        "restart_count": 0,
+        "service": "db-migrate"
+      },
+      "xauusd-event-radar-event-router-1": {
+        "id": "9ebfdd978e6c6c2e218f3b8f5c061c1d08f139ac3b531bbaf99c086bfd9056a1",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/event-router:c8dbf85",
+        "image_id": "sha256:395c49b4bc51697092416256925bc103406a527105d9332c9cc890e5782153be",
+        "started_at": "2026-10-06T09:31:16.981779321Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "event-router"
+      },
+      "xauusd-event-radar-normalizer-classifier-3": {
+        "id": "7bd7f76887316a60c9b97da73676da758e6f875134d90dc102cc9c0ca0de8781",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:293a5f0",
+        "image_id": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+        "started_at": "2026-10-21T11:39:16.063256152Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-normalizer-classifier-4": {
+        "id": "aa424054f88d387d3e938ce663423c69a1f8eef6bc75552d3bec64c2a7ab2341",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:293a5f0",
+        "image_id": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+        "started_at": "2026-10-21T11:39:15.4731409Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-postgres-1": {
+        "id": "3fa7698c96aa4a50e9b9d217d5f2186290e93a2c19e3269e2d18a7045d0a1c8c",
+        "image": "postgres:16.14-alpine",
+        "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777",
+        "started_at": "2026-10-06T09:31:16.497795021Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "postgres"
+      },
+      "xauusd-event-radar-public-syncer-1": {
+        "id": "a91f68963c384f262e3c3e7d76adc937e313f6ed44f8580e8128f0049ac632e3",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:c8dbf85",
+        "image_id": "sha256:f0335c3312285174607ef68a3453b38d43437e5ce81b339052e66404222c09a4",
+        "started_at": "2026-10-06T09:31:16.642192683Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "public-syncer"
+      },
+      "xauusd-event-radar-rss-collector-1": {
+        "id": "f3d7e7b557859407a71fa91843a099af34b9ef54eab83d3decd2f411229c6bfc",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:v0.1.0",
+        "image_id": "sha256:3eae410c6d57c29c6dc665662db5b1a26da697586d65a352ca368874ff51bbfa",
+        "started_at": "2026-10-06T09:31:15.758590596Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "rss-collector"
+      },
+      "xauusd-event-radar-telegram-channel-publisher-1": {
+        "id": "35f8cfca1caacb993e05172bea14fb444bc97e2f730c0a8c76bdaeef9452e218",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:v0.1.0",
+        "image_id": "sha256:dbee9c89211329a5a95b0f33d289c552ef7966131e5401a022e19193de569937",
+        "started_at": "2026-10-06T09:31:15.664752496Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-channel-publisher"
+      },
+      "xauusd-event-radar-telegram-collector-1": {
+        "id": "b5386dc6ee1a46c5bc7b0cba259f846f6d288d19ed89f2ba388e04205e617fa9",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:v0.1.0",
+        "image_id": "sha256:02b8184c0c0b48d2aab8206509652e05a75fd93181a14a549033a06269d32986",
+        "started_at": "2026-10-06T09:31:16.028266121Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-collector"
+      },
+      "xauusd-event-radar-tickbase-anomaly-consumer-1": {
+        "id": "27a56a492dca96056955ecc432ad627783a86280d080d1ec1efe0c4d3a28defb",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/tickbase-anomaly-consumer:v0.1.0",
+        "image_id": "sha256:09422bf923f02c506bb620404c613b50dd5ebe96d4a7e81e91d6aca24d109014",
+        "started_at": "2026-10-06T09:31:16.168794208Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "tickbase-anomaly-consumer"
+      },
+      "xauusd-event-radar-x-publisher-1": {
+        "id": "72dd4ea37384aae50ecee42ba4d1b3962155b6e35b93e3d16f15eb8309642741",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:v0.1.0",
+        "image_id": "sha256:ced4117c91a4f829d527f48113845925b879dc3d2c75ea14d949a179bdd39f52",
+        "started_at": "2026-10-06T09:31:15.900964658Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "x-publisher"
+      }
+    },
+    "unrelated_containers_unchanged": true,
+    "global_image_tag_unchanged": true,
+    "production_db_mutated_by_deployment": false,
+    "migrations_run": false,
+    "vps_changed": false,
+    "public_website_changed": false,
+    "source_commit": "293a5f0"
+  },
+  "final_deployment": {
+    "cutover_at": "2026-10-21T12:01:54.736822+00:00",
+    "completed_at": "2026-10-21T12:02:09.391296+00:00",
+    "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+    "image_id": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+    "registry_digest": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+    "image_config_digest": "sha256:40e358b3752f77a6063d4a51037abf84499b726b61bb5423a91579de3e456566",
+    "filesystem_layers_verified": true,
+    "env_backup": "/home/luke/xauusd-trading-monitor/infra/.env.backup.20261021T120154Z.before-ollama",
+    "compose_backup": "/home/luke/xauusd-trading-monitor/infra/docker-compose.prod.yml.backup.20261021T120154Z.before-ollama",
+    "backup_generation": "glm-cloud-20261021T111037Z",
+    "backup_ciphertext_sha256": "b8fb72055104425c28a3ac66c7783cedb7af8daabba591c06bae56bd43b601e2",
+    "normalizer_runtime": [
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-3",
+        "model_settings": {
+          "MODEL_ROUTE": "cloud_small",
+          "CLASSIFICATION_MODEL_PROVIDER": "ollama_cloud",
+          "TRANSLATION_MODEL_PROVIDER": "ollama_cloud",
+          "OLLAMA_CLOUD_CLASSIFICATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_TRANSLATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": "low",
+          "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": "low",
+          "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+          "LOG_LEVEL": "DEBUG"
+        },
+        "key_matches_local": true
+      },
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-4",
+        "model_settings": {
+          "MODEL_ROUTE": "cloud_small",
+          "CLASSIFICATION_MODEL_PROVIDER": "ollama_cloud",
+          "TRANSLATION_MODEL_PROVIDER": "ollama_cloud",
+          "OLLAMA_CLOUD_CLASSIFICATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_TRANSLATION_MODEL": "glm-5.3-flash",
+          "OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT": "low",
+          "OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT": "low",
+          "TRANSLATION_OUTPUT_LANGUAGES": "zh-Hant,en,th,ja",
+          "LOG_LEVEL": "DEBUG"
+        },
+        "key_matches_local": true
+      }
+    ],
+    "before": {
+      "xauusd-event-radar-alert-dispatcher-1": {
+        "id": "ec9d35973f67fafc546616c9ce968ce16764810746eb0288493d84fd5f321665",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:v0.1.0",
+        "image_id": "sha256:1a0d39221a4ebfa6a0de55c8c283fae25168b50ee324e097b40662d8b5b44d7b",
+        "started_at": "2026-10-06T09:31:16.939817408Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "alert-dispatcher"
+      },
+      "xauusd-event-radar-dashboard-api-1": {
+        "id": "974e9ffe21eaa90d891c6f9b89126b664f923226f689cb66924799ce88fa3339",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:v0.1.0",
+        "image_id": "sha256:cf53ae8e315491c505d11ec40d17aaad362bf2a82009d330d42891ffc0491cc7",
+        "started_at": "2026-10-06T09:31:16.463998983Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-api"
+      },
+      "xauusd-event-radar-dashboard-web-1": {
+        "id": "2e6bfa780568840193ca709da65a745c48d6573bc659e43b45ffe484fb066e15",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:v0.1.0",
+        "image_id": "sha256:f91cec61cc025525c9f5f53275137c7d698fba931a5818dbb2b83b5526bbe0d7",
+        "started_at": "2026-10-06T09:31:16.563217846Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-web"
+      },
+      "xauusd-event-radar-db-migrate-1": {
+        "id": "d93ac99a07327b1b57dc1ec0d52b4b60176ca87958d0b4a21884f702ce39467c",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:v0.1.0",
+        "image_id": "sha256:6ed3e13ecd94fa74bd25c31b294c95a930ecd21146d5dc0b0eab8647d037ad7b",
+        "started_at": "2026-09-11T11:51:53.589162254Z",
+        "state": "exited",
+        "restart_count": 0,
+        "service": "db-migrate"
+      },
+      "xauusd-event-radar-event-router-1": {
+        "id": "9ebfdd978e6c6c2e218f3b8f5c061c1d08f139ac3b531bbaf99c086bfd9056a1",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/event-router:c8dbf85",
+        "image_id": "sha256:395c49b4bc51697092416256925bc103406a527105d9332c9cc890e5782153be",
+        "started_at": "2026-10-06T09:31:16.981779321Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "event-router"
+      },
+      "xauusd-event-radar-normalizer-classifier-3": {
+        "id": "7bd7f76887316a60c9b97da73676da758e6f875134d90dc102cc9c0ca0de8781",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:293a5f0",
+        "image_id": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+        "started_at": "2026-10-21T11:39:16.063256152Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-normalizer-classifier-4": {
+        "id": "aa424054f88d387d3e938ce663423c69a1f8eef6bc75552d3bec64c2a7ab2341",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:293a5f0",
+        "image_id": "sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5",
+        "started_at": "2026-10-21T11:39:15.4731409Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-postgres-1": {
+        "id": "3fa7698c96aa4a50e9b9d217d5f2186290e93a2c19e3269e2d18a7045d0a1c8c",
+        "image": "postgres:16.14-alpine",
+        "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777",
+        "started_at": "2026-10-06T09:31:16.497795021Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "postgres"
+      },
+      "xauusd-event-radar-public-syncer-1": {
+        "id": "a91f68963c384f262e3c3e7d76adc937e313f6ed44f8580e8128f0049ac632e3",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:c8dbf85",
+        "image_id": "sha256:f0335c3312285174607ef68a3453b38d43437e5ce81b339052e66404222c09a4",
+        "started_at": "2026-10-06T09:31:16.642192683Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "public-syncer"
+      },
+      "xauusd-event-radar-rss-collector-1": {
+        "id": "f3d7e7b557859407a71fa91843a099af34b9ef54eab83d3decd2f411229c6bfc",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:v0.1.0",
+        "image_id": "sha256:3eae410c6d57c29c6dc665662db5b1a26da697586d65a352ca368874ff51bbfa",
+        "started_at": "2026-10-06T09:31:15.758590596Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "rss-collector"
+      },
+      "xauusd-event-radar-telegram-channel-publisher-1": {
+        "id": "35f8cfca1caacb993e05172bea14fb444bc97e2f730c0a8c76bdaeef9452e218",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:v0.1.0",
+        "image_id": "sha256:dbee9c89211329a5a95b0f33d289c552ef7966131e5401a022e19193de569937",
+        "started_at": "2026-10-06T09:31:15.664752496Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-channel-publisher"
+      },
+      "xauusd-event-radar-telegram-collector-1": {
+        "id": "b5386dc6ee1a46c5bc7b0cba259f846f6d288d19ed89f2ba388e04205e617fa9",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:v0.1.0",
+        "image_id": "sha256:02b8184c0c0b48d2aab8206509652e05a75fd93181a14a549033a06269d32986",
+        "started_at": "2026-10-06T09:31:16.028266121Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-collector"
+      },
+      "xauusd-event-radar-tickbase-anomaly-consumer-1": {
+        "id": "27a56a492dca96056955ecc432ad627783a86280d080d1ec1efe0c4d3a28defb",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/tickbase-anomaly-consumer:v0.1.0",
+        "image_id": "sha256:09422bf923f02c506bb620404c613b50dd5ebe96d4a7e81e91d6aca24d109014",
+        "started_at": "2026-10-06T09:31:16.168794208Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "tickbase-anomaly-consumer"
+      },
+      "xauusd-event-radar-x-publisher-1": {
+        "id": "72dd4ea37384aae50ecee42ba4d1b3962155b6e35b93e3d16f15eb8309642741",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:v0.1.0",
+        "image_id": "sha256:ced4117c91a4f829d527f48113845925b879dc3d2c75ea14d949a179bdd39f52",
+        "started_at": "2026-10-06T09:31:15.900964658Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "x-publisher"
+      }
+    },
+    "after": {
+      "xauusd-event-radar-alert-dispatcher-1": {
+        "id": "ec9d35973f67fafc546616c9ce968ce16764810746eb0288493d84fd5f321665",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:v0.1.0",
+        "image_id": "sha256:1a0d39221a4ebfa6a0de55c8c283fae25168b50ee324e097b40662d8b5b44d7b",
+        "started_at": "2026-10-06T09:31:16.939817408Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "alert-dispatcher"
+      },
+      "xauusd-event-radar-dashboard-api-1": {
+        "id": "974e9ffe21eaa90d891c6f9b89126b664f923226f689cb66924799ce88fa3339",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:v0.1.0",
+        "image_id": "sha256:cf53ae8e315491c505d11ec40d17aaad362bf2a82009d330d42891ffc0491cc7",
+        "started_at": "2026-10-06T09:31:16.463998983Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-api"
+      },
+      "xauusd-event-radar-dashboard-web-1": {
+        "id": "2e6bfa780568840193ca709da65a745c48d6573bc659e43b45ffe484fb066e15",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:v0.1.0",
+        "image_id": "sha256:f91cec61cc025525c9f5f53275137c7d698fba931a5818dbb2b83b5526bbe0d7",
+        "started_at": "2026-10-06T09:31:16.563217846Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-web"
+      },
+      "xauusd-event-radar-db-migrate-1": {
+        "id": "d93ac99a07327b1b57dc1ec0d52b4b60176ca87958d0b4a21884f702ce39467c",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:v0.1.0",
+        "image_id": "sha256:6ed3e13ecd94fa74bd25c31b294c95a930ecd21146d5dc0b0eab8647d037ad7b",
+        "started_at": "2026-09-11T11:51:53.589162254Z",
+        "state": "exited",
+        "restart_count": 0,
+        "service": "db-migrate"
+      },
+      "xauusd-event-radar-event-router-1": {
+        "id": "9ebfdd978e6c6c2e218f3b8f5c061c1d08f139ac3b531bbaf99c086bfd9056a1",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/event-router:c8dbf85",
+        "image_id": "sha256:395c49b4bc51697092416256925bc103406a527105d9332c9cc890e5782153be",
+        "started_at": "2026-10-06T09:31:16.981779321Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "event-router"
+      },
+      "xauusd-event-radar-normalizer-classifier-3": {
+        "id": "7c7aa820005bd8f0dafd34393859eebb202bc313fecd18d916100c9ae87aa87f",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+        "image_id": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+        "started_at": "2026-10-21T12:02:07.093925477Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-normalizer-classifier-4": {
+        "id": "76b02ff6a11b12e2159514486a03a33bcd91669b03ef40336c317b275bf1bf18",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+        "image_id": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+        "started_at": "2026-10-21T12:02:07.544313154Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-postgres-1": {
+        "id": "3fa7698c96aa4a50e9b9d217d5f2186290e93a2c19e3269e2d18a7045d0a1c8c",
+        "image": "postgres:16.14-alpine",
+        "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777",
+        "started_at": "2026-10-06T09:31:16.497795021Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "postgres"
+      },
+      "xauusd-event-radar-public-syncer-1": {
+        "id": "a91f68963c384f262e3c3e7d76adc937e313f6ed44f8580e8128f0049ac632e3",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:c8dbf85",
+        "image_id": "sha256:f0335c3312285174607ef68a3453b38d43437e5ce81b339052e66404222c09a4",
+        "started_at": "2026-10-06T09:31:16.642192683Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "public-syncer"
+      },
+      "xauusd-event-radar-rss-collector-1": {
+        "id": "f3d7e7b557859407a71fa91843a099af34b9ef54eab83d3decd2f411229c6bfc",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:v0.1.0",
+        "image_id": "sha256:3eae410c6d57c29c6dc665662db5b1a26da697586d65a352ca368874ff51bbfa",
+        "started_at": "2026-10-06T09:31:15.758590596Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "rss-collector"
+      },
+      "xauusd-event-radar-telegram-channel-publisher-1": {
+        "id": "35f8cfca1caacb993e05172bea14fb444bc97e2f730c0a8c76bdaeef9452e218",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:v0.1.0",
+        "image_id": "sha256:dbee9c89211329a5a95b0f33d289c552ef7966131e5401a022e19193de569937",
+        "started_at": "2026-10-06T09:31:15.664752496Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-channel-publisher"
+      },
+      "xauusd-event-radar-telegram-collector-1": {
+        "id": "b5386dc6ee1a46c5bc7b0cba259f846f6d288d19ed89f2ba388e04205e617fa9",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:v0.1.0",
+        "image_id": "sha256:02b8184c0c0b48d2aab8206509652e05a75fd93181a14a549033a06269d32986",
+        "started_at": "2026-10-06T09:31:16.028266121Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-collector"
+      },
+      "xauusd-event-radar-tickbase-anomaly-consumer-1": {
+        "id": "27a56a492dca96056955ecc432ad627783a86280d080d1ec1efe0c4d3a28defb",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/tickbase-anomaly-consumer:v0.1.0",
+        "image_id": "sha256:09422bf923f02c506bb620404c613b50dd5ebe96d4a7e81e91d6aca24d109014",
+        "started_at": "2026-10-06T09:31:16.168794208Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "tickbase-anomaly-consumer"
+      },
+      "xauusd-event-radar-x-publisher-1": {
+        "id": "72dd4ea37384aae50ecee42ba4d1b3962155b6e35b93e3d16f15eb8309642741",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:v0.1.0",
+        "image_id": "sha256:ced4117c91a4f829d527f48113845925b879dc3d2c75ea14d949a179bdd39f52",
+        "started_at": "2026-10-06T09:31:15.900964658Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "x-publisher"
+      }
+    },
+    "unrelated_containers_unchanged": true,
+    "global_image_tag_unchanged": true,
+    "production_db_mutated_by_deployment": false,
+    "migrations_run": false,
+    "vps_changed": false,
+    "public_website_changed": false,
+    "source_commit": "abc6107",
+    "configuration_checkpoint_generation": "glm-cloud-config-20261021T115700Z"
+  },
+  "runtime_checks": {
+    "runtime_clients": [
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-3",
+        "client_sha256": "3d4e11c5e85728ae695650a67a23906cc73d07e034293bce9280dabffe236b23",
+        "clients": [
+          {
+            "provider": "ollama_cloud",
+            "model": "glm-5.3-flash",
+            "reasoning_effort": "low"
+          },
+          {
+            "provider": "ollama_cloud",
+            "model": "glm-5.3-flash",
+            "reasoning_effort": "low"
+          }
+        ],
+        "languages": [
+          "zh-Hant",
+          "en",
+          "th",
+          "ja"
+        ]
+      },
+      {
+        "name": "xauusd-event-radar-normalizer-classifier-4",
+        "client_sha256": "3d4e11c5e85728ae695650a67a23906cc73d07e034293bce9280dabffe236b23",
+        "clients": [
+          {
+            "provider": "ollama_cloud",
+            "model": "glm-5.3-flash",
+            "reasoning_effort": "low"
+          },
+          {
+            "provider": "ollama_cloud",
+            "model": "glm-5.3-flash",
+            "reasoning_effort": "low"
+          }
+        ],
+        "languages": [
+          "zh-Hant",
+          "en",
+          "th",
+          "ja"
+        ]
+      }
+    ],
+    "non_normalizer_containers_unchanged_since_before_release": true,
+    "normalizers_running_restart_zero": true,
+    "health": {
+      "status": "ok",
+      "database": "ok",
+      "service": "dashboard-api"
+    },
+    "current_containers": {
+      "xauusd-event-radar-alert-dispatcher-1": {
+        "id": "ec9d35973f67fafc546616c9ce968ce16764810746eb0288493d84fd5f321665",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/alert-dispatcher:v0.1.0",
+        "image_id": "sha256:1a0d39221a4ebfa6a0de55c8c283fae25168b50ee324e097b40662d8b5b44d7b",
+        "started_at": "2026-10-06T09:31:16.939817408Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "alert-dispatcher"
+      },
+      "xauusd-event-radar-dashboard-api-1": {
+        "id": "974e9ffe21eaa90d891c6f9b89126b664f923226f689cb66924799ce88fa3339",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-api:v0.1.0",
+        "image_id": "sha256:cf53ae8e315491c505d11ec40d17aaad362bf2a82009d330d42891ffc0491cc7",
+        "started_at": "2026-10-06T09:31:16.463998983Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-api"
+      },
+      "xauusd-event-radar-dashboard-web-1": {
+        "id": "2e6bfa780568840193ca709da65a745c48d6573bc659e43b45ffe484fb066e15",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/dashboard-web:v0.1.0",
+        "image_id": "sha256:f91cec61cc025525c9f5f53275137c7d698fba931a5818dbb2b83b5526bbe0d7",
+        "started_at": "2026-10-06T09:31:16.563217846Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "dashboard-web"
+      },
+      "xauusd-event-radar-db-migrate-1": {
+        "id": "d93ac99a07327b1b57dc1ec0d52b4b60176ca87958d0b4a21884f702ce39467c",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/db-migrate:v0.1.0",
+        "image_id": "sha256:6ed3e13ecd94fa74bd25c31b294c95a930ecd21146d5dc0b0eab8647d037ad7b",
+        "started_at": "2026-09-11T11:51:53.589162254Z",
+        "state": "exited",
+        "restart_count": 0,
+        "service": "db-migrate"
+      },
+      "xauusd-event-radar-event-router-1": {
+        "id": "9ebfdd978e6c6c2e218f3b8f5c061c1d08f139ac3b531bbaf99c086bfd9056a1",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/event-router:c8dbf85",
+        "image_id": "sha256:395c49b4bc51697092416256925bc103406a527105d9332c9cc890e5782153be",
+        "started_at": "2026-10-06T09:31:16.981779321Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "event-router"
+      },
+      "xauusd-event-radar-normalizer-classifier-3": {
+        "id": "7c7aa820005bd8f0dafd34393859eebb202bc313fecd18d916100c9ae87aa87f",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+        "image_id": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+        "started_at": "2026-10-21T12:02:07.093925477Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-normalizer-classifier-4": {
+        "id": "76b02ff6a11b12e2159514486a03a33bcd91669b03ef40336c317b275bf1bf18",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/normalizer-classifier:abc6107",
+        "image_id": "sha256:0946a6d89079800e5cf76a74f1faa99dbe038cd3025e63a5acd8d7aeaab226a5",
+        "started_at": "2026-10-21T12:02:07.544313154Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "normalizer-classifier"
+      },
+      "xauusd-event-radar-postgres-1": {
+        "id": "3fa7698c96aa4a50e9b9d217d5f2186290e93a2c19e3269e2d18a7045d0a1c8c",
+        "image": "postgres:16.14-alpine",
+        "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777",
+        "started_at": "2026-10-06T09:31:16.497795021Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "postgres"
+      },
+      "xauusd-event-radar-public-syncer-1": {
+        "id": "a91f68963c384f262e3c3e7d76adc937e313f6ed44f8580e8128f0049ac632e3",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/public-syncer:c8dbf85",
+        "image_id": "sha256:f0335c3312285174607ef68a3453b38d43437e5ce81b339052e66404222c09a4",
+        "started_at": "2026-10-06T09:31:16.642192683Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "public-syncer"
+      },
+      "xauusd-event-radar-rss-collector-1": {
+        "id": "f3d7e7b557859407a71fa91843a099af34b9ef54eab83d3decd2f411229c6bfc",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/rss-collector:v0.1.0",
+        "image_id": "sha256:3eae410c6d57c29c6dc665662db5b1a26da697586d65a352ca368874ff51bbfa",
+        "started_at": "2026-10-06T09:31:15.758590596Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "rss-collector"
+      },
+      "xauusd-event-radar-telegram-channel-publisher-1": {
+        "id": "35f8cfca1caacb993e05172bea14fb444bc97e2f730c0a8c76bdaeef9452e218",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-channel-publisher:v0.1.0",
+        "image_id": "sha256:dbee9c89211329a5a95b0f33d289c552ef7966131e5401a022e19193de569937",
+        "started_at": "2026-10-06T09:31:15.664752496Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-channel-publisher"
+      },
+      "xauusd-event-radar-telegram-collector-1": {
+        "id": "b5386dc6ee1a46c5bc7b0cba259f846f6d288d19ed89f2ba388e04205e617fa9",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/telegram-collector:v0.1.0",
+        "image_id": "sha256:02b8184c0c0b48d2aab8206509652e05a75fd93181a14a549033a06269d32986",
+        "started_at": "2026-10-06T09:31:16.028266121Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "telegram-collector"
+      },
+      "xauusd-event-radar-tickbase-anomaly-consumer-1": {
+        "id": "27a56a492dca96056955ecc432ad627783a86280d080d1ec1efe0c4d3a28defb",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/tickbase-anomaly-consumer:v0.1.0",
+        "image_id": "sha256:09422bf923f02c506bb620404c613b50dd5ebe96d4a7e81e91d6aca24d109014",
+        "started_at": "2026-10-06T09:31:16.168794208Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "tickbase-anomaly-consumer"
+      },
+      "xauusd-event-radar-x-publisher-1": {
+        "id": "72dd4ea37384aae50ecee42ba4d1b3962155b6e35b93e3d16f15eb8309642741",
+        "image": "ghcr.io/mrsuner/xauusd-trading-monitor/x-publisher:v0.1.0",
+        "image_id": "sha256:ced4117c91a4f829d527f48113845925b879dc3d2c75ea14d949a179bdd39f52",
+        "started_at": "2026-10-06T09:31:15.900964658Z",
+        "state": "running",
+        "restart_count": 0,
+        "service": "x-publisher"
+      }
+    }
+  },
+  "metrics": {
+    "verified_news_items": 5,
+    "completed_language_rows": 20,
+    "production_calls_in_observation": 13,
+    "historical_failed_translation_attempts_preserved": 3,
+    "post_fix_successful_calls": 4,
+    "post_fix_failed_calls": 0,
+    "post_fix_natural_worker_calls": 2,
+    "manual_translation_recoveries": 2,
+    "classification_mean_latency_ms": 5347.2,
+    "translation_success_mean_latency_ms": 12335.4,
+    "classification_latency_range_ms": [
+      4297,
+      6248
+    ],
+    "translation_success_latency_range_ms": [
+      5785,
+      21091
+    ],
+    "events_created_in_samples": 0,
+    "estimated_cost_usd": null
+  },
+  "verified_items": [
+    {
+      "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+      "source": "Tasnim News",
+      "source_url": "https://t.me/Tasnimnews/453031",
+      "title": null,
+      "published_at": "2026-10-21 18:45:05+07:00",
+      "processing_status": "completed",
+      "translation_status": "completed",
+      "relevance_score": 10,
+      "is_relevant": false,
+      "event_id": null,
+      "requires_confirmation": false,
+      "classification_latency_ms": 6248,
+      "translation_latency_ms": 20460,
+      "languages": {
+        "en": {
+          "status": "completed",
+          "summary_chars": 149,
+          "translation_chars": 1103,
+          "summary_sha256": "e33a82e6dc01b17437d1e4b3be68abee754ed9184ae96e47bdb04211b81154b4",
+          "translation_sha256": "4aa68657d69d1919e5526365eb607bb0849514cdefa01a129a76470cdeb251fb"
+        },
+        "ja": {
+          "status": "completed",
+          "summary_chars": 71,
+          "translation_chars": 393,
+          "summary_sha256": "39a06cad85b93df3b27790fbef11343320cb89f194d80b88d5e1ca59d721a5b9",
+          "translation_sha256": "7ec6cdd14bb8f6821c63c7fe0d2700c4e30d7ca7d63e09128908f9926f69d3e5"
+        },
+        "th": {
+          "status": "completed",
+          "summary_chars": 124,
+          "translation_chars": 899,
+          "summary_sha256": "f4203edd5cfd52347facc5ff65ef535c63ee85f1b7e39966d2ca1894588e06b7",
+          "translation_sha256": "526ffab3837bbaeb00494d72a8b65396adfb6dd72fd3275fd534ca0ef0280565"
+        },
+        "zh-Hant": {
+          "status": "completed",
+          "summary_chars": 46,
+          "translation_chars": 303,
+          "summary_sha256": "5f41ca5bf39eb411b0dfb54a0c2e3dd0dd34dd99cbd1d5dad0b23bd7ecee909a",
+          "translation_sha256": "9f0b9e7c7f0c40bf6827044efafc17f8c0eae796c5f10e6d0a3cc6db0876d56e"
+        }
+      }
+    },
+    {
+      "raw_item_id": "8fdcc89e-15b5-4ca8-9cac-658d55d0babb",
+      "source": "Press TV",
+      "source_url": "https://t.me/presstv/211677",
+      "title": null,
+      "published_at": "2026-10-21 18:50:35+07:00",
+      "processing_status": "completed",
+      "translation_status": "completed",
+      "relevance_score": 5,
+      "is_relevant": false,
+      "event_id": null,
+      "requires_confirmation": true,
+      "classification_latency_ms": 4297,
+      "translation_latency_ms": 6818,
+      "languages": {
+        "en": {
+          "status": "completed",
+          "summary_chars": 144,
+          "translation_chars": 136,
+          "summary_sha256": "a417455346f18ff8b35e4ead8699c6b4dbee85e2ffd234e1c5ba45a7b6c778e5",
+          "translation_sha256": "5077319e22169f7b9265a884a376557255f83ac9f7c0b547c048f6951f946392"
+        },
+        "ja": {
+          "status": "completed",
+          "summary_chars": 72,
+          "translation_chars": 72,
+          "summary_sha256": "1ede317a79c4469314d04a5e79f7aa3187a7c0268f6a774dd133ecaa4409425d",
+          "translation_sha256": "4f2e057d58536677fb87988edc9c509de815433db2bf74476d70ae990b4e4232"
+        },
+        "th": {
+          "status": "completed",
+          "summary_chars": 151,
+          "translation_chars": 136,
+          "summary_sha256": "2d48e346fd4b91d604e8798a8205b82eb3ec0fc6d4a1d95cc3d6bca16c06c470",
+          "translation_sha256": "1b389777958683b3a74bf2b3c9d0bd5fb6ae295f851b1735952bb9591406da93"
+        },
+        "zh-Hant": {
+          "status": "completed",
+          "summary_chars": 60,
+          "translation_chars": 61,
+          "summary_sha256": "ac82e9b0d284d0d3b577fb78e2191d5853d19f99809ed4a29f9cc436a5c41790",
+          "translation_sha256": "6e45a56fb16b5e7ca2d2a1baaf1235c17a4e3553fdf4b347a5aba49a6f251711"
+        }
+      }
+    },
+    {
+      "raw_item_id": "a73bc4bc-6918-4836-989a-566899d7a92a",
+      "source": "Tasnim News",
+      "source_url": "https://t.me/Tasnimnews/453033",
+      "title": null,
+      "published_at": "2026-10-21 18:50:36+07:00",
+      "processing_status": "completed",
+      "translation_status": "completed",
+      "relevance_score": 10,
+      "is_relevant": false,
+      "event_id": null,
+      "requires_confirmation": true,
+      "classification_latency_ms": 4504,
+      "translation_latency_ms": 7523,
+      "languages": {
+        "en": {
+          "status": "completed",
+          "summary_chars": 320,
+          "translation_chars": 270,
+          "summary_sha256": "a211da6e44e32b5279c3fe9dcf8372184bbbfcd02be924ff8440b22ff5f334ec",
+          "translation_sha256": "39f207eef7e6b0a87f8ece80a18b396367fc675f2b24416ce82fab1b27f79fd3"
+        },
+        "ja": {
+          "status": "completed",
+          "summary_chars": 127,
+          "translation_chars": 123,
+          "summary_sha256": "cc5ccd92fac48904f1de39cd74dd03fbbed834e0206b3d04ae0a8bc5c7cf6e57",
+          "translation_sha256": "eb291d0882a245a2034584bf3193298bb291cbf9f7f4618c41771ef7e4596618"
+        },
+        "th": {
+          "status": "completed",
+          "summary_chars": 260,
+          "translation_chars": 244,
+          "summary_sha256": "f7f84ee48fc4e9cd7dfaa309813748e02b315dcf2e84d850900d6d4610c08d70",
+          "translation_sha256": "46b2625652d50af19e942b00c185017c3a5698ee02a11beb66d4086baa8ec664"
+        },
+        "zh-Hant": {
+          "status": "completed",
+          "summary_chars": 99,
+          "translation_chars": 105,
+          "summary_sha256": "7a4a28481930d28cbd9f0a0fd5f8e42a9da1c79c7d31615b40d248ab8d1e1afd",
+          "translation_sha256": "4406ed19548bdfa4a04ef94e3be35f82ce67de1c9f154aa1f44d0f523d27fa0b"
+        }
+      }
+    },
+    {
+      "raw_item_id": "ee0898f8-facf-4820-8d2a-fc148f4cdd4a",
+      "source": "Tasnim News",
+      "source_url": "https://t.me/Tasnimnews/453044",
+      "title": null,
+      "published_at": "2026-10-21 18:54:59+07:00",
+      "processing_status": "completed",
+      "translation_status": "completed",
+      "relevance_score": 25,
+      "is_relevant": true,
+      "event_id": null,
+      "requires_confirmation": true,
+      "classification_latency_ms": 5909,
+      "translation_latency_ms": 21091,
+      "languages": {
+        "en": {
+          "status": "completed",
+          "summary_chars": 281,
+          "translation_chars": 1469,
+          "summary_sha256": "28cdaf1f51c44ded1db3c3a7ce6d74ce622b14f2d7fafa7bdc056cf160f3b8e4",
+          "translation_sha256": "06e71ef25371523b062c4526be758e9f90496db0d24f49408ddff8ea25582b82"
+        },
+        "ja": {
+          "status": "completed",
+          "summary_chars": 107,
+          "translation_chars": 598,
+          "summary_sha256": "5e8515d12b32cd55b503913243962de9f43e37afce01950b4eb0e365d652b492",
+          "translation_sha256": "0dfea718ed96eced3a0d0968432a350e6cd1bc23bb61f8c1b49e1b90d30ac798"
+        },
+        "th": {
+          "status": "completed",
+          "summary_chars": 222,
+          "translation_chars": 1319,
+          "summary_sha256": "5edb88f2c3f0bb59476db8bb2394fd0315bdea3029cf5d337a9a82a7ba0bc216",
+          "translation_sha256": "67e3c59caa66bca445233b84695e4aec2547ebad346bb550579ebaa211c65bb6"
+        },
+        "zh-Hant": {
+          "status": "completed",
+          "summary_chars": 84,
+          "translation_chars": 416,
+          "summary_sha256": "79f4b3291832e607bd041860f4a021b9058835fd91f3535b6dab2f0be8de18cb",
+          "translation_sha256": "bed6bd84c9e8ea3d84d41cd8c1ef34c0f9cb510152b7c263d17666e7974f80e7"
+        }
+      }
+    },
+    {
+      "raw_item_id": "0081bcae-6c4f-4c25-b823-2623e20668c1",
+      "source": "Mehr News RSS",
+      "source_url": "https://en.mehrnews.com/news/248798/UKMTO-reports-new-maritime-incident-off-Iraqi-waters",
+      "title": "UKMTO reports new maritime incident off Iraqi waters",
+      "published_at": "2026-10-21 19:07:58+07:00",
+      "processing_status": "completed",
+      "translation_status": "completed",
+      "relevance_score": 55,
+      "is_relevant": true,
+      "event_id": null,
+      "requires_confirmation": true,
+      "classification_latency_ms": 5778,
+      "translation_latency_ms": 5785,
+      "languages": {
+        "en": {
+          "status": "completed",
+          "summary_chars": 104,
+          "translation_chars": 112,
+          "summary_sha256": "8227a1df73764df2f1a6769c94aa9455c1197b78660a6fa78df9856c111916b3",
+          "translation_sha256": "89ae257f33efb4158222f1c5d890fa87010f935cac248d41ecc574e095b64775"
+        },
+        "ja": {
+          "status": "completed",
+          "summary_chars": 49,
+          "translation_chars": 79,
+          "summary_sha256": "4f38b87da30e7e135070cddd29dcd95ab9a229e95fdad602f1ab34ef68754ab1",
+          "translation_sha256": "4a5ae5fcfc140c50ae7c4e7d8ad88c4d046a59807f2aeb3827f8bc6558a1fb7d"
+        },
+        "th": {
+          "status": "completed",
+          "summary_chars": 108,
+          "translation_chars": 127,
+          "summary_sha256": "cf6ba217721ec7eb781e90fd51e25ada6d5858c1032dd0e9406d2000ff0b45cd",
+          "translation_sha256": "fc1a3fb9074e80e572f9a978e80767af4bf1abb7c95c2d9be9e266c24cfbd95e"
+        },
+        "zh-Hant": {
+          "status": "completed",
+          "summary_chars": 39,
+          "translation_chars": 69,
+          "summary_sha256": "0040604234da549e0625f668d06f00050e8bfbdda588e784dfb2f4e8c8ecf089",
+          "translation_sha256": "f508f9078410baca618250072fa7cfa73bc88bebe03939b9f4b16bbfc47d0583"
+        }
+      }
+    }
+  ],
+  "post_fix_actual_daemon_requests": [
+    {
+      "container": "xauusd-event-radar-normalizer-classifier-3",
+      "timestamp": "2026-10-21T12:08:53.121214+00:00",
+      "ai_layer": "classification_reasoning",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "model": "glm-5.3-flash",
+      "reasoning_effort": "low",
+      "authorization_redacted": true
+    },
+    {
+      "container": "xauusd-event-radar-normalizer-classifier-3",
+      "timestamp": "2026-10-21T12:08:59.102711+00:00",
+      "ai_layer": "translation_summary",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "model": "glm-5.3-flash",
+      "reasoning_effort": "low",
+      "authorization_redacted": true
+    }
+  ],
+  "post_fix_actual_daemon_responses": [
+    {
+      "container": "xauusd-event-radar-normalizer-classifier-3",
+      "timestamp": "2026-10-21T12:08:58.882674+00:00",
+      "ai_layer": "classification_reasoning",
+      "status_code": 200,
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop"
+    },
+    {
+      "container": "xauusd-event-radar-normalizer-classifier-3",
+      "timestamp": "2026-10-21T12:09:04.814403+00:00",
+      "ai_layer": "translation_summary",
+      "status_code": 200,
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop"
+    }
+  ],
+  "manual_translation_recoveries": [
+    {
+      "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+      "classification_replayed": false,
+      "manual_translation_retry": true,
+      "requests": [
+        {
+          "ai_layer": "translation_summary",
+          "model": "glm-5.3-flash",
+          "reasoning_effort": "low",
+          "started_at": "2026-10-21T12:03:46.023388+00:00",
+          "response_model": "glm-5.3-flash",
+          "finish_reason": "stop"
+        }
+      ],
+      "result": {
+        "translation_status": "completed",
+        "translation_model": "glm-5.3-flash",
+        "translation_error": null
+      },
+      "languages": [
+        {
+          "language": "en",
+          "status": "completed",
+          "summary_chars": 149,
+          "translation_chars": 1103
+        },
+        {
+          "language": "ja",
+          "status": "completed",
+          "summary_chars": 71,
+          "translation_chars": 393
+        },
+        {
+          "language": "th",
+          "status": "completed",
+          "summary_chars": 124,
+          "translation_chars": 899
+        },
+        {
+          "language": "zh-Hant",
+          "status": "completed",
+          "summary_chars": 46,
+          "translation_chars": 303
+        }
+      ]
+    },
+    {
+      "raw_item_id": "ee0898f8-facf-4820-8d2a-fc148f4cdd4a",
+      "classification_replayed": false,
+      "manual_translation_retry": true,
+      "requests": [
+        {
+          "ai_layer": "translation_summary",
+          "model": "glm-5.3-flash",
+          "reasoning_effort": "low",
+          "started_at": "2026-10-21T12:04:12.040863+00:00",
+          "response_model": "glm-5.3-flash",
+          "finish_reason": "stop"
+        }
+      ],
+      "result": {
+        "translation_status": "completed",
+        "translation_model": "glm-5.3-flash",
+        "translation_error": null
+      },
+      "languages": [
+        {
+          "language": "en",
+          "status": "completed",
+          "summary_chars": 281,
+          "translation_chars": 1469
+        },
+        {
+          "language": "ja",
+          "status": "completed",
+          "summary_chars": 107,
+          "translation_chars": 598
+        },
+        {
+          "language": "th",
+          "status": "completed",
+          "summary_chars": 222,
+          "translation_chars": 1319
+        },
+        {
+          "language": "zh-Hant",
+          "status": "completed",
+          "summary_chars": 84,
+          "translation_chars": 416
+        }
+      ]
+    }
+  ],
+  "usage_calls": [
+    {
+      "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+      "created_at": "2026-10-21 18:46:18.455250+07:00",
+      "ai_layer": "classification_reasoning",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 6248,
+      "input_tokens": 3602,
+      "output_tokens": 425,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+      "created_at": "2026-10-21 18:46:38.976968+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": false,
+      "latency_ms": 20502,
+      "input_tokens": 1310,
+      "output_tokens": 2566,
+      "error_type": "ValueError"
+    },
+    {
+      "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+      "created_at": "2026-10-21 18:50:01.509409+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": false,
+      "latency_ms": 14251,
+      "input_tokens": 1310,
+      "output_tokens": 2460,
+      "error_type": "ValueError"
+    },
+    {
+      "raw_item_id": "8fdcc89e-15b5-4ca8-9cac-658d55d0babb",
+      "created_at": "2026-10-21 18:51:16.424850+07:00",
+      "ai_layer": "classification_reasoning",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 4297,
+      "input_tokens": 3284,
+      "output_tokens": 298,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "a73bc4bc-6918-4836-989a-566899d7a92a",
+      "created_at": "2026-10-21 18:51:16.853908+07:00",
+      "ai_layer": "classification_reasoning",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 4504,
+      "input_tokens": 3349,
+      "output_tokens": 349,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "8fdcc89e-15b5-4ca8-9cac-658d55d0babb",
+      "created_at": "2026-10-21 18:51:23.266423+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 6818,
+      "input_tokens": 992,
+      "output_tokens": 494,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "a73bc4bc-6918-4836-989a-566899d7a92a",
+      "created_at": "2026-10-21 18:51:24.396230+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 7523,
+      "input_tokens": 1057,
+      "output_tokens": 1058,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "ee0898f8-facf-4820-8d2a-fc148f4cdd4a",
+      "created_at": "2026-10-21 18:55:18.584364+07:00",
+      "ai_layer": "classification_reasoning",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 5909,
+      "input_tokens": 3755,
+      "output_tokens": 604,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "ee0898f8-facf-4820-8d2a-fc148f4cdd4a",
+      "created_at": "2026-10-21 18:55:41.213428+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": false,
+      "latency_ms": 22616,
+      "input_tokens": 1463,
+      "output_tokens": 3149,
+      "error_type": "ValueError"
+    },
+    {
+      "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+      "created_at": "2026-10-21 19:04:06.487187+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 20460,
+      "input_tokens": 1376,
+      "output_tokens": 1889,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "ee0898f8-facf-4820-8d2a-fc148f4cdd4a",
+      "created_at": "2026-10-21 19:04:33.135346+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 21091,
+      "input_tokens": 1529,
+      "output_tokens": 2730,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "0081bcae-6c4f-4c25-b823-2623e20668c1",
+      "created_at": "2026-10-21 19:08:59.080481+07:00",
+      "ai_layer": "classification_reasoning",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 5778,
+      "input_tokens": 3329,
+      "output_tokens": 427,
+      "error_type": null
+    },
+    {
+      "raw_item_id": "0081bcae-6c4f-4c25-b823-2623e20668c1",
+      "created_at": "2026-10-21 19:09:04.891762+07:00",
+      "ai_layer": "translation_summary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "success": true,
+      "latency_ms": 5785,
+      "input_tokens": 1103,
+      "output_tokens": 514,
+      "error_type": null
+    }
+  ],
+  "production_migrations_executed": false,
+  "vps_deployed": false,
+  "public_website_deployed": false,
+  "main_ref": "3de3c102cda3f82635eb5a6885fb301a2cd2cea0",
+  "limits": [
+    "Ollama prompt headroom reduces observed overlength; native Cloud structured-output enforcement is still unavailable.",
+    "Observed samples are not a native-language or long-term reliability/throughput certification.",
+    "The original source/tag and duplicate-input defects remain accepted; no validation limit was relaxed.",
+    "Actual API billing was not returned; USD cost remains unknown."
+  ]
+}
