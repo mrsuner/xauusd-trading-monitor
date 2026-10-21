@@ -103,7 +103,7 @@ async def classify(
         )
         raise ModelClientError(f"model request failed: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
 
-    content = ""
+    content: str | None = None
     try:
         content = client._extract_content(body)
         decoded = json.loads(content)
@@ -114,7 +114,7 @@ async def classify(
             or (result.primary_domain is not None and result.primary_domain not in allowed_domains)
         ):
             raise ValueError("classification returned a disabled or unknown domain")
-        if (taxonomy_context.category_keys and result.content_category is not None
+        if (result.content_category is not None
                 and result.content_category not in taxonomy_context.category_keys | {"other"}):
             raise ValueError("classification returned a disabled or unknown category")
     except (KeyError, IndexError, AttributeError, TypeError, ValueError, ValidationError) as exc:
@@ -228,7 +228,7 @@ async def summarize_and_translate(
         )
         raise ModelClientError(f"auxiliary model request failed: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
 
-    content = ""
+    content: str | None = None
     try:
         content = client._extract_content(body)
         decoded = json.loads(content)
@@ -368,10 +368,11 @@ def classification_json_schema_response_format(
     domain_schema: dict[str, Any] = {"type": "string"}
     primary_domain_schema: dict[str, Any] = {"type": ["string", "null"]}
     category_schema: dict[str, Any] = {"type": "string"}
-    if enabled_category_keys:
+    if enabled_category_keys is not None:
         category_schema["enum"] = sorted(set(enabled_category_keys) | {"other"})
-    if enabled_domain_keys:
-        domain_schema["enum"] = enabled_domain_keys
+    if enabled_domain_keys is not None:
+        if enabled_domain_keys:
+            domain_schema["enum"] = enabled_domain_keys
         primary_domain_schema["enum"] = [*enabled_domain_keys, None]
     return {
         "type": "json_schema",
@@ -408,7 +409,8 @@ def classification_json_schema_response_format(
                     "content_category": category_schema,
                     "topic_tags": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
                     "primary_domain": primary_domain_schema,
-                    "relevant_domains": {"type": "array", "items": domain_schema, "maxItems": 4},
+                    "relevant_domains": {"type": "array", "items": domain_schema,
+                                         "maxItems": 0 if enabled_domain_keys == [] else 4},
                     "actors": {"type": "array", "items": {"type": "string"}},
                     "xauusd_impact_channel": {"type": "array", "items": {"type": "string"}},
                     "requires_confirmation": {"type": "boolean"},
@@ -511,15 +513,10 @@ def validate_auxiliary_text_result(
         for field in (translation.summary, translation.full_translation):
             if field and script and not re.search(script, field):
                 raise ValueError(f"missing target script: {translation.language}")
-    if not require_all_languages:
-        return
-    missing_languages: list[str] = []
+    missing_languages = [language for language in languages if language not in actual_languages] if require_all_languages else []
     incomplete_languages: list[str] = []
-    for language in languages:
-        translation = result.translation_for(language)
-        if translation is None:
-            missing_languages.append(language)
-            continue
+    for translation in result.translations:
+        language = translation.language
         if not translation.summary:
             incomplete_languages.append(language)
             continue

@@ -2,7 +2,7 @@
 
 ## Status
 
-- 狀態：Done（本地實作與離線驗收完成；未部署）
+- 狀態：Done（P0–P4 與 R1 code review 修復／回歸驗收完成；未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
@@ -47,6 +47,8 @@
 | P2 | OllamaCloudClient、provider factory／設定、跨 provider translation fallback；`feat: add Ollama Cloud model provider` | 兩層可獨立選 provider；Cloud key／model 缺失 fail fast；參數隔離；strict JSON 與業務驗證；每次呼叫預算／usage；無隱藏重試 | 完成：`e945296`；228 tests 通過 |
 | P3 | 移除 local route、Compose／env examples、服務文件與整合回歸；`refactor: retire local model routes and document cloud providers` | active runtime／設定樣板無 local route；舊 local 選擇明確報錯；Compose 使用假資料驗證；完整服務測試通過 | 完成：`c8e0dfb`；241 tests 通過 |
 | P4 | 最終差異審查、驗收證據、進度結案；`docs: close cloud model provider implementation` | P0–P3 提交可追溯、工作產物已提交、無關修改未納入；清楚列出未執行的真實 Cloud 驗證與部署 | 完成：審查與驗收證據隨本階段文件提交 |
+
+| R1 | Code review 修復與回歸驗證；`fix: harden cloud model failure handling after review` | 下列五項問題修復；針對性回歸與完整服務測試通過，無關修改不納入 | 完成：20 個針對性回歸／完整服務 261 tests 通過；隨 R1 獨立提交 |
 
 每階段先完成對應驗證，再在同一 commit 更新本文件；下一階段補記前一階段 SHA，避免自指 commit hash。單純本地實作不改 production env 或 runtime。
 
@@ -99,3 +101,26 @@
 未執行：真實 Ollama Cloud／OpenRouter inference、雲端帳戶／額度確認、模型品質／延遲評估、DB 寫入／migration、container 啟停、私有 env 修改、production 切換、push／release／部署。上述為後續啟用驗證，不是本次本地實作的通過證據。
 
 回退方式：維持兩個 provider selector 為 `openrouter` 且 translation fallback 停用即可保持原先預設呼叫路徑。若需要程式回退，依 P3 → P2 → P1 順序 revert 對應提交；未變更 schema／資料，不需要資料回滾。
+
+## Code review 與修復（R1，2026-10-21）
+
+範圍：`594f322^..94bff23` 的 provider 拆分、factory／settings、worker、usage、Compose／樣板與既有測試，並追蹤 `db.py` 的 commit／translation upsert 行為。這是本次變更的功能回歸 review，不是整個 repo 的完整安全稽核。
+
+| 編號／優先級 | 觸發條件與影響 | 修復與回歸案例 |
+| --- | --- | --- |
+| R1.1／P1 | Layer 2 已 commit，後續 usage／翻譯 DB 操作失敗仍走 `mark_failed`；可能重新分類、重複呼叫模型。翻譯 storage 與 API 共用 except，也會將正常模型輸出當作失敗，`update_translation_failed` 會清空已有翻譯 rows | 分類 commit 後不再將 task 改回 retry／failed；翻譯 API 與 storage 的錯誤邊界分開，storage 失敗不 fallback、不改寫 failed 翻譯。以 classification usage、translation usage、translation result、failed-attempt usage 四種 DB 失敗回歸 |
+| R1.2／P2 | OpenRouter 分類只驗證可解析 JSON；`finish_reason=length/content_filter` 或 refusal 仍可能被接受為有效分類 | Provider 解析先拒絕已知非正常完成／refusal，保留缺 finish_reason 的既有相容行為；三種有效 JSON 但不完整／拒絕的回應回歸 |
+| R1.3／P2 | `TRANSLATION_REQUIRE_ALL_LANGUAGES=false` 提早 return，連已提供語言缺摘要／全文也通過，可能標記空內容為 completed | 此旗標只控制是否允許缺語言；每個已提供語言仍需滿足 summary／full-translation policy。兩種 provider 分別驗證缺欄位拒絕及完整 subset 接受 |
+| R1.4／P2 | enabled categories 為空時跳過 category 驗證；空 domains／categories 的 schema 也放寬為任意值，與 worker 可接受範圍不一致 | 空 categories 僅允許 `other`（既有 nullable result 仍由 DB 正規化）；空 domains 要求 primary 為 null、relevant_domains 為空；兩種 provider 的未知 category 拒絕與 schema 回歸 |
+| R1.5／P2 | 缺 provider usage 時 tokenizer／cache 失敗會遮蔽原始模型錯誤，失去該次 usage；未知 output 被視為零，成本與 total 看似完整 | 估算失敗保留原始錯誤與 attempt，未知 tokens／total／cost 為 null，僅在 input／output 都已知時推導 total／cost。記錄安全的 estimation error 類別，不將拒絕的答案假估為空字串 |
+
+回歸測試集中於 `tests/test_provider_review_regressions.py`。修復不新增 dependency／schema／provider、fallback route 或 production 行為切換。儲存層不可用時，可能仍有缺 usage 或待處理翻譯，需要依 error log 人工檢查；本次不引入新的持久化重試 queue，也不重播已 commit 的分類。
+
+R1 驗證結果：
+
+- 針對性回歸：在 `services/normalizer-classifier` 執行 `.venv/bin/python -m pytest tests/test_provider_review_regressions.py -q --disable-warnings --tb=short --maxfail=5`，20 passed。
+- 修復前重現：在可丟棄的暫存 source copy 中，使用 `git show 94bff23:<path>` 還原四個被修復的 runtime 檔案，保留相同的 20 個新增測試與既有 fixtures；結果為 18 failed、2 passed。兩個通過案例是完整的部分語言 subset 正向控制。未切換／覆寫工作 checkout，驗證後刪除暫存副本。
+- 完整回歸：同 service 執行 `.venv/bin/python -m pytest tests -q --disable-warnings --tb=short --maxfail=5`，261 passed，無 skipped。874 個既有 pytest-asyncio／Python 3.14 deprecation warnings 不影響結果。
+- AST parse、compileall 與 `git diff --check` 通過；完整 suite 內含既有兩種離線 Compose config render 驗證，不執行 container workload 或連線 DB。
+- 最初採用的 security-audit skill 對 target tests 要求完整 OS sandbox；現有隔離 runtime 沒有所需 Python dependency。使用者已在本次 review 明確允許沿用原有本機 virtualenv 執行 mock pytest，之後才執行上述 baseline／修復後測試。未安裝依賴；mock 不呼叫真實模型 API、不連 DB、不啟停專案 runtime。
+- R1 修復、回歸測試與本記錄以 `fix: harden cloud model failure handling after review` 獨立提交至 `develop`。原 P4 的 241 passed 保留為當時版本證據，本節的 261 passed 是 review 後的最新驗收。

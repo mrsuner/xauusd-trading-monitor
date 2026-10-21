@@ -90,7 +90,7 @@ def usage_from_response(body: dict[str, Any]) -> dict[str, int | None]:
 
 def estimated_cost_usd(provider: str, model_name: str, input_tokens: int | None, output_tokens: int | None) -> Decimal | None:
     pricing = PRICE_PER_MILLION.get((provider, model_name))
-    if pricing is None:
+    if pricing is None or input_tokens is None or output_tokens is None:
         return None
     input_price, output_price = pricing
     cost = Decimal(input_tokens or 0) * input_price / Decimal(1_000_000)
@@ -99,11 +99,11 @@ def estimated_cost_usd(provider: str, model_name: str, input_tokens: int | None,
 
 
 def build_model_call_usage(
-        *,
-route_name: str,
-api_provider: str,
-model: str,
-response_format: str,
+    *,
+    route_name: str,
+    api_provider: str,
+    model: str,
+    response_format: str,
     payload: dict[str, Any],
     ai_layer: str,
     request_kind: str,
@@ -121,19 +121,30 @@ response_format: str,
     raw_usage = (body or {}).get("usage")
     usage_json = dict(raw_usage) if isinstance(raw_usage, dict) else {}
     usage_estimated = False
+    estimation_errors: dict[str, str] = {}
 
     if input_tokens is None:
-        input_tokens = estimate_messages_tokens(model, payload.get("messages") or [])
+        try:
+            input_tokens = estimate_messages_tokens(model, payload.get("messages") or [])
+        except Exception as exc:
+            # Tokenizer/cache failures must not replace the original model error
+            # or prevent an already-issued request from being recorded.
+            estimation_errors["input_tokens"] = type(exc).__name__
         usage_estimated = True
     if output_tokens is None and output_text is not None:
-        output_tokens = estimate_text_tokens(model, output_text)
+        try:
+            output_tokens = estimate_text_tokens(model, output_text)
+        except Exception as exc:
+            estimation_errors["output_tokens"] = type(exc).__name__
         usage_estimated = True
-    if total_tokens is None and (input_tokens is not None or output_tokens is not None):
-        total_tokens = (input_tokens or 0) + (output_tokens or 0)
+    if total_tokens is None and input_tokens is not None and output_tokens is not None:
+        total_tokens = input_tokens + output_tokens
         usage_estimated = True
 
     if usage_estimated:
         usage_json["estimated"] = True
+    if estimation_errors:
+        usage_json["estimation_errors"] = estimation_errors
 
     return AIModelCallUsage(
         ai_layer=ai_layer,

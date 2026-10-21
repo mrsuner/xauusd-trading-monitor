@@ -58,6 +58,7 @@ class NormalizerClassifierWorker:
                 await asyncio.sleep(self.settings.poll_interval_seconds)
                 continue
 
+            classification_completed = False
             try:
                 routing_context = await self.db.get_routing_context(source_id=task.source.id)
                 normalized = normalize_item(task.raw_item, task.source, routing_context)
@@ -99,6 +100,7 @@ class NormalizerClassifierWorker:
                     relevance_threshold_event=self.settings.relevance_threshold_event,
                     taxonomy_context=taxonomy_context,
                 )
+                classification_completed = True
                 await self.db.insert_ai_model_call(
                     usage=model_response.usage,
                     raw_item_id=task.raw_item.id,
@@ -114,6 +116,11 @@ class NormalizerClassifierWorker:
                     event_id,
                 )
             except Exception as exc:
+                if classification_completed:
+                    # The classification transaction has committed. A subsequent
+                    # usage/translation storage failure must not replay classification.
+                    logger.exception("post-classification processing failed raw_item_id=%s", task.raw_item.id)
+                    continue
                 logger.exception("failed raw_item_id=%s", task.raw_item.id)
                 if isinstance(exc, ModelClientError) and exc.usage:
                     await self.db.insert_ai_model_call(
@@ -211,25 +218,6 @@ class NormalizerClassifierWorker:
                     input_text=text,
                     truncated=truncated,
                 )
-                await self.db.update_translation_result(
-                    raw_item_id=task.raw_item.id,
-                    response=response,
-                    status="completed_truncated" if truncated else "completed",
-                    input_chars=len(text),
-                )
-                await self.db.insert_ai_model_call(
-                    usage=response.usage,
-                    raw_item_id=task.raw_item.id,
-                    source_id=task.source.id,
-                )
-                logger.info(
-                    "translation summary raw_item_id=%s provider=%s model=%s truncated=%s",
-                    task.raw_item.id,
-                    response.provider,
-                    response.model,
-                    truncated,
-                )
-                return
             except Exception as exc:
                 last_error = str(exc)
                 if isinstance(exc, ModelClientError) and exc.usage:
@@ -247,6 +235,29 @@ class NormalizerClassifierWorker:
                 )
                 if not isinstance(exc, ModelClientError) or not exc.retryable:
                     break
+                continue
+
+            # Storage failures are not model failures: do not call another
+            # provider or replace a successful translation with failed rows.
+            await self.db.insert_ai_model_call(
+                usage=response.usage,
+                raw_item_id=task.raw_item.id,
+                source_id=task.source.id,
+            )
+            await self.db.update_translation_result(
+                raw_item_id=task.raw_item.id,
+                response=response,
+                status="completed_truncated" if truncated else "completed",
+                input_chars=len(text),
+            )
+            logger.info(
+                "translation summary raw_item_id=%s provider=%s model=%s truncated=%s",
+                task.raw_item.id,
+                response.provider,
+                response.model,
+                truncated,
+            )
+            return
 
         if last_client is None:
             await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason=last_error or "translation_not_attempted")

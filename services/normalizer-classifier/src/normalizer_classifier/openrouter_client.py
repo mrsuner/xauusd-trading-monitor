@@ -71,7 +71,10 @@ class OpenRouterClient:
                                       response_format=self.response_format, **kwargs)
 
     def _extract_content(self, body: dict[str, Any]) -> str:
-        message = body["choices"][0]["message"]
+        choice = body["choices"][0]
+        message = choice["message"]
+        if choice.get("finish_reason") not in {None, "stop"} or message.get("refusal"):
+            raise ValueError("incomplete or refused OpenRouter response")
         content = message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
         if isinstance(content, list):
             return "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
