@@ -26,6 +26,10 @@ V1 目前專注新聞消息層，完整範圍請見 [最終目標與 V1 實作�
 | `dashboard-web` | [dashboard-web.md](./dashboard-web.md) | HomeLab dashboard UI / timeline、processing、sources 第一版已實作 |
 | `mt5-collector` | `mt5-collector.md` | V1 暫緩 |
 
+## 實作計畫
+
+- [News 雲端模型 provider 拆分與 Ollama Cloud 整合](../2026-10-21-news-model-providers-implementation-plan.md)
+
 ## 技術棧基準
 
 後端服務優先使用：
