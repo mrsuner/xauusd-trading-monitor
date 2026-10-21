@@ -78,13 +78,13 @@ async def test_luna_translates_all_four_languages_without_model_fallback(monkeyp
     assert {row.language for row in response.result.translations} == {"zh-Hant", "en", "th", "ja"}
 
 
-def test_non_openrouter_clients_do_not_receive_provider_options():
+def test_openrouter_identity_is_explicit_under_custom_endpoint():
     client = build_model_client(settings(CLOUD_MODEL_BASE_URL="https://api.example.test/v1"))
-    assert client.api_provider != "openrouter"
+    assert client.api_provider == "openrouter"
     payload = {"temperature": 0}
     client._prepare_payload(payload, classification_json_schema_response_format(), ai_layer="classification_reasoning")
-    assert payload["reasoning_effort"] == "none"
-    assert "provider" not in payload
+    assert payload["reasoning"] == {"enabled": False}
+    assert payload["provider"]["sort"] == "price"
 
 
 def test_legacy_model_keeps_supported_temperature():

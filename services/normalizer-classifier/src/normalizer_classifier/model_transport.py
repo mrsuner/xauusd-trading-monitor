@@ -95,8 +95,8 @@ class ChatCompletionTransport:
                 },
             )
             response.raise_for_status()
-            if response_body is None:
-                return response.json()
+            if not isinstance(response_body, dict):
+                raise ValueError("chat completion response must be a JSON object")
             return response_body
 
 def _sanitize_for_log(value: Any, *, key: str = "") -> Any:

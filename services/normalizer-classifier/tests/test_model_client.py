@@ -295,7 +295,7 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
 
 async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> None:
     async def fake_post(self, url, headers=None, json=None):  # noqa: ANN001
-        assert json["reasoning_effort"] == "none"
+        assert json["reasoning_effort"] == "low"
         content = {
             "is_relevant": False,
             "relevance_score": 20,
@@ -323,7 +323,7 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
         model="test-model",
         timeout_seconds=5,
         response_format="json_object",
-        reasoning_effort="none",
+        reasoning_effort="low",
     )
 
     response = await client.classify(raw_item, source, normalized)
@@ -427,6 +427,7 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
         model="translation-model",
         timeout_seconds=5,
         response_format="json_object",
+        translation_output_languages=("zh-Hant", "en", "ja"),
     )
 
     response = await client.summarize_and_translate(raw_item, source, normalized)

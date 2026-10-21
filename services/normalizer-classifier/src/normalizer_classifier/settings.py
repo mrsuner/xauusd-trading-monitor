@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,21 @@ class Settings(BaseSettings):
     poll_interval_seconds: float = Field(default=2.0, alias="POLL_INTERVAL_SECONDS")
     stale_task_timeout_seconds: int = Field(default=900, alias="STALE_TASK_TIMEOUT_SECONDS")
     model_route: str = Field(default="cloud_small", alias="MODEL_ROUTE")
+
+    classification_model_provider: Literal["openrouter", "ollama_cloud"] = Field(default="openrouter", alias="CLASSIFICATION_MODEL_PROVIDER")
+    translation_model_provider: Literal["openrouter", "ollama_cloud"] = Field(default="openrouter", alias="TRANSLATION_MODEL_PROVIDER")
+    translation_fallback_provider: Literal["openrouter", "ollama_cloud"] | None = Field(default=None, alias="TRANSLATION_FALLBACK_PROVIDER")
+    cloud_model_timeout_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False, alias="CLOUD_MODEL_TIMEOUT_SECONDS")
+    translation_model_timeout_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False, alias="TRANSLATION_MODEL_TIMEOUT_SECONDS")
+
+    ollama_cloud_base_url: str = Field(default="https://ollama.com/v1", alias="OLLAMA_CLOUD_BASE_URL")
+    ollama_api_key: str | None = Field(default=None, alias="OLLAMA_API_KEY")
+    ollama_cloud_classification_model: str | None = Field(default=None, alias="OLLAMA_CLOUD_CLASSIFICATION_MODEL")
+    ollama_cloud_translation_model: str | None = Field(default=None, alias="OLLAMA_CLOUD_TRANSLATION_MODEL")
+    ollama_cloud_classification_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False, alias="OLLAMA_CLOUD_CLASSIFICATION_TIMEOUT_SECONDS")
+    ollama_cloud_translation_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False, alias="OLLAMA_CLOUD_TRANSLATION_TIMEOUT_SECONDS")
+    ollama_cloud_classification_reasoning_effort: str | None = Field(default=None, alias="OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT")
+    ollama_cloud_translation_reasoning_effort: str | None = Field(default=None, alias="OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT")
 
     local_model_base_url: str | None = Field(default=None, alias="LOCAL_MODEL_BASE_URL")
     local_model_api_key: str | None = Field(default=None, alias="LOCAL_MODEL_API_KEY")
@@ -82,7 +98,7 @@ class Settings(BaseSettings):
     ai_daily_classification_limit: int = Field(default=0, alias="AI_DAILY_CLASSIFICATION_LIMIT")
     ai_daily_translation_limit: int = Field(default=0, alias="AI_DAILY_TRANSLATION_LIMIT")
 
-    model_timeout_seconds: float = Field(default=30.0, alias="MODEL_TIMEOUT_SECONDS")
+    model_timeout_seconds: float = Field(default=30.0, gt=0, allow_inf_nan=False, alias="MODEL_TIMEOUT_SECONDS")
     max_model_calls_per_run: int = Field(default=0, alias="MAX_MODEL_CALLS_PER_RUN")
     relevance_threshold_event: int = Field(default=70, alias="RELEVANCE_THRESHOLD_EVENT")
     max_attempts: int = Field(default=3, alias="MAX_ATTEMPTS")
@@ -161,6 +177,11 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
+        "ollama_api_key",
+        "ollama_cloud_classification_model",
+        "ollama_cloud_translation_model",
+        "ollama_cloud_classification_reasoning_effort",
+        "ollama_cloud_translation_reasoning_effort",
         "local_model_reasoning_effort",
         "cloud_model_reasoning_effort",
         "openrouter_model_reasoning_effort",
@@ -175,9 +196,9 @@ class Settings(BaseSettings):
     )
     @classmethod
     def normalize_optional_string(cls, value: str | None) -> str | None:
-        if value is None or value == "":
+        if value is None or value.strip() == "":
             return None
-        return value
+        return value.strip()
 
     @field_validator("translation_output_languages_raw")
     @classmethod

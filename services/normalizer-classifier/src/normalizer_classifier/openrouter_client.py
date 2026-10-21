@@ -6,7 +6,7 @@ from . import model_tasks
 from .model_transport import ChatCompletionTransport
 from .models import AIModelCallUsage, AuxiliaryModelResponse, ModelResponse, NormalizedItem, RawItem, SourceMetadata
 from .taxonomy import TaxonomyContext
-from .usage import build_model_call_usage, infer_api_provider
+from .usage import build_model_call_usage
 
 
 class OpenRouterClient:
@@ -31,7 +31,7 @@ class OpenRouterClient:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
-        self.api_provider = infer_api_provider(base_url)
+        self.api_provider = "openrouter"
         self.timeout_seconds = timeout_seconds
         self.response_format = response_format
         self.reasoning_effort = reasoning_effort

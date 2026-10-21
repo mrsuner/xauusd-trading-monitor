@@ -185,10 +185,11 @@ class NormalizerClassifierWorker:
         text, truncated = self._translation_input_text(task.source, normalized.text_clean)
         full_translation_required = task.source.translation_policy == "full" or task.source.always_full_translate
         last_error = None
+        last_client = None
 
         for index, client in enumerate(self.translation_model_clients):
-            is_paid_fallback = index > 0
-            if is_paid_fallback and not await self._reserve_translation_paid_fallback_call():
+            is_fallback = index > 0
+            if is_fallback and not await self._reserve_translation_paid_fallback_call():
                 last_error = "translation_paid_fallback_budget_reached"
                 break
             try:
@@ -200,6 +201,7 @@ class NormalizerClassifierWorker:
             if not translation_reserved:
                 last_error = "translation_call_budget_reached"
                 break
+            last_client = client
             try:
                 response = await client.summarize_and_translate(
                     task.raw_item,
@@ -243,11 +245,16 @@ class NormalizerClassifierWorker:
                     client.model,
                     exc,
                 )
+                if not isinstance(exc, ModelClientError) or not exc.retryable:
+                    break
 
+        if last_client is None:
+            await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason=last_error or "translation_not_attempted")
+            return
         await self.db.update_translation_failed(
             raw_item_id=task.raw_item.id,
-            provider=self.translation_model_clients[-1].provider,
-            model=self.translation_model_clients[-1].model,
+            provider=last_client.provider,
+            model=last_client.model,
             error_message=last_error or "translation_failed",
         )
 

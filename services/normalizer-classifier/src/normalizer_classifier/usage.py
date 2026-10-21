@@ -79,15 +79,19 @@ def content_to_text(content: Any) -> str:
 
 
 def usage_from_response(body: dict[str, Any]) -> dict[str, int | None]:
-    usage = body.get("usage") or {}
-    input_tokens = usage.get("prompt_tokens")
-    output_tokens = usage.get("completion_tokens")
-    total_tokens = usage.get("total_tokens")
-    return {
-        "input_tokens": int(input_tokens) if input_tokens is not None else None,
-        "output_tokens": int(output_tokens) if output_tokens is not None else None,
-        "total_tokens": int(total_tokens) if total_tokens is not None else None,
-    }
+    usage = body.get("usage")
+    if not isinstance(usage, dict):
+        usage = {}
+    result: dict[str, int | None] = {}
+    for field, key in (("input_tokens", "prompt_tokens"), ("output_tokens", "completion_tokens"),
+                       ("total_tokens", "total_tokens")):
+        value = usage.get(key)
+        try:
+            count = int(value) if value is not None and not isinstance(value, bool) else None
+        except (ValueError, TypeError, OverflowError):
+            count = None
+        result[field] = count if count is not None and count >= 0 else None
+    return result
 
 
 def estimated_cost_usd(provider: str, model_name: str, input_tokens: int | None, output_tokens: int | None) -> Decimal | None:
@@ -120,7 +124,8 @@ response_format: str,
     input_tokens = response_usage["input_tokens"]
     output_tokens = response_usage["output_tokens"]
     total_tokens = response_usage["total_tokens"]
-    usage_json = dict((body or {}).get("usage") or {})
+    raw_usage = (body or {}).get("usage")
+    usage_json = dict(raw_usage) if isinstance(raw_usage, dict) else {}
     usage_estimated = False
 
     if input_tokens is None:

@@ -7,15 +7,16 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 
-from .model_contracts import ModelClientError
+from .model_contracts import ModelClientError, is_retryable_model_error
 from .models import AuxiliaryModelResponse, AuxiliaryTextResult, ClassificationResult, ModelResponse, NormalizedItem, RawItem, SourceMetadata
 from .taxonomy import TaxonomyContext
 
 if TYPE_CHECKING:
     from .openrouter_client import OpenRouterClient
+    from .ollama_cloud_client import OllamaCloudClient
 
 async def classify(
-    client: OpenRouterClient,
+    client: OpenRouterClient | OllamaCloudClient,
     raw_item: RawItem,
     source: SourceMetadata,
     normalized: NormalizedItem,
@@ -100,19 +101,23 @@ async def classify(
             success=False,
             error=exc,
         )
-        raise ModelClientError(f"model request failed: {exc}", usage=usage) from exc
+        raise ModelClientError(f"model request failed: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
 
-    content = client._extract_content(body)
+    content = ""
     try:
+        content = client._extract_content(body)
         decoded = json.loads(content)
         result = ClassificationResult.model_validate(decoded)
         allowed_domains = set(enabled_domain_keys or [])
-        if allowed_domains and (
+        if enabled_domain_keys is not None and (
             any(domain not in allowed_domains for domain in result.relevant_domains)
             or (result.primary_domain is not None and result.primary_domain not in allowed_domains)
         ):
             raise ValueError("classification returned a disabled or unknown domain")
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
+        if (taxonomy_context.category_keys and result.content_category is not None
+                and result.content_category not in taxonomy_context.category_keys | {"other"}):
+            raise ValueError("classification returned a disabled or unknown category")
+    except (KeyError, IndexError, AttributeError, TypeError, ValueError, ValidationError) as exc:
         usage = client._build_usage(
             payload=payload,
             body=body,
@@ -123,7 +128,7 @@ async def classify(
             success=False,
             error=exc,
         )
-        raise ModelClientError(f"invalid model response: {exc}", usage=usage) from exc
+        raise ModelClientError(f"invalid model response: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
 
     usage = client._build_usage(
         payload=payload,
@@ -144,7 +149,7 @@ async def classify(
     )
 
 async def summarize_and_translate(
-    client: OpenRouterClient,
+    client: OpenRouterClient | OllamaCloudClient,
     raw_item: RawItem,
     source: SourceMetadata,
     normalized: NormalizedItem,
@@ -221,10 +226,11 @@ async def summarize_and_translate(
             success=False,
             error=exc,
         )
-        raise ModelClientError(f"auxiliary model request failed: {exc}", usage=usage) from exc
+        raise ModelClientError(f"auxiliary model request failed: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
 
-    content = client._extract_content(body)
+    content = ""
     try:
+        content = client._extract_content(body)
         decoded = json.loads(content)
         result = AuxiliaryTextResult.model_validate(decoded)
         choice = body["choices"][0]
@@ -237,7 +243,7 @@ async def summarize_and_translate(
             require_all_languages=client.translation_require_all_languages,
             full_translation_required=full_translation_required,
         )
-    except (KeyError, TypeError, json.JSONDecodeError, ValidationError, ValueError) as exc:
+    except (KeyError, IndexError, AttributeError, TypeError, ValueError, ValidationError) as exc:
         usage = client._build_usage(
             payload=payload,
             body=body,
@@ -248,7 +254,7 @@ async def summarize_and_translate(
             success=False,
             error=exc,
         )
-        raise ModelClientError(f"invalid auxiliary model response: {exc}", usage=usage) from exc
+        raise ModelClientError(f"invalid auxiliary model response: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
 
     usage = client._build_usage(
         payload=payload,
@@ -491,6 +497,8 @@ def validate_auxiliary_text_result(
     full_translation_required: bool,
 ) -> None:
     actual_languages = [translation.language for translation in result.translations]
+    if not actual_languages or any(language not in languages for language in actual_languages):
+        raise ValueError("missing or unsupported translation languages")
     if len(actual_languages) != len(set(actual_languages)):
         raise ValueError("duplicate translation languages")
     for translation in result.translations:
