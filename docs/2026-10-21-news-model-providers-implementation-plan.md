@@ -2,12 +2,12 @@
 
 ## Status
 
-- 狀態：Done（P0–P4／R1 實作完成；T1 真實 Cloud 冒煙測試完成，正式模型品質尚未驗收；未部署）
+- 狀態：Done（P0–P4／R1 實作完成；T1／T2 真實 Cloud 冒煙與對比測試完成，正式模型品質尚未驗收；未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
 - 範圍：News normalizer-classifier 的 Layer 1／Layer 2；保留 OpenRouter，新增直接呼叫 Ollama Cloud 的獨立 client，退役早期 local LLM route。
-- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1 的有界真實 Cloud 測試，結果另列於本文；正式模型品質／延遲驗收、production 啟用、發布與部署仍不在本次範圍。
+- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1／T2 的有界真實 Cloud 測試，結果另列於本文；正式模型品質／延遲驗收、production 啟用、發布與部署仍不在本次範圍。
 
 ## 決策與目前實作
 
@@ -70,7 +70,7 @@
 - [x] P2 完成；程式與本記錄於同一階段提交。
 - [x] P3 完成；程式與本記錄於同一階段提交。
 - [x] P4 審查與結案；本記錄於結案階段獨立提交。
-- T1 已依後續授權完成選定模型的 6 次真實 Cloud 冒煙測試；待辦為擴大真實新聞、語言品質、穩定性與容量評估，不自動啟用 worker。
+- T1／T2 已依後續授權分別完成 GLM 與 MiniMax 各 6 次真實 Cloud 冒煙／對比測試；待辦為擴大真實新聞、語言品質、穩定性與容量評估，不自動啟用 worker。
 
 ## 驗證與提交紀錄
 
@@ -151,3 +151,31 @@ R1 驗證結果：
 - 這些 fixture 僅驗證可呼叫、結構與少量關鍵語意；不是 native-language 認證、真實新聞 benchmark、正式分類 admission 或 production 吞吐量驗收。暫不自動切換常駐 worker。
 
 建議測試設定（仍須由操作者決定正式啟用）：`OLLAMA_CLOUD_*_MODEL=glm-5.3-flash`、兩個 `OLLAMA_CLOUD_*_REASONING_EFFORT=low`。模型名稱與 effort 只在本次程序內覆寫，使用者既有 `.env.dev` 原值保持。T1 evidence 與進度以獨立文件提交保存。
+
+
+## 模型對比測試（T2，2026-10-21）
+
+使用者明確授權以 `minimax-m3.1-flash` 進行對比。依官方[模型頁面](https://ollama.com/library/minimax-m3.1-flash:cloud)與 [Cloud catalog](https://ollama.com/api/tags)，直接 Cloud API 使用 `minimax-m3.1-flash`。沿用 T1 的本機私有 key、既有 factory／client、人工 fixture、taxonomy、domain modules 與六次呼叫順序；未更改私有 env、未啟動 worker、未連 DB 或部署。仍限制每次 `max_tokens=4096`，無隱藏重試／fallback。
+
+每次都將 request payload 的 model 正規化為 GLM 基準名稱，再比對既有 request hash；6／6 相符，表示來源內容、messages 與 schema prompt 相符。該 hash 不涵蓋 reasoning effort／token ceiling，這兩項另按原始六列逐項配對。另一次 `/api/show` metadata probe 回傳 HTTP 200，capabilities 包含 thinking，但 `thinking` 欄位未提供等級資訊；因此相同的 requested `low` 不代表已證明兩個模型的實際 reasoning 強度相同。metadata probe 不計入六次 inference。
+
+| Case／Layer | Reasoning effort | GLM latency | MiniMax latency | MiniMax input／output tokens | MiniMax 結果 |
+| --- | --- | --- | --- | --- | --- |
+| 英文未證實爆炸／Layer 2 | 未指定 | 28.321 s | 31.028 s | 1365／2335 | 通過；relevant=true、score=46、requires_confirmation=true |
+| 英文未證實爆炸／Layer 1 四語 | 未指定 | 32.712 s（截斷） | 28.101 s | 1160／3110 | 通過；四語齊全 |
+| 同則英文／Layer 1 四語 | `low` | 5.635 s | 23.149 s | 1160／2986 | 通過；人工初審有日文語意問題 |
+| 中文央行維持利率／Layer 2 | `low` | 2.297 s | 28.435 s | 1363／2284 | 通過；relevant=true、score=82、primary_domain=monetary |
+| 同則中文／Layer 1 四語 | `low` | 4.358 s | 21.116 s | 1159／2113 | 通過；保留 4.50% 與未承諾降息 |
+| 無關網站配色／Layer 2 | `low` | 4.431 s | 7.531 s | 1353／637 | 通過；relevant=false、score=0、primary_domain=null |
+
+MiniMax 共 7560 input tokens、13465 output tokens，程式結構／業務驗證 6／6 通過；GLM T1 為 5／6 通過，其中一次觸及測試 token ceiling。相同 requested `low` 的四次配對兩者均為 4／4 通過；MiniMax 平均 20.058 s，GLM 平均 4.180 s，這組觀測約為 4.8 倍。對應 output tokens 為 8020／2067。兩組測試時間不同、樣本很少，tokenizer、reasoning 計量、cache、輸出涵蓋範圍與當時 provider 負載亦可能不同，不能視為穩定效能排名或把差異全歸因於模型。
+
+人工初審：
+
+- MiniMax 的央行分類沒有 GLM 樣本中無來源的 `Fed expectations`，region 為 null，primary actor 明確保留「未指明央行」。這是單一 fixture 的改善證據。
+- MiniMax `low` 日文爆炸翻譯把 `casualty figures` 縮窄為 `負傷者数`，遺漏死亡人數範圍；把單一 `The report` 擴大為 `どの報道でも`，超出來源。`報道機関は…と報じられた` 的主詞／被動用法亦生硬。結構通過不代表語意品質通過。
+- MiniMax 全文包含提供的標題，GLM T1 全文省略標題；輸出內容涵蓋範圍不同，影響 token 數。MiniMax 預設 effort 的日文措辭較自然，但不能用它與 GLM low 的措辭差異宣稱同條件優勢。
+
+結論：兩者均可透過目前 Cloud adapter 完成任務；此樣本中 GLM requested low 延遲較低，MiniMax 預設 effort 在測試 ceiling 內完成翻譯，但兩者均有需改善的內容品質。尚未通過正式模型品質 admission，不據此切換常駐 provider／model。API 未回實際 USD cost，成本維持 null；catalog 標價或限時優惠不作實際帳單證據。
+
+完整非敏感輸入、輸出、逐筆 usage、配對 hashes 與統計見 [T2 evidence](evidence/2026-10-21-ollama-cloud-minimax-m3.1-flash.json)。執行程式來源為 `d3ec333`，GLM evidence 基準為 `89f7cf6`。T2 以獨立文件提交保存；本次僅新增對比證據與更新進度，不變更 runtime code。
