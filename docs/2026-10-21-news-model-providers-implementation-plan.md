@@ -2,7 +2,7 @@
 
 ## Status
 
-- 狀態：In progress
+- 狀態：Done（本地實作與離線驗收完成；未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
@@ -12,7 +12,7 @@
 ## 決策與目前實作
 
 - Worker 先完成 Layer 2 classification／event，再執行 best-effort Layer 1 translation-summary；保持此順序及資料契約。
-- 現有 `OpenAIStyleModelClient` 混合任務 prompt、provider 參數、HTTP、解析、驗證與 usage。
+- 重構前的 `OpenAIStyleModelClient` 混合任務 prompt、provider 參數、HTTP、解析、驗證與 usage。
 - `local_8b`／`LOCAL_MODEL_*` 是早期探索，可移除；不保留本機推論實作、fallback 或相容 client。
 - OpenRouter 與 Ollama Cloud 各有獨立實作類別，以小型 `ModelClient` Protocol 對接 worker；不使用共同 provider 父類別，也不建立 registry／plugin framework。
 - 共用新聞 prompt、輸入組裝、schema、業務驗證、結果／錯誤／usage 契約，以及無 provider 判斷的 HTTP／log 工具。各 client 自行客製化 payload、headers、response 解析與能力限制。
@@ -45,8 +45,8 @@
 | P0 | 本文件與服務索引；`docs: plan cloud model provider implementation` | 範圍、契約、分期、驗收與外部限制可追溯 | 完成：`594f322` |
 | P1 | Protocol、OpenRouterClient、共用任務／HTTP／usage 拆分；`refactor: isolate OpenRouter model client` | OpenRouter request、結果、price routing、usage、日誌遮罩及既有測試保持；worker 不依賴具體 client | 完成：`d4f0673`；126 tests 通過 |
 | P2 | OllamaCloudClient、provider factory／設定、跨 provider translation fallback；`feat: add Ollama Cloud model provider` | 兩層可獨立選 provider；Cloud key／model 缺失 fail fast；參數隔離；strict JSON 與業務驗證；每次呼叫預算／usage；無隱藏重試 | 完成：`e945296`；228 tests 通過 |
-| P3 | 移除 local route、Compose／env examples、服務文件與整合回歸；`refactor: retire local model routes and document cloud providers` | active runtime／設定樣板無 local route；舊 local 選擇明確報錯；Compose 使用假資料驗證；完整服務測試通過 | 完成：241 tests 通過，隨本階段提交 |
-| P4 | 最終差異審查、驗收證據、進度結案；`docs: close cloud model provider implementation` | P0–P3 提交可追溯、工作產物已提交、無關修改未納入；清楚列出未執行的真實 Cloud 驗證與部署 | 待開始 |
+| P3 | 移除 local route、Compose／env examples、服務文件與整合回歸；`refactor: retire local model routes and document cloud providers` | active runtime／設定樣板無 local route；舊 local 選擇明確報錯；Compose 使用假資料驗證；完整服務測試通過 | 完成：`c8e0dfb`；241 tests 通過 |
+| P4 | 最終差異審查、驗收證據、進度結案；`docs: close cloud model provider implementation` | P0–P3 提交可追溯、工作產物已提交、無關修改未納入；清楚列出未執行的真實 Cloud 驗證與部署 | 完成：審查與驗收證據隨本階段文件提交 |
 
 每階段先完成對應驗證，再在同一 commit 更新本文件；下一階段補記前一階段 SHA，避免自指 commit hash。單純本地實作不改 production env 或 runtime。
 
@@ -67,7 +67,7 @@
 - [x] P1 完成；程式與本記錄於同一階段提交。
 - [x] P2 完成；程式與本記錄於同一階段提交。
 - [x] P3 完成；程式與本記錄於同一階段提交。
-- [ ] P4 審查與結案提交。
+- [x] P4 審查與結案；本記錄於結案階段獨立提交。
 - 後續獨立工作：使用者選定 Cloud model／帳戶額度後，再安排有明確請求與成本上限的真實 API、品質與延遲評估；本次不自動執行。
 
 ## 驗證與提交紀錄
@@ -82,3 +82,20 @@
 - P3：完整 normalizer-classifier suite：241 passed；compileall、`make compose-config`、`git diff --check` 通過。新增公用 env 樣板與 Compose 實際 render → Settings → factory 的離線驗收，覆蓋預設 OpenRouter 及雙層 Ollama／OpenRouter 備援。
 - P3：移除 local 設定欄位／factory 分支／部署 wiring／樣板與測試專用 local route；`MODEL_ROUTE` 僅接受 `cloud_small`，退役值會在建立 client 前被拒絕。歷史 usage／migration 不修改。修正空字串 optional timeout／fallback provider 的 env 正規化，現有私有 env 未更動。
 - P3：同步目前服務契約、開發與部署設定說明及 V1 範圍；舊模型預設與 legacy summary 範例在涉及段落一併對齊。未改動 checkout 中其他既有文件或功能修改。
+
+## 最終驗收（P4）
+
+| 驗收項 | 證據與結果 |
+| --- | --- |
+| OpenRouter 行為 | `test_model_client.py`、`test_luna_runtime.py`、`test_translation_runtime.py` 通過；保留既有預設與參數政策 |
+| Cloud 能力與參數隔離 | `test_ollama_cloud.py` 通過；兩層成功路徑、錯誤輸出、未知 taxonomy、四語驗證、HTTP 錯誤分類、各方向 factory 設定均覆蓋 |
+| Worker 協調 | `test_worker_model_providers.py` 通過；逐次 budget／usage、停止條件、實際 route 歸因與分類／翻譯執行順序均覆蓋 |
+| 設定與退役 | `test_provider_configuration.py` 通過；三個公用 env 樣板、空設定正規化、retired route 拒絕與兩種 Compose render 情境均覆蓋 |
+| 完整服務 suite | 241 passed，無 skipped；既有 pytest-asyncio／Python 3.14 deprecation warnings 不影響結果 |
+| 靜態驗證 | compileall、`make compose-config`、`git diff 594f322^..HEAD --check` 通過；沒有新增 runtime dependency 或 DB migration |
+| 提交邊界 | P0 `594f322`、P1 `d4f0673`、P2 `e945296`、P3 `c8e0dfb`；P4 為本文件的獨立結案 commit，以 `docs: close cloud model provider implementation` 識別 |
+| Checkout 保護 | 維持 `develop`；工作範圍的檔案已提交，原先 public-web／public-api／notification／shared82 等無關修改保留，未包含於本批提交 |
+
+未執行：真實 Ollama Cloud／OpenRouter inference、雲端帳戶／額度確認、模型品質／延遲評估、DB 寫入／migration、container 啟停、私有 env 修改、production 切換、push／release／部署。上述為後續啟用驗證，不是本次本地實作的通過證據。
+
+回退方式：維持兩個 provider selector 為 `openrouter` 且 translation fallback 停用即可保持原先預設呼叫路徑。若需要程式回退，依 P3 → P2 → P1 順序 revert 對應提交；未變更 schema／資料，不需要資料回滾。
