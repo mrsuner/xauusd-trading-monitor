@@ -42,8 +42,8 @@
 
 | 階段 | 產物與獨立 commit | 驗收標準 | 進度 |
 | --- | --- | --- | --- |
-| P0 | 本文件與服務索引；`docs: plan cloud model provider implementation` | 範圍、契約、分期、驗收與外部限制可追溯 | 完成：已撰寫，待提交 |
-| P1 | Protocol、OpenRouterClient、共用任務／HTTP／usage 拆分；`refactor: isolate OpenRouter model client` | OpenRouter request、結果、price routing、usage、日誌遮罩及既有測試保持；worker 不依賴具體 client | 待開始 |
+| P0 | 本文件與服務索引；`docs: plan cloud model provider implementation` | 範圍、契約、分期、驗收與外部限制可追溯 | 完成：`594f322` |
+| P1 | Protocol、OpenRouterClient、共用任務／HTTP／usage 拆分；`refactor: isolate OpenRouter model client` | OpenRouter request、結果、price routing、usage、日誌遮罩及既有測試保持；worker 不依賴具體 client | 完成：126 tests 通過，待本階段提交 |
 | P2 | OllamaCloudClient、provider factory／設定、跨 provider translation fallback；`feat: add Ollama Cloud model provider` | 兩層可獨立選 provider；Cloud key／model 缺失 fail fast；參數隔離；strict JSON 與業務驗證；每次呼叫預算／usage；無隱藏重試 | 待開始 |
 | P3 | 移除 local route、Compose／env examples、服務文件與整合回歸；`refactor: retire local model routes and document cloud providers` | active runtime／設定樣板無 local route；舊 local 選擇明確報錯；Compose 使用假資料驗證；完整服務測試通過 | 待開始 |
 | P4 | 最終差異審查、驗收證據、進度結案；`docs: close cloud model provider implementation` | P0–P3 提交可追溯、工作產物已提交、無關修改未納入；清楚列出未執行的真實 Cloud 驗證與部署 | 待開始 |
@@ -64,7 +64,7 @@
 
 ## TODOs
 
-- [ ] P1 完成並提交。
+- [x] P1 完成；程式與本記錄於同一階段提交。
 - [ ] P2 完成並提交。
 - [ ] P3 完成並提交。
 - [ ] P4 審查與結案提交。
@@ -73,3 +73,5 @@
 ## 驗證與提交紀錄
 
 - 基準：先前針對 model client／settings／translation runtime／Luna runtime 的 50 個 mock tests 通過；未呼叫真實 API。
+
+- P1：`services/normalizer-classifier/.venv/bin/python -m pytest services/normalizer-classifier/tests -q --disable-warnings --tb=short`：126 passed；compileall 與 `git diff --check` 通過。既有 warning 為 Python 3.14／pytest-asyncio deprecation。日誌模組改為 `model_transport`，事件名稱與遮罩行為保持。

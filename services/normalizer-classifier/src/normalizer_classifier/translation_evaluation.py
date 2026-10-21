@@ -17,7 +17,9 @@ from uuid import uuid4
 import httpx
 from pydantic import ValidationError
 
-from .model_client import auxiliary_text_json_schema_response_format, auxiliary_text_system_prompt, validate_auxiliary_text_result, build_translation_model_clients, ModelClientError
+from .model_tasks import auxiliary_text_json_schema_response_format, auxiliary_text_system_prompt, validate_auxiliary_text_result
+from .model_contracts import ModelClientError
+from .model_client import build_translation_model_clients
 from .models import AuxiliaryTextResult, RawItem, SourceMetadata, NormalizedItem
 from .settings import Settings
 from .news_fact_guards import figures

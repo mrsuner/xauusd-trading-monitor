@@ -6,7 +6,7 @@ import socket
 from uuid import uuid4
 
 from .db import Database
-from .model_client import ModelClientError, OpenAIStyleModelClient
+from .model_contracts import ModelClientError, ModelClient
 from .normalization import normalize_item
 from .settings import Settings
 
@@ -18,8 +18,8 @@ class NormalizerClassifierWorker:
         self,
         settings: Settings,
         db: Database,
-        model_client: OpenAIStyleModelClient,
-        translation_model_clients: list[OpenAIStyleModelClient] | None = None,
+        model_client: ModelClient,
+        translation_model_clients: list[ModelClient] | None = None,
     ) -> None:
         self.settings = settings
         self.db = db

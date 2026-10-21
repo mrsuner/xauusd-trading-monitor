@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import json
 import logging
 from datetime import datetime, timezone
@@ -9,13 +10,10 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from normalizer_classifier.model_client import (
-    ModelClientError,
-    OpenAIStyleModelClient,
-    build_auxiliary_model_client,
-    build_translation_model_clients,
-    auxiliary_text_json_schema_response_format,
-)
+from normalizer_classifier.openrouter_client import OpenRouterClient
+from normalizer_classifier.model_tasks import auxiliary_text_json_schema_response_format
+from normalizer_classifier.model_contracts import ModelClientError
+from normalizer_classifier.model_client import build_auxiliary_model_client, build_translation_model_clients
 from normalizer_classifier.models import AuxiliaryTextResult, ClassificationResult, NormalizedItem, RawItem, SourceMetadata
 from normalizer_classifier.settings import Settings
 from normalizer_classifier.taxonomy import CategoryOption, TagOption, TaxonomyContext
@@ -93,7 +91,7 @@ async def test_openai_style_model_client_parses_json_response(monkeypatch) -> No
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="cloud_small",
         base_url="https://api.example.test/v1/",
         api_key="test-key",
@@ -147,7 +145,7 @@ async def test_openai_style_model_client_rejects_unknown_domain(monkeypatch) -> 
     json_module = json
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="cloud_small",
         base_url="https://api.example.test/v1/",
         api_key="test-key",
@@ -187,7 +185,7 @@ async def test_openai_style_model_client_logs_api_request_and_response(monkeypat
     json_module = json
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="cloud_small",
         base_url="https://api.example.test/v1/",
         api_key="test-key",
@@ -196,7 +194,7 @@ async def test_openai_style_model_client_logs_api_request_and_response(monkeypat
         response_format="json_object",
     )
 
-    with caplog.at_level(logging.DEBUG, logger="normalizer_classifier.model_client"):
+    with caplog.at_level(logging.DEBUG, logger="normalizer_classifier.model_transport"):
         await client.classify(raw_item, source, normalized)
 
     request_record = next(record for record in caplog.records if record.message == "ai_model_api_request")
@@ -232,7 +230,7 @@ async def test_openai_style_model_client_can_omit_json_response_format(monkeypat
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="local_8b",
         base_url="http://localhost:11434/v1",
         api_key=None,
@@ -280,7 +278,7 @@ async def test_openai_style_model_client_supports_json_schema_reasoning_content(
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="local_8b",
         base_url="http://localhost:1234/v1",
         api_key=None,
@@ -318,7 +316,7 @@ async def test_openai_style_model_client_sends_reasoning_effort(monkeypatch) -> 
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="local_8b",
         base_url="http://localhost:11434/v1",
         api_key=None,
@@ -366,7 +364,7 @@ async def test_openai_style_model_client_summarizes_with_openrouter_headers(monk
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="openrouter_free",
         base_url="https://openrouter.ai/api/v1",
         api_key="openrouter-key",
@@ -422,7 +420,7 @@ async def test_openai_style_model_client_parses_auxiliary_translations_array(mon
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="translation_primary",
         base_url="https://api.example.test/v1",
         api_key="test-key",
@@ -473,7 +471,7 @@ async def test_openai_style_model_client_requires_configured_translation_languag
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
 
     raw_item, source, normalized = make_objects()
-    client = OpenAIStyleModelClient(
+    client = OpenRouterClient(
         provider="translation_primary",
         base_url="https://api.example.test/v1",
         api_key="test-key",

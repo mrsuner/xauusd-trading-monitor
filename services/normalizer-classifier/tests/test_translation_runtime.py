@@ -3,7 +3,9 @@ import json
 
 import pytest
 
-from normalizer_classifier.model_client import ModelClientError, build_translation_model_clients, validate_auxiliary_text_result
+from normalizer_classifier.model_tasks import validate_auxiliary_text_result
+from normalizer_classifier.model_contracts import ModelClientError
+from normalizer_classifier.model_client import build_translation_model_clients
 from normalizer_classifier.models import AuxiliaryTextResult
 from normalizer_classifier.settings import Settings
 from test_model_client import make_objects
