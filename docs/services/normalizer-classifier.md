@@ -223,8 +223,9 @@ Layer 1 單次 API call 直接產生多語 `translations[]`：
 }
 ```
 
-Layer 1 only owns translated text and translation status. A translation failure
-does not clear or replace taxonomy produced by Layer 2.
+Layer 1 僅負責翻譯文字與狀態，失敗不清除或替換 Layer 2 的 taxonomy。Layer 2 transaction 已 commit 後，usage／翻譯的儲存失敗會記錄 error log，不把已完成的分類 task 改回 failed／retry。翻譯的 API 與 storage 錯誤分開處理；DB 失敗不觸發另一個 provider，也不將成功翻譯覆寫為 failed rows。
+
+`TRANSLATION_REQUIRE_ALL_LANGUAGES=false` 僅允許少回部分語言，不允許已提供的語言缺少摘要，或在 full policy 下缺全文。空 enabled categories 只允許 `other`；空 enabled domains 要求 primary 為 null、relevant_domains 為空。
 
 Taxonomy 規則：
 
@@ -256,7 +257,7 @@ Token 來源：
 
 1. 優先使用 OpenAI-compatible response 的 `usage.prompt_tokens`、`usage.completion_tokens`、`usage.total_tokens`。
 2. 若 provider 未回 usage，使用 `tiktoken` 估算 input / output token，並在 `usage_json.estimated = true` 標記。
-3. 成本依 `usage.py` 的已知 provider／model 單價估算，並非帳單權威。Ollama Cloud 尚無本系統確認的單價，`estimated_cost_usd=null`；未知不等於免費。
+3. 成本依 `usage.py` 的已知 provider／model 單價估算，並非帳單權威。Ollama Cloud 尚無本系統確認的單價，`estimated_cost_usd=null`；未知不等於免費。缺 input／output 時不將未知量當零推導 total 或完整成本；tokenizer／cache 失敗仍保留原始模型結果／錯誤與 usage attempt，未知 token 保持 null，`usage_json.estimation_errors` 保存估算錯誤類別。
 
 `request_hash` 用於排查重複 call；DB usage 不保存完整 prompt。DEBUG HTTP log 會含請求與回應內容，憑證欄位有遮罩。
 
@@ -484,6 +485,8 @@ LOG_LEVEL=INFO
 OpenRouter 既有 `CLOUD_MODEL_*`（Layer 2）與 `TRANSLATION_MODEL_*`（Layer 1）設定保留。`CLOUD_MODEL_TIMEOUT_SECONDS`／`TRANSLATION_MODEL_TIMEOUT_SECONDS` 留空時沿用 `MODEL_TIMEOUT_SECONDS`。`OPENROUTER_MODEL_API_KEY` 仍可作翻譯 key 的既有 fallback；不會被借給 Ollama Cloud。
 
 Ollama Cloud 各 Layer 使用 `OLLAMA_CLOUD_CLASSIFICATION_MODEL`／`OLLAMA_CLOUD_TRANSLATION_MODEL`、各自 timeout 與可選 reasoning effort。只在啟用對應 route 時檢查 key／model；預設不送 reasoning 參數。`TRANSLATION_FALLBACK_MODEL_NAME` 指定備援 provider 的 model。若 fallback provider 是 OpenRouter，使用 `TRANSLATION_MODEL_*`；若為 Ollama Cloud，使用 `OLLAMA_*` 的翻譯設定。
+
+OpenRouter 解析會拒絕已知非正常 `finish_reason`／refusal，即使 content 是有效 JSON；缺 finish_reason 時保留既有相容行為。
 
 OpenRouter 的 response format 可選 `none`、`json_object`、`json_schema`、`text`；reasoning effort `none` 會轉成 OpenRouter 的 `reasoning.enabled=false`。這些選項不會套用到 Ollama Cloud。OpenRouter 可設定 referer／app title headers；[舊模型測試 prompt](../model-evaluation-openrouter.md) 只供人工評估參考。
 
