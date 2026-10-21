@@ -208,3 +208,14 @@ MiniMax 共 7560 input tokens、13465 output tokens，程式結構／業務驗�
 - 本輪只驗證三個短 RSS 輸入與本地真實 DB 回寫，未涵蓋長文、事件插入分支、production 容量或正式模型品質 admission。
 
 完整實際參數、逐筆 API／DB usage、輸出、狀態與耗時見 [T3 evidence](evidence/2026-10-21-ollama-cloud-glm-real-news.json)。本輪驗收結果：兩層實際使用指定模型與 requested low、三則分類／翻譯成功回寫、六筆 usage 與時間可核對、處理程序已停止、未部署；上述內容品質事項留待後續校準。本地 evidence 另存於 ignored `var/evaluations/glm-real-news-20261021/`。
+
+
+## 接受決策與部署預檢（P5，2026-10-21）
+
+使用者接受目前已記錄的內容品質缺陷，包括加薩消息無來源的 `iran` tag、RSS 標題與摘要重複，以及前述小樣本語言／分類限制，要求提交變更並進行部署 preflight。這是接受已知缺陷，不是宣稱缺陷已修復或完成全面品質認證。
+
+部署候選：HomeLab 的 `normalizer-classifier`，Layer 1／Layer 2 均使用 Ollama Cloud `glm-5.3-flash`、requested `reasoning_effort=low`，沿用目前私有 `infra/.env.dev` 中的同一把 `OLLAMA_API_KEY`。key 只在私有輸入或程序記憶體傳遞，禁止納入 Git、報告、image layer 或命令列參數；不以 development env 覆蓋 production env。
+
+本輪只授權提交與 preflight；檢查本地程式／Compose、候選 image、HomeLab 現況與 schema 相容性。既有 runtime／測試證據已分階段提交至 `b03abdd`。VPS、Cloudflare Pages、production env 寫入、image push、服務重建、migration 執行與正式部署不在本輪範圍。所有既有無關 dirty changes 均排除。
+
+Preflight 進度與結果另於完成後回寫；若存在生產相容性、發布來源或備份 gate 缺口，須如實列為待處理，不能把本地通過視為 production admission。
