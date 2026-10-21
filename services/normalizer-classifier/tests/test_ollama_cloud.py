@@ -81,6 +81,31 @@ async def test_cloud_request_and_usage_are_independent(monkeypatch, caplog, laye
     assert "cloud-key" not in caplog.text
 
 
+@pytest.mark.parametrize("language,limit", [("zh-Hant", 280), ("en", 400)])
+@pytest.mark.parametrize("extra", [0, 1])
+async def test_cloud_summary_length_boundaries_still_apply(monkeypatch, language, limit, extra):
+    client = build_translation_model_clients(settings(TRANSLATION_MODEL_PROVIDER="ollama_cloud"))[0]
+    value = translations().model_dump()
+    row = next(row for row in value["translations"] if row["language"] == language)
+    row["summary"] = ("據" if language == "zh-Hant" else "a") * (limit + extra)
+    calls = []
+
+    async def fake_post(payload, **kwargs):
+        calls.append(payload)
+        return envelope(value)
+
+    monkeypatch.setattr(client, "_post_chat_completions", fake_post)
+    if extra:
+        with pytest.raises(ModelClientError, match=f"summary too long: {language}") as caught:
+            await client.summarize_and_translate(*make_objects())
+        assert caught.value.usage.success is False
+    else:
+        response = await client.summarize_and_translate(*make_objects())
+        assert response.result.translation_for(language).summary == row["summary"]
+    assert len(calls) == 1
+    assert len(row["summary"]) == limit + extra
+
+
 @pytest.mark.parametrize("layer", ["classification", "translation"])
 @pytest.mark.parametrize("failure", ["empty", "reasoning_only", "length", "refusal", "json", "fenced", "choices", "message", "content_type"])
 async def test_cloud_rejects_invalid_answers_with_usage(monkeypatch, layer, failure):

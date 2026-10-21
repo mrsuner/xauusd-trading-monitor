@@ -70,6 +70,15 @@ class OllamaCloudClient:
             " Return exactly one JSON object matching this schema. No Markdown, commentary, or reasoning in the answer. "
             + json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
         )
+        if ai_layer == "translation_summary":
+            # Leave headroom below the shared validator's character limits.
+            payload["messages"][0]["content"] += (
+                " Write each summary as one short sentence. Aim for at most 120 characters for zh-Hant "
+                "and 220 characters for each other language, counting spaces and punctuation. "
+                "Put supporting details in full_translation rather than the summary. "
+                "Preserve attribution and uncertainty even in the short summary. "
+                "Check summary length before returning JSON and shorten it if needed."
+            )
         payload["stream"] = False
         if self.reasoning_effort:
             payload["reasoning_effort"] = self.reasoning_effort

@@ -243,3 +243,22 @@ P5 結果：**技術 preflight 通過；正式 deployment gates 尚待執行**�
 5. 部署後檢查實際 Cloud payload／usage、四語新聞產出與管線狀態。T3 的真實 RSS 回寫只驗證繁中／英文；四語 GLM 的 bounded 冒煙證據在 T1，並不替代 production 驗收。
 
 完整非敏感 preflight 證據見 [P5 evidence](evidence/2026-10-21-ollama-cloud-deployment-preflight.json)。本輪未變更任何 production 檔案、DB、runtime 或 image，未建立 VPS／Pages release。已接受的內容缺陷不再作為本次候選的阻擋項；上述尚待部署的實際 gates 仍須完成。
+
+
+## HomeLab scoped 部署（P6，2026-10-21，進行中）
+
+使用者明確授權完成備份／還原、處理 Git 發布分歧、推送 image 並部署 HomeLab，只更新 normalizer，沿用同 key，兩層固定 `glm-5.3-flash`／`low`，部署後檢查真實新聞。VPS 與公開網站不在部署範圍。
+
+已通過新備份 `glm-cloud-20261021T111037Z` 的 gate：來源與本機 age 密文 SHA256 相符，network-none PostgreSQL16.14 原生完整還原完成，25 張表行數、15 張核心表內容 fingerprint 與來源 roles／ownership 全部相符；驗證資源與明文已清理。首次 verifier 在初始化階段載入 roles 失敗；獨立 roles probe 通過，改為等待正式 PID1 PostgreSQL 就緒後重跑，全驗證通過。此過程沒有變更 production。
+
+本次 11 個提交已 scoped 重放為 `b23b710` 至 `293a5f0`，遠端 develop 從 `1ee96ae` fast-forward 至 `293a5f0`；main 保持 `3de3c102`。本機 develop 整合遠端，原有 32 檔未提交內容逐一 SHA256 保留，其他本機未發布工作沒有推送。
+
+18:39:02 Asia/Bangkok 首次只重建兩個 normalizer，image=`normalizer-classifier:293a5f0`、registry manifest=`sha256:d9c705e836a3059220cf6bb4f5cc5bad2c2897911c70a3b153192a60459f6ce5`。它重用 preflight 原 image 的 config digest `sha256:f2a9c5d2d026831ede667894fd870b23a83e37b6fd6294c4ffed64fc15918dba`，來源程式內容相同，避免重新解析依賴。HomeLab containerd 以 manifest digest 顯示 image ID，本機 classic store 以 config digest 顯示；已核對 manifest 的 config digest 與全部 RootFS layers，一致後才切換。其他服務 IDs／images／started_at 全部不變。四語設定與 OpenRouter key 保留，沒有 migration、VPS 或 Pages 變更。
+
+### Production 摘要長度修正
+
+第一則自然進入的真實新聞為 `https://t.me/Tasnimnews/453031`。Layer 2 成功（score=10、不相關，6.248 s），Layer 1 首次（20.502 s）及一次明確的 translation-only 手動重試均因英文摘要超過 400 字元被拒；失敗 usage 留存，分類沒有被重跑。這是 production 新發現的輸出可靠性問題，不能混同先前已接受的 tag／重複輸入限制。
+
+只在 Ollama client 的 `translation_summary` prompt 加上保守的單句摘要目標：繁中 120 字元、其他語言 220 字元，保留歸因／不確定性；細節放在全文翻譯。既有繁中 280／其他 400 的 hard validation、分類 prompt、OpenRouter、key、model、effort 與 retry/fallback 契約均保持。沒有截字、JSON 修復或新增隱藏重試。
+
+同一真實輸入的有界 live 檢查通過（1 request、20.346 s；摘要長度 zh-Hant=46、en=162、th=141、ja=78，四語全文齊全，未寫 DB）。新增四個摘要邊界回歸案例，完整 mock suite 265 passed。這是 prompt headroom 的實測改善，仍不是 Cloud 原生 structured-output 或永不超長的保證。見 [summary headroom evidence](evidence/2026-10-21-ollama-cloud-summary-headroom.json)。修正 image 發布、第二次 scoped 切換與真實新聞驗收完成後，續寫本節。
