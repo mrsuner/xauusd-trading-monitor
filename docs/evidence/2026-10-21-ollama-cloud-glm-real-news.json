@@ -1,0 +1,700 @@
+{
+  "started_at": "2026-10-21T09:01:13.300178+00:00",
+  "kind": "bounded-real-news-local-worker-round",
+  "api_requests": [
+    {
+      "ai_layer": "classification_reasoning",
+      "request_kind": "classify_raw_item",
+      "model_sent": "glm-5.3-flash",
+      "reasoning_effort_sent": "low",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "stream": false,
+      "max_tokens": null,
+      "started_at": "2026-10-21T09:01:13.337329+00:00",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop",
+      "api_usage": {
+        "prompt_tokens": 2218,
+        "completion_tokens": 369,
+        "total_tokens": 2587,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "http_success": true,
+      "wall_latency_ms": 3838.12
+    },
+    {
+      "ai_layer": "translation_summary",
+      "request_kind": "translate_summary",
+      "model_sent": "glm-5.3-flash",
+      "reasoning_effort_sent": "low",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "stream": false,
+      "max_tokens": null,
+      "started_at": "2026-10-21T09:01:17.203645+00:00",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop",
+      "api_usage": {
+        "prompt_tokens": 1018,
+        "completion_tokens": 185,
+        "total_tokens": 1203,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "http_success": true,
+      "wall_latency_ms": 3602.76
+    },
+    {
+      "ai_layer": "classification_reasoning",
+      "request_kind": "classify_raw_item",
+      "model_sent": "glm-5.3-flash",
+      "reasoning_effort_sent": "low",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "stream": false,
+      "max_tokens": null,
+      "started_at": "2026-10-21T09:01:20.840627+00:00",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop",
+      "api_usage": {
+        "prompt_tokens": 2265,
+        "completion_tokens": 308,
+        "total_tokens": 2573,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "http_success": true,
+      "wall_latency_ms": 4733.09
+    },
+    {
+      "ai_layer": "translation_summary",
+      "request_kind": "translate_summary",
+      "model_sent": "glm-5.3-flash",
+      "reasoning_effort_sent": "low",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "stream": false,
+      "max_tokens": null,
+      "started_at": "2026-10-21T09:01:25.594118+00:00",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop",
+      "api_usage": {
+        "prompt_tokens": 999,
+        "completion_tokens": 188,
+        "total_tokens": 1187,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "http_success": true,
+      "wall_latency_ms": 3419.1
+    },
+    {
+      "ai_layer": "classification_reasoning",
+      "request_kind": "classify_raw_item",
+      "model_sent": "glm-5.3-flash",
+      "reasoning_effort_sent": "low",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "stream": false,
+      "max_tokens": null,
+      "started_at": "2026-10-21T09:01:29.050761+00:00",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop",
+      "api_usage": {
+        "prompt_tokens": 2306,
+        "completion_tokens": 405,
+        "total_tokens": 2711,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "http_success": true,
+      "wall_latency_ms": 3365.7
+    },
+    {
+      "ai_layer": "translation_summary",
+      "request_kind": "translate_summary",
+      "model_sent": "glm-5.3-flash",
+      "reasoning_effort_sent": "low",
+      "endpoint": "https://ollama.com/v1/chat/completions",
+      "stream": false,
+      "max_tokens": null,
+      "started_at": "2026-10-21T09:01:32.426928+00:00",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop",
+      "api_usage": {
+        "prompt_tokens": 1011,
+        "completion_tokens": 233,
+        "total_tokens": 1244,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "http_success": true,
+      "wall_latency_ms": 3203.76
+    }
+  ],
+  "claimed": [
+    {
+      "raw_item_id": "ca2ef5e6-4ded-4f31-87cd-13f59fb70698",
+      "processing_id": "ecc00b3b-cd9b-45e9-a5e3-a1713adf091b",
+      "title": "Department of War and BAE Systems Sign Framework Agreement to Surge Counter-Drone Production to 25,000 Precision Interceptors Annually",
+      "source": "CENTCOM Press Releases",
+      "url": "https://www.war.gov/News/Releases/Release/Article/4628487/department-of-war-and-bae-systems-sign-framework-agreement-to-surge-counter-dro/",
+      "published_at": "2026-10-19 22:00:30+07:00",
+      "input_chars": 0
+    },
+    {
+      "raw_item_id": "bd1d40e5-4100-4111-b196-4af39101327e",
+      "processing_id": "df1c3f4b-0245-4112-a66b-455ec389e3c9",
+      "title": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+      "source": "Federal Reserve RSS",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20261016a.htm",
+      "published_at": "2026-10-16 22:00:00+07:00",
+      "input_chars": 120
+    },
+    {
+      "raw_item_id": "dd857c5f-0729-4b33-b450-653dee792910",
+      "processing_id": "c99cbdd0-cb3a-4757-9e50-febdaa0aeb33",
+      "title": "Gaza Health Ministry warns of hospital power collapse",
+      "source": "Mehr News RSS",
+      "url": "https://en.mehrnews.com/news/248787/Gaza-Health-Ministry-warns-of-hospital-power-collapse",
+      "published_at": "2026-10-21 14:00:51+07:00",
+      "input_chars": 175
+    }
+  ],
+  "local_db_writes": true,
+  "deployment": false,
+  "max_classification_calls": 3,
+  "max_translation_calls": 3,
+  "languages": [
+    "zh-Hant",
+    "en"
+  ],
+  "request_payload_mutated": false,
+  "runtime_source_commit": "8846df1",
+  "errors": [],
+  "worker_wall_seconds": 72.574,
+  "finished_at": "2026-10-21T09:02:25.892760+00:00",
+  "stored_results": [
+    {
+      "id": "ca2ef5e6-4ded-4f31-87cd-13f59fb70698",
+      "title": "Department of War and BAE Systems Sign Framework Agreement to Surge Counter-Drone Production to 25,000 Precision Interceptors Annually",
+      "url": "https://www.war.gov/News/Releases/Release/Article/4628487/department-of-war-and-bae-systems-sign-framework-agreement-to-surge-counter-dro/",
+      "published_at": "2026-10-19 22:00:30+07:00",
+      "translation_status": "completed",
+      "translation_model_provider": "translation_primary",
+      "translation_model": "glm-5.3-flash",
+      "translation_error": null,
+      "status": "completed",
+      "stage": "completed",
+      "is_relevant": true,
+      "relevance_score": 45,
+      "model_provider": "cloud_small",
+      "model_name": "glm-5.3-flash",
+      "model_output_json": {
+        "actors": [
+          "Department of War",
+          "BAE Systems"
+        ],
+        "reason": "Defense industrial expansion signals US concern over drone threats, mildly relevant to geopolitical risk sentiment but not a direct escalation event.",
+        "region": "United States",
+        "summaries": [
+          {
+            "summary": "美國戰爭部與BAE系統簽署框架協議，計劃將反無人機攔截器產量提升至每年25,000枚，反映美方強化防空與無人機威脅應對的工業產能擴張。",
+            "language": "zh-Hant"
+          },
+          {
+            "summary": "The US Department of War and BAE Systems signed a framework agreement to scale counter-drone output to 25,000 precision interceptors per year, expanding defense industrial capacity against drone threats.",
+            "language": "en"
+          }
+        ],
+        "claim_text": "Department of War and BAE Systems signed a framework agreement to surge counter-drone production to 25,000 precision interceptors annually.",
+        "confidence": 70,
+        "event_type": "defense_industrial_agreement",
+        "topic_tags": [
+          "united-states",
+          "drones",
+          "defense-industry",
+          "counter-drone"
+        ],
+        "is_relevant": true,
+        "primary_actor": "Department of War",
+        "source_stance": "official",
+        "primary_domain": "geopolitics",
+        "claim_direction": "neutral",
+        "relevance_score": 45,
+        "secondary_actor": "BAE Systems",
+        "content_category": "military",
+        "market_relevance": "Indirect; reflects elevated defense posture amid drone threat environment.",
+        "relevant_domains": [
+          "geopolitics"
+        ],
+        "requires_confirmation": false,
+        "xauusd_impact_channel": [
+          "geopolitics",
+          "safe_haven"
+        ]
+      },
+      "normalized_json": {
+        "language": "en",
+        "text_clean": "Department of War and BAE Systems Sign Framework Agreement to Surge Counter-Drone Production to 25,000 Precision Interceptors Annually",
+        "filter_reason": null,
+        "keyword_score": 30,
+        "matched_domains": [
+          "geopolitics"
+        ],
+        "matched_keywords": [
+          "geopolitics:military"
+        ],
+        "prefilter_passed": true,
+        "selected_domains": [
+          "geopolitics"
+        ],
+        "routing_config_version": "a3a006ef84eff5fb5be37b92797f040a61058c8d7e08cad7e488b286ec63a568"
+      },
+      "event_id": null,
+      "error_message": null
+    },
+    {
+      "id": "bd1d40e5-4100-4111-b196-4af39101327e",
+      "title": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20261016a.htm",
+      "published_at": "2026-10-16 22:00:00+07:00",
+      "translation_status": "completed",
+      "translation_model_provider": "translation_primary",
+      "translation_model": "glm-5.3-flash",
+      "translation_error": null,
+      "status": "completed",
+      "stage": "completed",
+      "is_relevant": false,
+      "relevance_score": 5,
+      "model_provider": "cloud_small",
+      "model_name": "glm-5.3-flash",
+      "model_output_json": {
+        "actors": [
+          "Federal Reserve",
+          "Gardner Bancshares",
+          "Small Business Bank"
+        ],
+        "reason": "Routine bank enforcement termination; no bearing on rates, liquidity, dollar or gold-relevant channels.",
+        "region": "united-states",
+        "summaries": [
+          {
+            "summary": "美國聯準會宣布終止與Gardner Bancshares及Small Business Bank相關的執法行動，屬例行監管公告，不涉及貨幣政策或利率決策。",
+            "language": "zh-Hant"
+          },
+          {
+            "summary": "The Federal Reserve Board announced termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank. This is a routine supervisory matter with no monetary policy or rate implications.",
+            "language": "en"
+          }
+        ],
+        "claim_text": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+        "confidence": 90,
+        "event_type": "regulatory_enforcement",
+        "topic_tags": [
+          "fed",
+          "united-states"
+        ],
+        "is_relevant": false,
+        "primary_actor": "Federal Reserve",
+        "source_stance": "official",
+        "primary_domain": null,
+        "claim_direction": "neutral",
+        "relevance_score": 5,
+        "secondary_actor": null,
+        "content_category": "routine",
+        "market_relevance": null,
+        "relevant_domains": [],
+        "requires_confirmation": false,
+        "xauusd_impact_channel": []
+      },
+      "normalized_json": {
+        "language": "en",
+        "text_clean": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+        "filter_reason": null,
+        "keyword_score": 30,
+        "matched_domains": [
+          "monetary"
+        ],
+        "matched_keywords": [
+          "monetary:fed"
+        ],
+        "prefilter_passed": true,
+        "selected_domains": [
+          "monetary"
+        ],
+        "routing_config_version": "a3a006ef84eff5fb5be37b92797f040a61058c8d7e08cad7e488b286ec63a568"
+      },
+      "event_id": null,
+      "error_message": null
+    },
+    {
+      "id": "dd857c5f-0729-4b33-b450-653dee792910",
+      "title": "Gaza Health Ministry warns of hospital power collapse",
+      "url": "https://en.mehrnews.com/news/248787/Gaza-Health-Ministry-warns-of-hospital-power-collapse",
+      "published_at": "2026-10-21 14:00:51+07:00",
+      "translation_status": "completed",
+      "translation_model_provider": "translation_primary",
+      "translation_model": "glm-5.3-flash",
+      "translation_error": null,
+      "status": "completed",
+      "stage": "completed",
+      "is_relevant": true,
+      "relevance_score": 35,
+      "model_provider": "cloud_small",
+      "model_name": "glm-5.3-flash",
+      "model_output_json": {
+        "actors": [
+          "Gaza Health Ministry"
+        ],
+        "reason": "Humanitarian fuel shortage in Gaza conflict zone; marginal safe-haven relevance, no direct monetary or oil-supply market channel.",
+        "region": "gaza",
+        "summaries": [
+          {
+            "summary": "加薩衛生部警告，當地醫院發電機所需的燃油已完全耗盡，醫療系統面臨停電危機。此消息反映加薩人道與基礎設施情況惡化，屬中東局勢的邊緣風險訊號，對金市的直接影響有限，但可能加劇地緣避險情緒。",
+            "language": "zh-Hant"
+          },
+          {
+            "summary": "Gaza's Health Ministry says fuel for hospital generators has completely run out, warning of an imminent power collapse in medical facilities. A humanitarian infrastructure warning tied to the Middle East conflict; limited direct market impact but adds to regional geopolitical risk sentiment.",
+            "language": "en"
+          }
+        ],
+        "claim_text": "Gaza Health Ministry warns hospital generator fuel supplies have completely run out, risking power collapse.",
+        "confidence": 60,
+        "event_type": "humanitarian_infrastructure",
+        "topic_tags": [
+          "israel",
+          "iran",
+          "oil"
+        ],
+        "is_relevant": true,
+        "primary_actor": "Gaza Health Ministry",
+        "source_stance": "semi_official_iranian_conservative",
+        "primary_domain": "geopolitics",
+        "claim_direction": "warn",
+        "relevance_score": 35,
+        "secondary_actor": null,
+        "content_category": "military",
+        "market_relevance": "low",
+        "relevant_domains": [
+          "geopolitics",
+          "energy"
+        ],
+        "requires_confirmation": true,
+        "xauusd_impact_channel": [
+          "safe_haven",
+          "geopolitics"
+        ]
+      },
+      "normalized_json": {
+        "language": "en",
+        "text_clean": "Gaza Health Ministry warns of hospital power collapse TEHRAN, Oct. 21 (MNA) – The Ministry of Health has warned that supplies of oil required to operate electric generators across hospitals in the enclave have completely run out.",
+        "filter_reason": null,
+        "keyword_score": 30,
+        "matched_domains": [
+          "energy",
+          "geopolitics"
+        ],
+        "matched_keywords": [
+          "geopolitics:iran",
+          "energy:oil"
+        ],
+        "prefilter_passed": true,
+        "selected_domains": [
+          "energy",
+          "geopolitics"
+        ],
+        "routing_config_version": "a3a006ef84eff5fb5be37b92797f040a61058c8d7e08cad7e488b286ec63a568"
+      },
+      "event_id": null,
+      "error_message": null
+    }
+  ],
+  "stored_translations": [
+    {
+      "id": "8f949358-ca7b-4154-80f7-d05fc7d466b1",
+      "raw_item_id": "bd1d40e5-4100-4111-b196-4af39101327e",
+      "language": "en",
+      "summary": "The Federal Reserve Board announces the termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank.",
+      "full_translation": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank. Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank.",
+      "status": "completed",
+      "model_provider": "translation_primary",
+      "model": "glm-5.3-flash",
+      "error": null,
+      "input_chars": 241,
+      "updated_at": "2026-10-21 16:01:29.000177+07:00",
+      "created_at": "2026-10-21 16:01:29.000177+07:00"
+    },
+    {
+      "id": "7c94e445-4a95-4687-8c72-fba4369cbde6",
+      "raw_item_id": "bd1d40e5-4100-4111-b196-4af39101327e",
+      "language": "zh-Hant",
+      "summary": "聯準會宣布終止與 Gardner Bancshares, Inc. 及 Small Business Bank 相關的執法行動。",
+      "full_translation": "聯邦準備理事會宣布終止與 Gardner Bancshares, Inc. 及 Small Business Bank 相關的執法行動。聯邦準備理事會宣布終止與 Gardner Bancshares, Inc. 及 Small Business Bank 相關的執法行動。",
+      "status": "completed",
+      "model_provider": "translation_primary",
+      "model": "glm-5.3-flash",
+      "error": null,
+      "input_chars": 241,
+      "updated_at": "2026-10-21 16:01:29.000177+07:00",
+      "created_at": "2026-10-21 16:01:29.000177+07:00"
+    },
+    {
+      "id": "6c7d2879-7baa-4536-9072-5e2fdedd30cd",
+      "raw_item_id": "ca2ef5e6-4ded-4f31-87cd-13f59fb70698",
+      "language": "en",
+      "summary": "The Department of War and BAE Systems have signed a framework agreement to surge counter-drone production to 25,000 precision interceptors annually, according to an official press release.",
+      "full_translation": "Department of War and BAE Systems Sign Framework Agreement to Surge Counter-Drone Production to 25,000 Precision Interceptors Annually",
+      "status": "completed",
+      "model_provider": "translation_primary",
+      "model": "glm-5.3-flash",
+      "error": null,
+      "input_chars": 134,
+      "updated_at": "2026-10-21 16:01:20.786076+07:00",
+      "created_at": "2026-10-21 16:01:20.786076+07:00"
+    },
+    {
+      "id": "6f7ffa5c-594e-454f-96e1-291e662e9167",
+      "raw_item_id": "ca2ef5e6-4ded-4f31-87cd-13f59fb70698",
+      "language": "zh-Hant",
+      "summary": "戰爭部與BAE Systems簽署框架協議,據官方新聞稿,將把反無人機精確攔截器的年產量提升至25,000枚。",
+      "full_translation": "戰爭部與BAE Systems簽署框架協議,將把反無人機精確攔截器的年產量提升至25,000枚。",
+      "status": "completed",
+      "model_provider": "translation_primary",
+      "model": "glm-5.3-flash",
+      "error": null,
+      "input_chars": 134,
+      "updated_at": "2026-10-21 16:01:20.786076+07:00",
+      "created_at": "2026-10-21 16:01:20.786076+07:00"
+    },
+    {
+      "id": "c89d4c0c-d7f0-4dab-82ae-a5c6aabdeb11",
+      "raw_item_id": "dd857c5f-0729-4b33-b450-653dee792910",
+      "language": "en",
+      "summary": "Gaza's Health Ministry has warned of an impending hospital power collapse, saying supplies of oil needed to operate electric generators across hospitals in the enclave have completely run out.",
+      "full_translation": "Gaza Health Ministry warns of hospital power collapse\nTEHRAN, Oct. 21 (MNA) – The Ministry of Health has warned that supplies of oil required to operate electric generators across hospitals in the enclave have completely run out.",
+      "status": "completed",
+      "model_provider": "translation_primary",
+      "model": "glm-5.3-flash",
+      "error": null,
+      "input_chars": 229,
+      "updated_at": "2026-10-21 16:01:35.610930+07:00",
+      "created_at": "2026-10-21 16:01:35.610930+07:00"
+    },
+    {
+      "id": "60d234e6-3e2c-48c8-a0d0-a732cbabf9b6",
+      "raw_item_id": "dd857c5f-0729-4b33-b450-653dee792910",
+      "language": "zh-Hant",
+      "summary": "據加沙衛生部警告,當地醫院面臨電力崩潰危機。該部門表示,加沙地帶各醫院運作發電機所需的燃油已完全耗盡。",
+      "full_translation": "加沙衛生部警告醫院電力崩潰\n德黑蘭,10月21日(MNA)——衛生部警告,加沙地帶各醫院運作發電機所需的燃油供應已完全耗盡。",
+      "status": "completed",
+      "model_provider": "translation_primary",
+      "model": "glm-5.3-flash",
+      "error": null,
+      "input_chars": 229,
+      "updated_at": "2026-10-21 16:01:35.610930+07:00",
+      "created_at": "2026-10-21 16:01:35.610930+07:00"
+    }
+  ],
+  "stored_usage": [
+    {
+      "raw_item_id": "ca2ef5e6-4ded-4f31-87cd-13f59fb70698",
+      "ai_layer": "classification_reasoning",
+      "route_name": "cloud_small",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "request_kind": "classify_raw_item",
+      "input_tokens": 2218,
+      "output_tokens": 369,
+      "total_tokens": 2587,
+      "latency_ms": 3839,
+      "success": true,
+      "error_type": null,
+      "error_message": null,
+      "estimated_cost_usd": null,
+      "usage_json": {
+        "total_tokens": 2587,
+        "prompt_tokens": 2218,
+        "completion_tokens": 369,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "request_hash": "802f7cfcd14807d8eb37ac816ea34c2a6005ccecc08a4dcbfbe51677c9f010ad"
+    },
+    {
+      "raw_item_id": "ca2ef5e6-4ded-4f31-87cd-13f59fb70698",
+      "ai_layer": "translation_summary",
+      "route_name": "translation_primary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "request_kind": "translate_summary",
+      "input_tokens": 1018,
+      "output_tokens": 185,
+      "total_tokens": 1203,
+      "latency_ms": 3604,
+      "success": true,
+      "error_type": null,
+      "error_message": null,
+      "estimated_cost_usd": null,
+      "usage_json": {
+        "total_tokens": 1203,
+        "prompt_tokens": 1018,
+        "completion_tokens": 185,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "request_hash": "fcf65cdeb1b29f8bb2964c74e305c9cb91ec65e4256f9ee4e4de302eeba7d1a7"
+    },
+    {
+      "raw_item_id": "bd1d40e5-4100-4111-b196-4af39101327e",
+      "ai_layer": "classification_reasoning",
+      "route_name": "cloud_small",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "request_kind": "classify_raw_item",
+      "input_tokens": 2265,
+      "output_tokens": 308,
+      "total_tokens": 2573,
+      "latency_ms": 4733,
+      "success": true,
+      "error_type": null,
+      "error_message": null,
+      "estimated_cost_usd": null,
+      "usage_json": {
+        "total_tokens": 2573,
+        "prompt_tokens": 2265,
+        "completion_tokens": 308,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "request_hash": "7733c63aae99910505d6d36cd4c701e2578e5b8fdc20ed719b12f35bd438c7fd"
+    },
+    {
+      "raw_item_id": "bd1d40e5-4100-4111-b196-4af39101327e",
+      "ai_layer": "translation_summary",
+      "route_name": "translation_primary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "request_kind": "translate_summary",
+      "input_tokens": 999,
+      "output_tokens": 188,
+      "total_tokens": 1187,
+      "latency_ms": 3420,
+      "success": true,
+      "error_type": null,
+      "error_message": null,
+      "estimated_cost_usd": null,
+      "usage_json": {
+        "total_tokens": 1187,
+        "prompt_tokens": 999,
+        "completion_tokens": 188,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "request_hash": "16a3676b39a7a0aecc0f3c8ae1cf2713312b83087400d9d6c551e8b85c8e1f25"
+    },
+    {
+      "raw_item_id": "dd857c5f-0729-4b33-b450-653dee792910",
+      "ai_layer": "classification_reasoning",
+      "route_name": "cloud_small",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "request_kind": "classify_raw_item",
+      "input_tokens": 2306,
+      "output_tokens": 405,
+      "total_tokens": 2711,
+      "latency_ms": 3366,
+      "success": true,
+      "error_type": null,
+      "error_message": null,
+      "estimated_cost_usd": null,
+      "usage_json": {
+        "total_tokens": 2711,
+        "prompt_tokens": 2306,
+        "completion_tokens": 405,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "request_hash": "c335f0107c5ad6f9c29cda6f067754bf4528e7ac0f28a4714faf7afaca5d76c6"
+    },
+    {
+      "raw_item_id": "dd857c5f-0729-4b33-b450-653dee792910",
+      "ai_layer": "translation_summary",
+      "route_name": "translation_primary",
+      "provider": "ollama_cloud",
+      "model_name": "glm-5.3-flash",
+      "request_kind": "translate_summary",
+      "input_tokens": 1011,
+      "output_tokens": 233,
+      "total_tokens": 1244,
+      "latency_ms": 3204,
+      "success": true,
+      "error_type": null,
+      "error_message": null,
+      "estimated_cost_usd": null,
+      "usage_json": {
+        "total_tokens": 1244,
+        "prompt_tokens": 1011,
+        "completion_tokens": 233,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "request_hash": "33b10de833ea2f6e326bea6772ff781a91e6cdb5021f8f7f9625224ec4ee48a4"
+    }
+  ],
+  "event_count": 0,
+  "local_schema_revision": "0026_ai_daily_budgets",
+  "processing_counts": [
+    {
+      "status": "completed",
+      "n": 3
+    }
+  ],
+  "public_outbox_rows": 0,
+  "evaluation_stop_reason": "All three classification and translation tasks committed; the evaluation process was interrupted while the standard worker was idling at its call budget. No in-flight request was interrupted.",
+  "request_processing_span_seconds": 22.293359,
+  "input_scope": "Live RSS titles and feed summaries fetched on 2026-10-21 using the existing rss-collector parser; linked article bodies were not fetched.",
+  "runtime_config_source": "infra/.env.dev (private, ignored); unchanged during this round",
+  "local_environment": {
+    "new_development_db_initialized": true,
+    "migrations_used": "existing Alembic revisions through 0026_ai_daily_budgets",
+    "postgres_loopback_port": 55432,
+    "postgres_stopped_after_round": true,
+    "data_volume_preserved": true,
+    "external_workers_started": false,
+    "alert_delivery_started": false,
+    "public_syncer_started": false
+  },
+  "summary": {
+    "items": 3,
+    "classification_successes": 3,
+    "translation_successes": 3,
+    "translation_rows": 6,
+    "all_requests_model_and_effort_verified": true,
+    "all_response_models_verified": true,
+    "all_finish_reasons_stop": true,
+    "classification_mean_latency_ms": 3979.3333333333335,
+    "translation_mean_latency_ms": 3409.3333333333335,
+    "input_tokens": 9817,
+    "output_tokens": 1688,
+    "actual_cost_usd": null,
+    "events": 0,
+    "event_score_threshold": 70,
+    "quality_admission_passed": false,
+    "quality_review_notes": [
+      "All three stored classification results and both language translations passed current validation; no retries, fallback, truncation or model errors were observed.",
+      "Gaza classification added an iran topic tag unsupported by the supplied title and RSS summary; military category also warrants calibration for a humanitarian infrastructure item.",
+      "The Fed title and RSS summary are identical. Existing normalization concatenates both and the full translation preserves the duplicate. This is an input-normalization issue, not evidence of an Ollama transport failure.",
+      "CENTCOM input contains only its headline; full_translation means all supplied text, not the linked article body.",
+      "This run uses the actual local zh-Hant/en configuration; no Thai or Japanese output was requested."
+    ]
+  }
+}

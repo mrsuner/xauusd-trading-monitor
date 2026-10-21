@@ -2,12 +2,12 @@
 
 ## Status
 
-- 狀態：Done（P0–P4／R1 實作完成；T1／T2 真實 Cloud 冒煙與對比測試完成，正式模型品質尚未驗收；未部署）
+- 狀態：Done（P0–P4／R1 實作完成；T1／T2 冒煙與對比、T3 本地真實 RSS 處理完成，正式模型品質尚未驗收；未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
 - 範圍：News normalizer-classifier 的 Layer 1／Layer 2；保留 OpenRouter，新增直接呼叫 Ollama Cloud 的獨立 client，退役早期 local LLM route。
-- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1／T2 的有界真實 Cloud 測試，結果另列於本文；正式模型品質／延遲驗收、production 啟用、發布與部署仍不在本次範圍。
+- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1／T2／T3 的有界真實 Cloud 測試，結果另列於本文；正式模型品質／延遲驗收、production 啟用、發布與部署仍不在本次範圍。
 
 ## 決策與目前實作
 
@@ -179,3 +179,32 @@ MiniMax 共 7560 input tokens、13465 output tokens，程式結構／業務驗�
 結論：兩者均可透過目前 Cloud adapter 完成任務；此樣本中 GLM requested low 延遲較低，MiniMax 預設 effort 在測試 ceiling 內完成翻譯，但兩者均有需改善的內容品質。尚未通過正式模型品質 admission，不據此切換常駐 provider／model。API 未回實際 USD cost，成本維持 null；catalog 標價或限時優惠不作實際帳單證據。
 
 完整非敏感輸入、輸出、逐筆 usage、配對 hashes 與統計見 [T2 evidence](evidence/2026-10-21-ollama-cloud-minimax-m3.1-flash.json)。執行程式來源為 `d3ec333`，GLM evidence 基準為 `89f7cf6`。T2 以獨立文件提交保存；本次僅新增對比證據與更新進度，不變更 runtime code。
+
+
+## 本地真實新聞處理（T3，2026-10-21）
+
+使用者明確要求在本地處理一輪真實新聞，核對 Layer 1／Layer 2 的 `glm-5.3-flash` 與 `reasoning_effort=low`、結果及耗時，暫不部署。先前已依使用者決定更新私有 `infra/.env.dev`，兩層均選 `ollama_cloud`；本輪不再次修改 env。
+
+本地 `127.0.0.1:55432` 當時沒有開發 PostgreSQL container 或資料卷，故透過既有 development Compose 建立本地 DB，執行現有 Alembic migrations 至 `0026_ai_daily_budgets`；沒有接觸遠端／production。透過既有 rss-collector HTTP／parser 取得 Federal Reserve、CENTCOM、Mehr News 的 live RSS，各選一則通過既有 routing 的消息，再由原有 `upsert_raw_item` 寫入本地 queue。輸入為 RSS 標題與摘要，沒有額外下載文章內文；CENTCOM 該則只有標題。
+
+執行方式：一次性 harness 直接執行既有 worker `_loop`，concurrency=1，程序內分類／翻譯預算各 3 次，不啟動其他服務。factory、prompt、schema、HTTP payload 與 DB 寫入沿用 runtime；未覆寫 token ceiling。六次實際 transport payload 均送往 `https://ollama.com/v1/chat/completions`、model=`glm-5.3-flash`、reasoning_effort=`low`，API 回傳 model 亦全部相符、`finish_reason=stop`。這能確認送出的參數與回應模型，不能由此量測服務端實際 reasoning 強度。
+
+| 真實 RSS 消息 | Layer 2 latency | Layer 1 latency | 分類結果 | 本地處理／翻譯 |
+| --- | --- | --- | --- | --- |
+| CENTCOM：反無人機攔截器量產框架協議（2026-10-19） | 3.839 s | 3.604 s | relevant=true、45、geopolitics | completed／completed |
+| Fed：終止 Gardner Bancshares／Small Business Bank 執法措施（2026-10-16） | 4.733 s | 3.420 s | relevant=false、5、primary_domain=null | completed／completed |
+| Mehr：加薩衛生部警告醫院燃油耗盡（2026-10-21） | 3.366 s | 3.204 s | relevant=true、35、geopolitics | completed／completed |
+
+三則分類與三次翻譯全部通過現有程式／業務驗證；DB 留下 6 筆成功 `ai_model_calls`、6 筆 completed translation rows（繁中／英文各 3 筆）。Layer 2 平均 3.979 s、Layer 1 平均 3.409 s。從首次 API request 到最後回應的實際處理區間約 22.293 s；這不包含 DB 初始化，也不包含處理完成後等待停止的 idle 時間。harness 全生命週期為 72.574 s；既有 worker 在達到 call budget 後會 idle，而非自動退出，因此先確認所有 DB commits 完成後才中止處理程序，沒有中斷中的 API request。總計 9817 input tokens、1688 output tokens；實際 USD cost 未回傳，保留未知。
+
+分數均低於既有事件門檻 70，因此 event count=0、public_outbox rows=0，符合規則。無 retry、fallback、截斷或模型錯誤。未啟動 collector 常駐 loop、alert delivery、public syncer 或部署。完成後已停止本地 worker 程序與 development PostgreSQL；保留新建的資料卷與結果。
+
+結果人工初審與限制：
+
+- Layer 1 繁中／英文摘要與全文齊全；反無人機的 25,000 枚年產量、Fed 的執法終止主體、加薩醫院發電機燃油耗盡等核心資訊保留。當前本地 env 僅要求兩語，本輪沒有驗證泰文／日文。
+- Layer 2 將 Fed 例行監管消息判為不相關，未擴寫成利率決策；兩則地緣消息評分較低且未生成事件。
+- 加薩分類的 `topic_tags` 包含原始標題／RSS 摘要未出現的 `iran`，存在無依據的 tag；將人道基礎設施消息歸為 `military` 亦值得校準。格式驗證成功不等於正式內容品質通過。
+- Fed 標題與 RSS 摘要本身相同，現有 normalization 將兩段連接後，全文翻譯亦重複。這是上游輸入去重的既有問題，本輪不擴大成 normalization／prompt 重構。
+- 本輪只驗證三個短 RSS 輸入與本地真實 DB 回寫，未涵蓋長文、事件插入分支、production 容量或正式模型品質 admission。
+
+完整實際參數、逐筆 API／DB usage、輸出、狀態與耗時見 [T3 evidence](evidence/2026-10-21-ollama-cloud-glm-real-news.json)。本輪驗收結果：兩層實際使用指定模型與 requested low、三則分類／翻譯成功回寫、六筆 usage 與時間可核對、處理程序已停止、未部署；上述內容品質事項留待後續校準。本地 evidence 另存於 ignored `var/evaluations/glm-real-news-20261021/`。
