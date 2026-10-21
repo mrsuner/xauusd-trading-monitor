@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from decimal import Decimal
 from typing import Any
 
 import tiktoken
+
+from .models import AIModelCallUsage
 
 
 PRICE_PER_MILLION: dict[tuple[str, str], tuple[Decimal, Decimal]] = {
@@ -95,3 +98,59 @@ def estimated_cost_usd(provider: str, model_name: str, input_tokens: int | None,
     cost = Decimal(input_tokens or 0) * input_price / Decimal(1_000_000)
     cost += Decimal(output_tokens or 0) * output_price / Decimal(1_000_000)
     return cost.quantize(Decimal("0.000001"))
+
+
+def build_model_call_usage(
+        *,
+route_name: str,
+api_provider: str,
+model: str,
+response_format: str,
+    payload: dict[str, Any],
+    ai_layer: str,
+    request_kind: str,
+    started: float,
+    success: bool,
+    body: dict[str, Any] | None = None,
+    output_text: str | None = None,
+    error: Exception | None = None,
+) -> AIModelCallUsage:
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    response_usage = usage_from_response(body or {})
+    input_tokens = response_usage["input_tokens"]
+    output_tokens = response_usage["output_tokens"]
+    total_tokens = response_usage["total_tokens"]
+    usage_json = dict((body or {}).get("usage") or {})
+    usage_estimated = False
+
+    if input_tokens is None:
+        input_tokens = estimate_messages_tokens(model, payload.get("messages") or [])
+        usage_estimated = True
+    if output_tokens is None and output_text is not None:
+        output_tokens = estimate_text_tokens(model, output_text)
+        usage_estimated = True
+    if total_tokens is None and (input_tokens is not None or output_tokens is not None):
+        total_tokens = (input_tokens or 0) + (output_tokens or 0)
+        usage_estimated = True
+
+    if usage_estimated:
+        usage_json["estimated"] = True
+
+    return AIModelCallUsage(
+        ai_layer=ai_layer,
+        route_name=route_name,
+        provider=api_provider,
+        model_name=model,
+        request_kind=request_kind,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+        estimated_cost_usd=estimated_cost_usd(api_provider, model, input_tokens, output_tokens),
+        latency_ms=latency_ms,
+        success=success,
+        error_type=type(error).__name__ if error else None,
+        error_message=str(error)[:2000] if error else None,
+        response_format=response_format,
+        usage_json=usage_json,
+        request_hash=request_hash(payload),
+    )

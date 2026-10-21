@@ -3,12 +3,9 @@ from decimal import Decimal
 
 import pytest
 
-from normalizer_classifier.model_client import (
-    OpenAIStyleModelClient,
-    build_model_client,
-    build_translation_model_clients,
-    classification_json_schema_response_format,
-)
+from normalizer_classifier.openrouter_client import OpenRouterClient
+from normalizer_classifier.model_tasks import classification_json_schema_response_format
+from normalizer_classifier.model_client import build_model_client, build_translation_model_clients
 from normalizer_classifier.settings import Settings
 from normalizer_classifier.taxonomy import CategoryOption, TaxonomyContext
 from normalizer_classifier.usage import estimated_cost_usd
@@ -85,16 +82,16 @@ def test_non_openrouter_clients_do_not_receive_provider_options():
     client = build_model_client(settings(CLOUD_MODEL_BASE_URL="https://api.example.test/v1"))
     assert client.api_provider != "openrouter"
     payload = {"temperature": 0}
-    client._apply_common_payload_options(payload, classification_json_schema_response_format())
+    client._prepare_payload(payload, classification_json_schema_response_format(), ai_layer="classification_reasoning")
     assert payload["reasoning_effort"] == "none"
     assert "provider" not in payload
 
 
 def test_legacy_model_keeps_supported_temperature():
-    client = OpenAIStyleModelClient(provider="test", base_url="https://api.example.test/v1",
+    client = OpenRouterClient(provider="test", base_url="https://api.example.test/v1",
         api_key="test", model="test-model", timeout_seconds=5, response_format="json_object")
     payload = {"temperature": 0}
-    client._apply_common_payload_options(payload, classification_json_schema_response_format())
+    client._prepare_payload(payload, classification_json_schema_response_format(), ai_layer="classification_reasoning")
     assert payload["temperature"] == 0
 
 
