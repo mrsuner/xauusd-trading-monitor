@@ -1,0 +1,569 @@
+{
+  "timestamp_utc": "2026-10-21T08:32:55.358280+00:00",
+  "kind": "bounded-live-cloud-smoke",
+  "requested_model_label": "glm-5.3-flash:cloud",
+  "api_model": "glm-5.3-flash",
+  "endpoint": "https://ollama.com/v1/chat/completions",
+  "source_commit": "d3ec333",
+  "max_inference_requests": 6,
+  "max_completion_tokens_per_request": 4096,
+  "languages": [
+    "zh-Hant",
+    "en",
+    "th",
+    "ja"
+  ],
+  "fixtures_are_authored": true,
+  "db_writes": false,
+  "worker_started": false,
+  "results": [
+    {
+      "case": "reported-explosion",
+      "layer": "classification",
+      "input": {
+        "id": "reported-explosion",
+        "language": "en",
+        "domain": "geopolitics",
+        "expected_relevant": true,
+        "title": "Unconfirmed report of an explosion near a fuel depot",
+        "text": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+      },
+      "input_sha256": "32d749157305697948c51448dafce2986360edbca58ad2759ef7d1ac3e229e73",
+      "relevance_matches_fixture": true,
+      "success": true,
+      "result": {
+        "is_relevant": true,
+        "relevance_score": 35,
+        "event_type": "unconfirmed-explosion",
+        "source_stance": null,
+        "claim_direction": "unknown",
+        "claim_text": "An explosion was reported near a fuel depot outside Port Meridian; the cause, casualty figures, and responsibility remain unconfirmed.",
+        "summaries": [
+          {
+            "language": "zh-Hant",
+            "summary": "有地區新聞媒體報導,週一梅里迪安港外一處燃料儲存庫附近發生爆炸。當局尚未證實爆炸原因或傷亡人數,報導亦未指出任何責任歸屬,事件性質仍待查證。"
+          },
+          {
+            "language": "en",
+            "summary": "A regional news agency reported an explosion near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures, and no responsible party has been identified; the incident remains unconfirmed."
+          }
+        ],
+        "content_category": "conflict",
+        "topic_tags": [
+          "explosion",
+          "fuel-depot",
+          "unconfirmed-report",
+          "security-incident",
+          "port-meridian"
+        ],
+        "primary_domain": "geopolitics",
+        "relevant_domains": [
+          "geopolitics"
+        ],
+        "actors": [
+          "regional news agency",
+          "local authorities"
+        ],
+        "xauusd_impact_channel": [
+          "safe_haven",
+          "oil"
+        ],
+        "requires_confirmation": true,
+        "confidence": 50,
+        "reason": "Report of an explosion near a fuel depot with no confirmed cause, casualties, or attribution; it could be a security incident or an accident, so geopolitical relevance is tentative and confirmation is required before weighting the event.",
+        "region": "Port Meridian",
+        "primary_actor": null,
+        "secondary_actor": null,
+        "market_relevance": "Unconfirmed security incident near energy infrastructure; relevance would rise only if authorities confirm an attack or escalation, with potential sensitivity via safe-haven and oil-related channels."
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "classification_reasoning",
+        "route_name": "cloud_small",
+        "provider": "ollama_cloud",
+        "model_name": "glm-5.3-flash",
+        "request_kind": "classify_raw_item",
+        "input_tokens": 1164,
+        "output_tokens": 2811,
+        "total_tokens": 3975,
+        "estimated_cost_usd": null,
+        "latency_ms": 28321,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1164,
+          "completion_tokens": 2811,
+          "total_tokens": 3975,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "request_hash": "b2bf55986f1da199340fdc3f1565666e39f487321014c9831fbdf83fa7949711"
+      },
+      "response_metadata": {
+        "response_model": "glm-5.3-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1164,
+          "completion_tokens": 2811,
+          "total_tokens": 3975,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      },
+      "test_variant": "default_reasoning",
+      "reasoning_effort": null,
+      "max_completion_tokens": 4096
+    },
+    {
+      "case": "reported-explosion",
+      "layer": "translation",
+      "input": {
+        "id": "reported-explosion",
+        "language": "en",
+        "domain": "geopolitics",
+        "expected_relevant": true,
+        "title": "Unconfirmed report of an explosion near a fuel depot",
+        "text": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+      },
+      "input_sha256": "32d749157305697948c51448dafce2986360edbca58ad2759ef7d1ac3e229e73",
+      "success": false,
+      "error_type": "ValueError",
+      "error": "invalid auxiliary model response: incomplete, refused, or missing Ollama Cloud final answer",
+      "retryable": true,
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "translation_summary",
+        "route_name": "translation_primary",
+        "provider": "ollama_cloud",
+        "model_name": "glm-5.3-flash",
+        "request_kind": "translate_summary",
+        "input_tokens": 962,
+        "output_tokens": 4096,
+        "total_tokens": 5058,
+        "estimated_cost_usd": null,
+        "latency_ms": 32712,
+        "success": false,
+        "error_type": "ValueError",
+        "error_message": "incomplete, refused, or missing Ollama Cloud final answer",
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 962,
+          "completion_tokens": 4096,
+          "total_tokens": 5058,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "request_hash": "f4861aa7608ca51326c85bb66b195b00321e08bff4de063d5ce6f15a69474994"
+      },
+      "response_metadata": {
+        "response_model": "glm-5.3-flash",
+        "finish_reason": "length",
+        "provider_usage": {
+          "prompt_tokens": 962,
+          "completion_tokens": 4096,
+          "total_tokens": 5058,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      },
+      "test_variant": "default_reasoning",
+      "reasoning_effort": null,
+      "max_completion_tokens": 4096
+    },
+    {
+      "case": "reported-explosion",
+      "layer": "translation",
+      "input": {
+        "id": "reported-explosion",
+        "language": "en",
+        "domain": "geopolitics",
+        "expected_relevant": true,
+        "title": "Unconfirmed report of an explosion near a fuel depot",
+        "text": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+      },
+      "input_sha256": "32d749157305697948c51448dafce2986360edbca58ad2759ef7d1ac3e229e73",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "success": true,
+      "result": {
+        "translations": [
+          {
+            "language": "zh-Hant",
+            "summary": "據報,一家地方新聞通訊社報導,週一在Port Meridian郊外一處燃料庫附近發生爆炸。當局尚未證實起因或傷亡人數,報導也未指明責任方。",
+            "full_translation": "一家地方新聞通訊社報導,週一在Port Meridian郊外一處燃料庫附近發生爆炸。當局尚未證實起因或傷亡人數。該報導並未指明責任方為何人。"
+          },
+          {
+            "language": "en",
+            "summary": "A regional news agency reportedly said an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures, and the report does not identify who was responsible.",
+            "full_translation": "A regional news agency reported that an explosion occurred near a fuel depot outside Port Meridian on Monday. Authorities have not confirmed the cause or casualty figures. The report does not identify who was responsible."
+          },
+          {
+            "language": "th",
+            "summary": "มีรายงานว่า สำนักข่าวระดับภูมิภาครายงานว่าเกิดการระเบิดใกล้คลังเชื้อเพลิงนอกเมือง Port Meridian เมื่อวันจันทร์ เจ้าหน้าที่ยังไม่ยืนยันสาเหตุหรือจำนวนผู้บาดเจ็บเสียชีวิต และรายงานไม่ระบุว่าใครรับผิดชอบ",
+            "full_translation": "สำนักข่าวระดับภูมิภาครายงานว่าเกิดการระเบิดใกล้คลังเชื้อเพลิงนอกเมือง Port Meridian เมื่อวันจันทร์ เจ้าหน้าที่ยังไม่ยืนยันสาเหตุหรือจำนวนผู้บาดเจ็บเสียชีวิต รายงานดังกล่าวไม่ระบุว่าใครเป็นผู้รับผิดชอบ"
+          },
+          {
+            "language": "ja",
+            "summary": "と報じられた、地方通信社の報道によると、月曜日にPort Meridian郊外の燃料貯蔵所付近で爆発が発生した。当局は原因や死傷者数をまだ確認しておらず、報道は責任の所在を特定していない。",
+            "full_translation": "地方通信社の報道によると、月曜日にPort Meridian郊外の燃料貯蔵所付近で爆発が発生した。当局は原因や死傷者数をまだ確認していない。この報道は誰が責任を負うのかを特定していない。"
+          }
+        ],
+        "detected_language": "en",
+        "notes": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "translation_summary",
+        "route_name": "translation_primary",
+        "provider": "ollama_cloud",
+        "model_name": "glm-5.3-flash",
+        "request_kind": "translate_summary",
+        "input_tokens": 962,
+        "output_tokens": 722,
+        "total_tokens": 1684,
+        "estimated_cost_usd": null,
+        "latency_ms": 5635,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 962,
+          "completion_tokens": 722,
+          "total_tokens": 1684,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "request_hash": "f4861aa7608ca51326c85bb66b195b00321e08bff4de063d5ce6f15a69474994"
+      },
+      "response_metadata": {
+        "response_model": "glm-5.3-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 962,
+          "completion_tokens": 722,
+          "total_tokens": 1684,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    {
+      "case": "central-bank-hold",
+      "layer": "classification",
+      "input": {
+        "id": "central-bank-hold",
+        "language": "zh-Hant",
+        "domain": "monetary",
+        "expected_relevant": true,
+        "title": "中央銀行維持利率不變",
+        "text": "中央銀行週三宣布將政策利率維持在4.50%。聲明表示，未來決策取決於通膨與就業數據，並未承諾下次會議降息。"
+      },
+      "input_sha256": "eae9ada9c7746cfa824cf5740cbe872653cea83490a05c1ff228ae714cd26d39",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "relevance_matches_fixture": true,
+      "success": true,
+      "result": {
+        "is_relevant": true,
+        "relevance_score": 70,
+        "event_type": "central-bank-rate-decision",
+        "source_stance": null,
+        "claim_direction": "neutral",
+        "claim_text": "中央銀行維持政策利率於4.50%，未承諾下次會議降息，未來決策取決於通膨與就業數據。",
+        "summaries": [
+          {
+            "language": "zh-Hant",
+            "summary": "中央銀行宣布維持政策利率於4.50%，聲明指出未來決策將視通膨與就業數據而定，並未承諾下次會議降息。"
+          },
+          {
+            "language": "en",
+            "summary": "The central bank held its policy rate at 4.50%. The statement said future decisions depend on inflation and employment data, with no commitment to a rate cut at the next meeting."
+          }
+        ],
+        "content_category": "monetary-policy",
+        "topic_tags": [
+          "central-bank",
+          "interest-rate",
+          "monetary-policy",
+          "inflation",
+          "employment"
+        ],
+        "primary_domain": "monetary",
+        "relevant_domains": [
+          "monetary"
+        ],
+        "actors": [
+          "central bank"
+        ],
+        "xauusd_impact_channel": [
+          "real_rate",
+          "Fed expectations"
+        ],
+        "requires_confirmation": true,
+        "confidence": 70,
+        "reason": "Rate hold decision with data-dependent guidance affects rate expectations, a key channel for gold valuation.",
+        "region": null,
+        "primary_actor": "central bank",
+        "secondary_actor": null,
+        "market_relevance": "Rate hold with no cut commitment keeps policy expectations data-dependent."
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "classification_reasoning",
+        "route_name": "cloud_small",
+        "provider": "ollama_cloud",
+        "model_name": "glm-5.3-flash",
+        "request_kind": "classify_raw_item",
+        "input_tokens": 1175,
+        "output_tokens": 344,
+        "total_tokens": 1519,
+        "estimated_cost_usd": null,
+        "latency_ms": 2297,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1175,
+          "completion_tokens": 344,
+          "total_tokens": 1519,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "request_hash": "38fc7626eb755493bc1ecdbc1068aa980a8a26f11233fedefb2ead7882da9599"
+      },
+      "response_metadata": {
+        "response_model": "glm-5.3-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1175,
+          "completion_tokens": 344,
+          "total_tokens": 1519,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    {
+      "case": "central-bank-hold",
+      "layer": "translation",
+      "input": {
+        "id": "central-bank-hold",
+        "language": "zh-Hant",
+        "domain": "monetary",
+        "expected_relevant": true,
+        "title": "中央銀行維持利率不變",
+        "text": "中央銀行週三宣布將政策利率維持在4.50%。聲明表示，未來決策取決於通膨與就業數據，並未承諾下次會議降息。"
+      },
+      "input_sha256": "eae9ada9c7746cfa824cf5740cbe872653cea83490a05c1ff228ae714cd26d39",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "success": true,
+      "result": {
+        "translations": [
+          {
+            "language": "zh-Hant",
+            "summary": "中央銀行週三宣布維持政策利率於4.50%不變。聲明指出，未來決策將取決於通膨與就業數據，且未承諾下次會議降息。",
+            "full_translation": "中央銀行週三宣布將政策利率維持在4.50%。聲明表示，未來決策取決於通膨與就業數據，並未承諾下次會議降息。"
+          },
+          {
+            "language": "en",
+            "summary": "The central bank announced on Wednesday that it will keep its policy rate unchanged at 4.50%. According to the statement, future decisions will depend on inflation and employment data, and the bank made no commitment to cut rates at its next meeting.",
+            "full_translation": "The central bank announced on Wednesday that it will keep its policy rate unchanged at 4.50%. The statement said that future decisions will depend on inflation and employment data, and it made no commitment to cut rates at the next meeting."
+          },
+          {
+            "language": "th",
+            "summary": "ธนาคารกลางประกาศเมื่อวันพุธว่าจะคงอัตราดอกเบี้ยนโยบายไว้ที่ 4.50% โดยระบุว่าการตัดสินใจครั้งต่อไปจะขึ้นอยู่กับข้อมูลเงินเฟ้อและการจ้างงาน และไม่ได้ให้คำมั่นว่าจะลดดอกเบี้ยในการประชุมครั้งถัดไป",
+            "full_translation": "ธนาคารกลางประกาศเมื่อวันพุธว่าจะคงอัตราดอกเบี้ยนโยบายไว้ที่ 4.50% แถลงการณ์ระบุว่า การตัดสินใจในอนาคตจะขึ้นอยู่กับข้อมูลเงินเฟ้อและการจ้างงาน และไม่ได้ให้คำมั่นว่าจะลดดอกเบี้ยในการประชุมครั้งถัดไป"
+          },
+          {
+            "language": "ja",
+            "summary": "中央銀行は水曜日、政策金利を4.50%に据え置くと発表した。声明によると、今後の決定はインフレと雇用データ次第であり、次回会合での利下げは約束されていない。",
+            "full_translation": "中央銀行は水曜日、政策金利を4.50%に維持すると発表した。声明によると、今後の決定はインフレと雇用データに左右され、次回会合での利下げについては約束していない。"
+          }
+        ],
+        "detected_language": "zh-Hant",
+        "notes": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "translation_summary",
+        "route_name": "translation_primary",
+        "provider": "ollama_cloud",
+        "model_name": "glm-5.3-flash",
+        "request_kind": "translate_summary",
+        "input_tokens": 974,
+        "output_tokens": 715,
+        "total_tokens": 1689,
+        "estimated_cost_usd": null,
+        "latency_ms": 4358,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 974,
+          "completion_tokens": 715,
+          "total_tokens": 1689,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "request_hash": "0bb2c9b9fc1e429d8a1b8c63df73a1bdef924695f644b0ce9908cddaf611196d"
+      },
+      "response_metadata": {
+        "response_model": "glm-5.3-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 974,
+          "completion_tokens": 715,
+          "total_tokens": 1689,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    {
+      "case": "unrelated-interface-update",
+      "layer": "classification",
+      "input": {
+        "id": "unrelated-interface-update",
+        "language": "en",
+        "domain": null,
+        "expected_relevant": false,
+        "title": "Interface color update",
+        "text": "A community library updated its website buttons from blue to green. The change only affects the appearance of its online book catalog. No fees, opening hours, services, or lending rules changed."
+      },
+      "input_sha256": "d36279650e4071f5854625608e77faeab4f8deb9ee235896e521ae2a501856c4",
+      "test_variant": "low_reasoning",
+      "reasoning_effort": "low",
+      "max_completion_tokens": 4096,
+      "relevance_matches_fixture": true,
+      "success": true,
+      "result": {
+        "is_relevant": false,
+        "relevance_score": 0,
+        "event_type": "website cosmetic update",
+        "source_stance": null,
+        "claim_direction": "neutral",
+        "claim_text": "A community library changed its website button colors from blue to green; no services or rules changed.",
+        "summaries": [
+          {
+            "language": "zh-Hant",
+            "summary": "某社區圖書館網站按鈕顏色由藍色改為綠色，僅影響線上館藏目錄外觀，費用、開放時間、服務與借閱規則均無變動。"
+          },
+          {
+            "language": "en",
+            "summary": "A community library changed its website buttons from blue to green, affecting only the appearance of its online catalog; fees, hours, services, and lending rules are unchanged."
+          }
+        ],
+        "content_category": "other",
+        "topic_tags": [
+          "website-update",
+          "library"
+        ],
+        "primary_domain": null,
+        "relevant_domains": [],
+        "actors": [
+          "community library"
+        ],
+        "xauusd_impact_channel": [],
+        "requires_confirmation": false,
+        "confidence": 95,
+        "reason": "Purely cosmetic website change with no monetary, geopolitical, or macro relevance to gold.",
+        "region": null,
+        "primary_actor": null,
+        "secondary_actor": null,
+        "market_relevance": null
+      },
+      "usage": {
+        "service_name": "normalizer-classifier",
+        "ai_layer": "classification_reasoning",
+        "route_name": "cloud_small",
+        "provider": "ollama_cloud",
+        "model_name": "glm-5.3-flash",
+        "request_kind": "classify_raw_item",
+        "input_tokens": 1151,
+        "output_tokens": 286,
+        "total_tokens": 1437,
+        "estimated_cost_usd": null,
+        "latency_ms": 4431,
+        "success": true,
+        "error_type": null,
+        "error_message": null,
+        "response_format": "prompt_json_schema",
+        "usage_json": {
+          "prompt_tokens": 1151,
+          "completion_tokens": 286,
+          "total_tokens": 1437,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "request_hash": "918ac37a7a358711350693b706a10e900f760088f43de136808b6547d698085a"
+      },
+      "response_metadata": {
+        "response_model": "glm-5.3-flash",
+        "finish_reason": "stop",
+        "provider_usage": {
+          "prompt_tokens": 1151,
+          "completion_tokens": 286,
+          "total_tokens": 1437,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    }
+  ],
+  "inference_requests": 6,
+  "followup": "Use explicit low reasoning after the default four-language translation hit the 4096-token test cap; retain campaign limit of six requests.",
+  "variants": {
+    "default_reasoning": {
+      "reasoning_effort": null
+    },
+    "low_reasoning": {
+      "reasoning_effort": "low"
+    }
+  },
+  "summary": {
+    "successful_responses": 5,
+    "failed_responses": 1,
+    "input_tokens": 6388,
+    "output_tokens": 8974,
+    "cost_usd": null,
+    "low_reasoning_successes": 4,
+    "low_reasoning_requests": 4,
+    "runtime_env_modified": false,
+    "quality_admission_passed": false,
+    "quality_review_notes": [
+      {
+        "case": "reported-explosion",
+        "layer": "translation",
+        "language": "ja",
+        "issue": "Summary starts with the unnatural phrase と報じられた、地方通信社の報道によると; uncertainty is preserved but fluency needs calibration."
+      },
+      {
+        "case": "central-bank-hold",
+        "layer": "classification",
+        "issue": "The source does not identify the central bank or country, but xauusd_impact_channel includes Fed expectations; this is an unsupported US-specific inference."
+      }
+    ],
+    "limits": "Six authored-fixture requests do not establish real-news quality, throughput, production latency, or language-native acceptance. The 4096-token ceiling was added only by this bounded test harness."
+  }
+}

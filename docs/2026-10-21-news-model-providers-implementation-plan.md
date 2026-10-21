@@ -2,12 +2,12 @@
 
 ## Status
 
-- 狀態：Done（P0–P4 與 R1 code review 修復／回歸驗收完成；未部署）
+- 狀態：Done（P0–P4／R1 實作完成；T1 真實 Cloud 冒煙測試完成，正式模型品質尚未驗收；未部署）
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
 - 範圍：News normalizer-classifier 的 Layer 1／Layer 2；保留 OpenRouter，新增直接呼叫 Ollama Cloud 的獨立 client，退役早期 local LLM route。
-- 完成定義：下列本地程式、設定、文件與 mock 驗收全部通過。真實雲端模型品質／延遲驗證、production 啟用、發布與部署不在本次範圍；不得將 mock 驗收寫成真實服務驗證。
+- 完成定義：P0–P4／R1 的本地程式、設定、文件與 mock 驗收全部通過。使用者後續明確授權 T1 的有界真實 Cloud 測試，結果另列於本文；正式模型品質／延遲驗收、production 啟用、發布與部署仍不在本次範圍。
 
 ## 決策與目前實作
 
@@ -70,7 +70,7 @@
 - [x] P2 完成；程式與本記錄於同一階段提交。
 - [x] P3 完成；程式與本記錄於同一階段提交。
 - [x] P4 審查與結案；本記錄於結案階段獨立提交。
-- 後續獨立工作：使用者選定 Cloud model／帳戶額度後，再安排有明確請求與成本上限的真實 API、品質與延遲評估；本次不自動執行。
+- T1 已依後續授權完成選定模型的 6 次真實 Cloud 冒煙測試；待辦為擴大真實新聞、語言品質、穩定性與容量評估，不自動啟用 worker。
 
 ## 驗證與提交紀錄
 
@@ -98,7 +98,7 @@
 | 提交邊界 | P0 `594f322`、P1 `d4f0673`、P2 `e945296`、P3 `c8e0dfb`；P4 為本文件的獨立結案 commit，以 `docs: close cloud model provider implementation` 識別 |
 | Checkout 保護 | 維持 `develop`；工作範圍的檔案已提交，原先 public-web／public-api／notification／shared82 等無關修改保留，未包含於本批提交 |
 
-未執行：真實 Ollama Cloud／OpenRouter inference、雲端帳戶／額度確認、模型品質／延遲評估、DB 寫入／migration、container 啟停、私有 env 修改、production 切換、push／release／部署。上述為後續啟用驗證，不是本次本地實作的通過證據。
+P4 當時未執行（後續 T1 另列）：真實 Ollama Cloud／OpenRouter inference、雲端帳戶／額度確認、模型品質／延遲評估、DB 寫入／migration、container 啟停、私有 env 修改、production 切換、push／release／部署。上述為後續啟用驗證，不是本次本地實作的通過證據。
 
 回退方式：維持兩個 provider selector 為 `openrouter` 且 translation fallback 停用即可保持原先預設呼叫路徑。若需要程式回退，依 P3 → P2 → P1 順序 revert 對應提交；未變更 schema／資料，不需要資料回滾。
 
@@ -124,3 +124,30 @@ R1 驗證結果：
 - AST parse、compileall 與 `git diff --check` 通過；完整 suite 內含既有兩種離線 Compose config render 驗證，不執行 container workload 或連線 DB。
 - 最初採用的 security-audit skill 對 target tests 要求完整 OS sandbox；現有隔離 runtime 沒有所需 Python dependency。使用者已在本次 review 明確允許沿用原有本機 virtualenv 執行 mock pytest，之後才執行上述 baseline／修復後測試。未安裝依賴；mock 不呼叫真實模型 API、不連 DB、不啟停專案 runtime。
 - R1 修復、回歸測試與本記錄以 `fix: harden cloud model failure handling after review` 獨立提交至 `develop`。原 P4 的 241 passed 保留為當時版本證據，本節的 261 passed 是 review 後的最新驗收。
+
+## 真實模型冒煙測試（T1，2026-10-21）
+
+使用者提供本機私有 env 的 key，明確授權測試 `glm-5.3-flash:cloud`。官方[模型頁面](https://ollama.com/library/glm-5.3-flash:cloud)與 [Cloud catalog](https://ollama.com/api/tags) 指定直接 API model 為 `glm-5.3-flash`，`:cloud` 用於 App／CLI。此測試透過既有 factory／OllamaCloudClient 呼叫 `https://ollama.com/v1/chat/completions`；不經本機 Ollama，也未更改私有 env。
+
+範圍：固定的英文未證實爆炸消息、中文央行利率維持消息、無關的網站配色消息，均為人工撰寫的 fixture；3 次分類、3 次翻譯嘗試，總上限 6 次，無隱藏重試／OpenRouter fallback。每次由測試 harness 限制 `max_tokens=4096`，這不是 production client 的新預設。輸出直接通過目前的 Pydantic／業務驗證，不修復 JSON。未啟動 worker、連 DB、寫入新聞或部署。
+
+| Case／Layer | Reasoning effort | Latency | Input／output tokens | 結果 |
+| --- | --- | --- | --- | --- |
+| 英文未證實爆炸／Layer 2 | 未指定，模型預設 | 28.321 s | 1164／2811 | 成功；relevant=true、score=35、requires_confirmation=true |
+| 英文未證實爆炸／Layer 1 四語 | 未指定，模型預設 | 32.712 s | 962／4096 | `finish_reason=length`；測試上限截斷，client 正確拒絕 |
+| 同則英文／Layer 1 四語 | `low` | 5.635 s | 962／722 | 成功；zh-Hant／en／th／ja 摘要與全文齊全 |
+| 中文央行維持利率／Layer 2 | `low` | 2.297 s | 1175／344 | 成功；relevant=true、score=70、primary_domain=monetary |
+| 同則中文／Layer 1 四語 | `low` | 4.358 s | 974／715 | 成功；4.50% 與未承諾降息的核心語意保留 |
+| 無關網站配色／Layer 2 | `low` | 4.431 s | 1151／286 | 成功；relevant=false、score=0、primary_domain=null |
+
+第一次翻譯碰到測試 token ceiling 後，查核模型文件的 thinking 設計：reasoning 始終開啟，可使用 low／high／max。其餘 4 次以明確 `low` 完成，仍計入同一個 6-request campaign 上限。不能從這個非同時、非完整 A/B 的小樣本推定全部延遲差異都來自 reasoning effort。
+
+總計 6388 input tokens、8974 output tokens，5 次通過、1 次有界截斷；其中 low variant 4／4 通過。API 未回實際 USD cost，本系統亦未設定該 provider／model 的計費單價，成本保留未知，不把 catalog 標價當實際帳單。完整非敏感輸入、輸出、usage 與 request hashes 見 [T1 evidence](evidence/2026-10-21-ollama-cloud-glm-5.3-flash.json)；來源程式 commit 為 `d3ec333`。
+
+人工初審的待修品質問題：
+
+- 日文爆炸消息摘要以 `と報じられた、地方通信社の報道によると` 起頭，保留不確定性但句型生硬。
+- 中文消息未指明央行國家，分類輸出的 impact channel 卻加入 `Fed expectations`，有無來源依據的美國特定推論。
+- 這些 fixture 僅驗證可呼叫、結構與少量關鍵語意；不是 native-language 認證、真實新聞 benchmark、正式分類 admission 或 production 吞吐量驗收。暫不自動切換常駐 worker。
+
+建議測試設定（仍須由操作者決定正式啟用）：`OLLAMA_CLOUD_*_MODEL=glm-5.3-flash`、兩個 `OLLAMA_CLOUD_*_REASONING_EFFORT=low`。模型名稱與 effort 只在本次程序內覆寫，使用者既有 `.env.dev` 原值保持。T1 evidence 與進度以獨立文件提交保存。
