@@ -4,7 +4,7 @@
 
 `normalizer-classifier` 是 V1 新聞消息層的處理核心，負責讀取 `raw_items`，完成文字預處理、低價值消息過濾、重複合併、模型路由、相關度判斷、事件生成與結果回寫 DB。
 
-此服務是 collector 與 event-router 之間的語義處理層。它可以使用規則、本地 8B model、雲端 small model，或備選整合 Claude Code Agent SDK 提供高階模型能力，但不得輸出交易方向或自動交易建議。
+此服務是 collector 與 event-router 之間的語義處理層。它使用規則初篩與 OpenRouter／Ollama Cloud API 提供模型能力，但不得輸出交易方向或自動交易建議。
 
 ## 2. V1 目標
 
@@ -14,7 +14,7 @@
 - 語言辨識。
 - 使用關鍵字、來源權重與規則做初篩。
 - 過濾低價值、重複與近似重複消息。
-- 對通過初篩的消息呼叫 local 8B model 或 cloud small model。
+- 對通過初篩的消息呼叫選定的雲端 provider。
 - 取得 JSON-friendly 模型輸出。
 - 回寫 processing result。
 - 對高相關消息建立 `events`。
@@ -44,9 +44,8 @@ V1 不包含：
 | Text cleanup | regex / trafilatura 可選 | V1 以輕量清洗為主 |
 | Language detection | source metadata + lightweight script detection | V1 先用來源設定與簡單 script fallback |
 | Similarity | rapidfuzz / pg_trgm | 近似重複檢測，V1 先保留依賴與 DB index |
-| Local model | OpenAI-compatible local endpoint | local 8B model route，可由 HomeLab 另一台 server 提供 |
-| Cloud model | OpenAI-compatible API | cloud small model route，例如 GPT 5.5 mini 類模型 |
-| OpenRouter translation-summary model | OpenRouter OpenAI-compatible API | 雙語摘要與全文翻譯，可測試 free / cheap models |
+| Cloud model | OpenRouterClient／OllamaCloudClient | 兩個獨立 provider 實作，Layer 1／Layer 2 各自選用 |
+| Translation-summary | 雲端 API | 依設定產生多語摘要與全文翻譯 |
 | Agent SDK | Claude Code Agent SDK，備選 | 高階模型能力，非 V1 必需依賴 |
 | Schema validation | pydantic | 驗證模型 JSON output |
 | Token usage | tiktoken | OpenAI 官方 tokenizer library；provider 未回 usage 時用於估算 token |
@@ -181,43 +180,27 @@ V1 初篩應結合 source priority 與 keyword。
 
 ## 10. 模型路由
 
-V1 支援以下模型路徑：
+本節描述目前本地程式契約；production 實際啟用狀態仍以部署紀錄為準。
 
-| Route | 條件 | 說明 |
+| Layer | 選擇設定 | 預設 |
 | --- | --- | --- |
-| `cloud_small` | V1 事件分類預設路徑 | 使用 `gpt-5.4-mini`，負責相關度、claim direction、impact channel、event severity input |
-| `local_8b` | 摘要、翻譯、低風險輔助任務 | 成本低，但不作 V1 最終相關度與分級判斷 |
-| `cloud_nano` | 摘要、翻譯、低風險輔助任務 | 例如 `gpt-5.4-nano`，可用於快速 summary / translation，不作 V1 主分類 |
-| `openrouter_free` | 摘要、翻譯、低風險輔助任務 | OpenRouter free / cheap models；不作 V1 主分類 |
-| `claude_code_agent` | 後續需要高階模型能力或工具型推理 | 備選 route，不阻塞 V1 |
+| Layer 2 classification-reasoning | `CLASSIFICATION_MODEL_PROVIDER` | `openrouter`，`CLOUD_MODEL_NAME=openai/gpt-6-luna` |
+| Layer 1 translation-summary | `TRANSLATION_MODEL_PROVIDER` | `openrouter`，`TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-6-luna` |
+| Layer 1 fallback | `TRANSLATION_FALLBACK_PROVIDER` | 未設定則沿用 primary provider；預設停用 |
 
-目前骨架已實作 `local_8b` 與 `cloud_small` 兩種 OpenAI-compatible `/chat/completions` route；兩者都使用相同的 JSON schema。`claude_code_agent` 保留在文件與部署設定中，尚未接入 runtime。
+兩個 Layer 均可選 `openrouter` 或 `ollama_cloud`。早期 local LLM route 已退役；`MODEL_ROUTE` 只接受既有 `cloud_small` 標記，不負責 provider 選擇。Layer 2 不新增跨 provider fallback，失敗走既有 processing retry。
 
-V1 決策：
+實作邊界：
 
-- `gpt-5.4-mini` 是預設分類模型。
-- OpenRouter free / cheap models、local LLM 與 `gpt-5.4-nano` 只用於 summary / translation / 輔助預處理。
-- 不讓 OpenRouter free model、local LLM 或 nano model 單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 `severity`。
-- 若 cloud model 不可用，local route 可以暫時保留事件候選，但應標記為較低信心或等待 cloud retry。
+- `model_contracts.py`：worker 使用的 `ModelClient` Protocol、統一錯誤與 retryable 分類。
+- `openrouter_client.py`／`ollama_cloud_client.py`：獨立實作，分別處理 request 參數與 response 解析，不繼承共同 provider base class。
+- `model_tasks.py`：新聞 prompt、schema、業務驗證及共同結果組裝。
+- `model_transport.py`：無 provider 判斷的單次 HTTP 與日誌遮罩；`usage.py`：用量正規化與估算。
+- Client 不隱藏重試或切換 provider；worker 每個 attempt 先預留請求額度，再記錄成功／失敗 usage。
 
-V1 runtime 支援兩個 AI layer：
+Ollama Cloud 直接呼叫 `https://ollama.com/v1/chat/completions`，使用 `OLLAMA_API_KEY`；模型必須使用 Cloud catalog 的明確名稱，不經本機 daemon。官方目前[不支援 Cloud structured outputs](https://docs.ollama.com/capabilities/structured-outputs)，因此 client 將 schema 加入 system prompt，不發送 `response_format`，並以 Pydantic／業務規則驗證最終 `message.content`。空答案、reasoning-only、refusal、截斷、錯誤 JSON 與不合規內容都失敗，不自動修復。這不代表模型端保證 schema，也不代表已完成真實模型品質驗收。
 
-```text
-Layer 1: translation-summary
-  primary: openai/gpt-oss-20b:free
-  fallback: openai/gpt-oss-20b
-  output:
-    raw_item_translations.summary / full_translation by language
-
-Layer 2: classification-reasoning
-  basic: gpt-5.4-mini
-  advanced: reserved for Claude Code Agent SDK / stronger model
-  output:
-    relevance / event fields
-    raw_items.content_category / topic_tags / mentioned_actors
-```
-
-Layer 1 使用 OpenRouter OpenAI-compatible API。預設先呼叫 `openai/gpt-oss-20b:free`；若 free route 429、timeout、invalid JSON 或其他 transient failure，且 `TRANSLATION_PAID_FALLBACK_ENABLED=true`，則 fallback 到 `openai/gpt-oss-20b`。Paid fallback 在 development 也預設開啟，但 `make dev` 會提供小的 translation budget 避免 backfill 時無限制消耗。
+Layer 1 備援只有在 `TRANSLATION_PAID_FALLBACK_ENABLED=true` 且提供 `TRANSLATION_FALLBACK_MODEL_NAME` 時啟用。兩條 route 分別取得自己的 provider URL／key／timeout／reasoning 設定；`paid` 是既有設定名稱，適用明確配置的雲端備援。Timeout／連線失敗、408／429／5xx、無效輸出可 fallback；其他 4xx（含認證／設定錯誤）停止。跨 provider daily quota 仍逐 request 預留；per-run fallback quota 沿用原設定。未呼叫的 fallback 不記成失敗 provider。
 
 Layer 1 單次 API call 直接產生多語 `translations[]`：
 
@@ -266,28 +249,18 @@ PostgreSQL reservation is required before each provider request.
 
 | Layer | `ai_layer` | `request_kind` | 主要模型 |
 | --- | --- | --- | --- |
-| Layer 1 | `translation_summary` | `translate_summary` | `openai/gpt-oss-20b:free`，fallback `openai/gpt-oss-20b` |
-| Layer 2 | `classification_reasoning` | `classify_raw_item` | `gpt-5.4-mini` |
+| Layer 1 | `translation_summary` | `translate_summary` | 預設 `openai/gpt-6-luna`；可配置 Cloud model |
+| Layer 2 | `classification_reasoning` | `classify_raw_item` | 預設 `openai/gpt-6-luna`；可配置 Cloud model |
 
 Token 來源：
 
 1. 優先使用 OpenAI-compatible response 的 `usage.prompt_tokens`、`usage.completion_tokens`、`usage.total_tokens`。
 2. 若 provider 未回 usage，使用 `tiktoken` 估算 input / output token，並在 `usage_json.estimated = true` 標記。
-3. 成本使用內建 pricing table 估算：
-   - `gpt-5.4-mini`: input `$0.75/M`，output `$4.50/M`
-   - `openai/gpt-oss-20b`: input `$0.029/M`，output `$0.14/M`
-   - `openai/gpt-oss-20b:free`: `$0`
+3. 成本依 `usage.py` 的已知 provider／model 單價估算，並非帳單權威。Ollama Cloud 尚無本系統確認的單價，`estimated_cost_usd=null`；未知不等於免費。
 
-`request_hash` 用於排查重複 call，不保存完整 prompt。
+`request_hash` 用於排查重複 call；DB usage 不保存完整 prompt。DEBUG HTTP log 會含請求與回應內容，憑證欄位有遮罩。
 
-code interface 抽象為：
-
-```text
-class ModelClient:
-  classify(item, source) -> ClassificationResult
-```
-
-所有 route 必須輸出相同 schema，並通過 pydantic validation。Claude Code Agent SDK route 即使提供更強推理能力，也不得繞過 V1 的 JSON schema 與禁止交易指令規則。
+共同操作介面為 `classify(...) -> ModelResponse` 與 `summarize_and_translate(...) -> AuxiliaryModelResponse`。兩個 Layer 沿用既有輸出契約與禁止交易指令規則。完整拆分、驗收與提交紀錄見[實作計畫](../2026-10-21-news-model-providers-implementation-plan.md)。
 
 ## 11. 模型輸出 Schema
 
@@ -301,8 +274,14 @@ class ModelClient:
   "source_stance": "iran_irgc_adjacent",
   "claim_direction": "deny",
   "claim_text": "Tasnim denies Iran will abandon uranium enrichment.",
-  "summary_zh": "Tasnim 否認伊朗將放棄濃縮鈾的說法。",
-  "summary_en": "Tasnim denies Iran will abandon uranium enrichment.",
+  "summaries": [
+    {"language": "zh-Hant", "summary": "Tasnim 否認伊朗將放棄濃縮鈾的說法。"},
+    {"language": "en", "summary": "Tasnim denies Iran will abandon uranium enrichment."}
+  ],
+  "content_category": "diplomacy",
+  "topic_tags": ["iran", "nuclear"],
+  "primary_domain": "geopolitics",
+  "relevant_domains": ["geopolitics"],
   "actors": ["Iran", "Trump", "IRGC"],
   "xauusd_impact_channel": ["safe_haven", "oil_inflation"],
   "requires_confirmation": true,
@@ -439,16 +418,29 @@ WORKER_CONCURRENCY=4
 POLL_INTERVAL_SECONDS=2
 STALE_TASK_TIMEOUT_SECONDS=900
 MODEL_ROUTE=cloud_small
-LOCAL_MODEL_BASE_URL=http://localhost:11434/v1
-LOCAL_MODEL_API_KEY=
-LOCAL_MODEL_NAME=...
-LOCAL_MODEL_RESPONSE_FORMAT=none
-LOCAL_MODEL_REASONING_EFFORT=
-CLOUD_MODEL_BASE_URL=https://api.openai.com/v1
+# Independent cloud provider selectors; existing OpenRouter settings remain defaults.
+CLASSIFICATION_MODEL_PROVIDER=openrouter
+TRANSLATION_MODEL_PROVIDER=openrouter
+# Blank uses the primary provider. Fallback still requires its enable flag and model.
+TRANSLATION_FALLBACK_PROVIDER=
+# Blank OpenRouter timeouts inherit MODEL_TIMEOUT_SECONDS.
+CLOUD_MODEL_TIMEOUT_SECONDS=
+TRANSLATION_MODEL_TIMEOUT_SECONDS=
+# Direct Ollama Cloud API only. Models must be selected explicitly from its catalog.
+OLLAMA_CLOUD_BASE_URL=https://ollama.com/v1
+OLLAMA_API_KEY=
+OLLAMA_CLOUD_CLASSIFICATION_MODEL=
+OLLAMA_CLOUD_TRANSLATION_MODEL=
+OLLAMA_CLOUD_CLASSIFICATION_TIMEOUT_SECONDS=60
+OLLAMA_CLOUD_TRANSLATION_TIMEOUT_SECONDS=60
+# Leave unset unless supported by the selected Cloud model.
+OLLAMA_CLOUD_CLASSIFICATION_REASONING_EFFORT=
+OLLAMA_CLOUD_TRANSLATION_REASONING_EFFORT=
+CLOUD_MODEL_BASE_URL=https://openrouter.ai/api/v1
 CLOUD_MODEL_API_KEY=...
-CLOUD_MODEL_NAME=gpt-5.4-mini
-CLOUD_MODEL_RESPONSE_FORMAT=json_object
-CLOUD_MODEL_REASONING_EFFORT=
+CLOUD_MODEL_NAME=openai/gpt-6-luna
+CLOUD_MODEL_RESPONSE_FORMAT=json_schema
+CLOUD_MODEL_REASONING_EFFORT=none
 AUXILIARY_MODEL_ENABLED=false
 AUXILIARY_MODEL_ROUTE=disabled
 OPENROUTER_MODEL_BASE_URL=https://openrouter.ai/api/v1
@@ -461,11 +453,11 @@ OPENROUTER_APP_TITLE=XAUUSD Event Radar
 TRANSLATION_MODEL_ENABLED=true
 TRANSLATION_MODEL_BASE_URL=https://openrouter.ai/api/v1
 TRANSLATION_MODEL_API_KEY=
-TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-oss-20b:free
-TRANSLATION_FALLBACK_MODEL_NAME=openai/gpt-oss-20b
-TRANSLATION_PAID_FALLBACK_ENABLED=true
-TRANSLATION_MODEL_RESPONSE_FORMAT=none
-TRANSLATION_MODEL_REASONING_EFFORT=
+TRANSLATION_PRIMARY_MODEL_NAME=openai/gpt-6-luna
+TRANSLATION_FALLBACK_MODEL_NAME=
+TRANSLATION_PAID_FALLBACK_ENABLED=false
+TRANSLATION_MODEL_RESPONSE_FORMAT=json_schema
+TRANSLATION_MODEL_REASONING_EFFORT=none
 TRANSLATION_HTTP_REFERER=
 TRANSLATION_APP_TITLE=XAUUSD Event Radar
 TRANSLATION_OUTPUT_LANGUAGES=zh-Hant,en
@@ -489,18 +481,23 @@ RELEVANCE_THRESHOLD_PUSHOVER=85
 LOG_LEVEL=INFO
 ```
 
-`LOCAL_MODEL_BASE_URL`、`CLOUD_MODEL_BASE_URL` 與 `OPENROUTER_MODEL_BASE_URL` 都應指向 OpenAI-compatible `/v1` base URL；service 會呼叫 `{BASE_URL}/chat/completions`。若 local endpoint 不需要 key，`LOCAL_MODEL_API_KEY` 可留空。
+OpenRouter 既有 `CLOUD_MODEL_*`（Layer 2）與 `TRANSLATION_MODEL_*`（Layer 1）設定保留。`CLOUD_MODEL_TIMEOUT_SECONDS`／`TRANSLATION_MODEL_TIMEOUT_SECONDS` 留空時沿用 `MODEL_TIMEOUT_SECONDS`。`OPENROUTER_MODEL_API_KEY` 仍可作翻譯 key 的既有 fallback；不會被借給 Ollama Cloud。
 
-`OPENROUTER_MODEL_BASE_URL` 預設為 `https://openrouter.ai/api/v1`。OpenRouter 建議帶上 `HTTP-Referer` 與 `X-Title`，因此可透過 `OPENROUTER_HTTP_REFERER` / `TRANSLATION_HTTP_REFERER` 與 `OPENROUTER_APP_TITLE` / `TRANSLATION_APP_TITLE` 設定。若只想測試模型品質，可以先在 OpenRouter UI 或 curl 中使用 [OpenRouter 測試 Prompt](/Users/lukesun/Projects/ongoing/xauusd-trading-monitor/docs/model-evaluation-openrouter.md)。
+Ollama Cloud 各 Layer 使用 `OLLAMA_CLOUD_CLASSIFICATION_MODEL`／`OLLAMA_CLOUD_TRANSLATION_MODEL`、各自 timeout 與可選 reasoning effort。只在啟用對應 route 時檢查 key／model；預設不送 reasoning 參數。`TRANSLATION_FALLBACK_MODEL_NAME` 指定備援 provider 的 model。若 fallback provider 是 OpenRouter，使用 `TRANSLATION_MODEL_*`；若為 Ollama Cloud，使用 `OLLAMA_*` 的翻譯設定。
 
-`*_MODEL_RESPONSE_FORMAT` 支援：
+OpenRouter 的 response format 可選 `none`、`json_object`、`json_schema`、`text`；reasoning effort `none` 會轉成 OpenRouter 的 `reasoning.enabled=false`。這些選項不會套用到 Ollama Cloud。OpenRouter 可設定 referer／app title headers；[舊模型測試 prompt](../model-evaluation-openrouter.md) 只供人工評估參考。
 
-- `none`：不送 `response_format`，適合多數 Ollama OpenAI-compatible endpoint。
-- `json_object`：OpenAI JSON mode。
-- `json_schema`：LM Studio structured output。
-- `text`：明確要求 text mode。
+切換範例（僅為設定說明，啟用前需要真實模型驗收與額度確認）：
 
-`*_MODEL_REASONING_EFFORT` 可留空；若本地 OpenAI-compatible server 支援，可設為 `none`。目前 Ollama + Qwen thinking model 在 `reasoning_effort=none` 下可避免大量 reasoning token，延遲明顯下降。
+```text
+CLASSIFICATION_MODEL_PROVIDER=openrouter
+TRANSLATION_MODEL_PROVIDER=ollama_cloud
+OLLAMA_API_KEY=<cloud-api-key>
+OLLAMA_CLOUD_TRANSLATION_MODEL=<exact-cloud-catalog-model>
+TRANSLATION_FALLBACK_PROVIDER=openrouter
+TRANSLATION_PAID_FALLBACK_ENABLED=true
+TRANSLATION_FALLBACK_MODEL_NAME=openai/gpt-6-luna
+```
 
 `MAX_MODEL_CALLS_PER_RUN` 是開發環境成本保護閥。`0` 表示不限制；設定為 `20` 這類小數字時，worker 本次啟動最多只會對模型發出 20 次分類請求。達到上限後不再 claim 新任務，已進入處理中的任務若遇到上限會回到 `retry` 並延後一小時。這適合 DB reset 後 collector 自動 backfill 大量消息但仍想避免 paid cloud model 無限制消耗。
 
@@ -532,8 +529,8 @@ Pool 設定：
 
 - pending task processing。
 - DB row locking。
-- local model mock。
-- cloud model mock。
+- Ollama Cloud API mock。
+- OpenRouter API mock、跨 provider translation fallback 與逐次預算／usage。
 - event creation。
 - retry and failed state。
 
@@ -556,7 +553,7 @@ Pool 設定：
 - `raw_item_processing` polling worker，使用 `for update skip locked` claim task。
 - `raw_items` + `sources` metadata 載入。
 - text cleanup、language fallback、keyword prefilter。
-- OpenAI-compatible model client。
+- 獨立 OpenRouter／Ollama Cloud client、共同操作介面與業務驗證。
 - pydantic model output validation。
 - processing result 回寫。
 - relevance threshold 達標時建立 `events`。
@@ -566,7 +563,6 @@ Pool 設定：
 尚未完成：
 
 - `LISTEN raw_item_created` wake-up，現在先使用 polling。
-- local route parse failed 時自動 fallback cloud route。
 - 近似重複合併到既有 event。
 - Claude Code Agent SDK route。
 - metrics endpoint。

@@ -139,25 +139,18 @@ V1 中 `normalizer-classifier` 分兩個層次：
 
 預處理可以由規則完成，模型只處理通過初篩的消息，以降低成本與延遲。
 
-### 5.4 模型可本地或雲端
+### 5.4 雲端模型 provider
 
-V1 允許兩種模型路徑：
+News 使用獨立的 OpenRouterClient 與 OllamaCloudClient，Layer 1／Layer 2 可分別選擇 provider；早期本機 LLM 探索已退役。預設維持 OpenRouter `openai/gpt-6-luna`，不因新增 client 自動改變啟用模型。
 
-| 模型路徑 | 用途 | 適用情境 |
-| --- | --- | --- |
-| cloud small model | V1 主分類、相關度判斷、claim extraction、impact channel | 使用 `gpt-5.4-mini`，重要來源、高優先級消息 |
-| local 8B model | 摘要、翻譯、低成本輔助處理 | HomeLab 可用、低風險任務 |
-| cloud nano model | 摘要、翻譯、低成本輔助處理 | 例如 `gpt-5.4-nano`，不作最終分類 |
-| OpenRouter translation model | 摘要、翻譯、低風險文字處理 | V1 預設 `openai/gpt-oss-20b:free`，失敗時 fallback `openai/gpt-oss-20b`，不作最終分類 |
-
-V1 預設用 `gpt-5.4-mini` 做最終分類。OpenRouter free / cheap model、local LLM 與 nano model 可降低摘要與翻譯成本，但不應單獨決定 `is_relevant`、`relevance_score`、`claim_direction` 或 severity input。
+模型是否適合最終分類，需依具體模型的品質驗收決定。Ollama Cloud 目前不提供模型端 structured outputs 保證，本系統以 prompt schema 與共同業務驗證接入；不得將本地 mock 驗證當作雲端品質驗收。當前契約與設定見 [normalizer-classifier](services/normalizer-classifier.md#10-模型路由)。
 
 V1 將 AI 拆成兩層：
 
 ```text
 Layer 1 translation-summary:
   input: original text
-  output: summary_zh, summary_en, full_translation_zh, full_translation_en
+  output: translations[] by language
   rule: 不判斷優先級，不判斷交易相關度
 
 Layer 2 classification-reasoning:

@@ -348,8 +348,8 @@ create table ai_model_calls (
 | 欄位 | 說明 |
 | --- | --- |
 | `ai_layer` | `translation_summary` / `classification_reasoning` / `advanced_reasoning` |
-| `route_name` | `openrouter_free` / `openrouter_paid` / `cloud_small` / `local_8b` |
-| `provider` | `openrouter` / `openai_compatible` / `ollama` |
+| `route_name` | `cloud_small` / `translation_primary` / `translation_paid_fallback`（provider 另記 `openrouter`／`ollama_cloud`） |
+| `provider` | 新呼叫為 `openrouter` / `ollama_cloud`；保留歷史紀錄值 |
 | `request_kind` | `translate_summary` / `classify_raw_item` / `advanced_event_review` |
 | `usage_json` | 保存 provider 原始 usage payload |
 | `request_hash` | 用於排查重複 call，不保存完整 prompt |
