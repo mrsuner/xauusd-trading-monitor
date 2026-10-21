@@ -1,0 +1,30 @@
+{
+  "raw_item_id": "0d004001-40c0-44be-ae91-6efd767ad843",
+  "success": true,
+  "latency_ms": 20346,
+  "requests": [
+    {
+      "model": "glm-5.3-flash",
+      "reasoning_effort": "low",
+      "ai_layer": "translation_summary",
+      "response_model": "glm-5.3-flash",
+      "finish_reason": "stop"
+    }
+  ],
+  "summary_lengths": {
+    "zh-Hant": 46,
+    "en": 162,
+    "th": 141,
+    "ja": 78
+  },
+  "db_writes": false,
+  "source_url": "https://t.me/Tasnimnews/453031",
+  "baseline_failure": "Two production attempts rejected the English summary over the existing 400-character limit.",
+  "fix": "Ollama-only translation prompt requests one short sentence, targeting 120 characters for zh-Hant and 220 for other languages; shared hard limits and full translation remain unchanged.",
+  "mock_tests": {
+    "passed": 265,
+    "warnings": 910,
+    "seconds": 43.54
+  },
+  "production_updated_with_fix": false
+}
