@@ -43,8 +43,8 @@
 | 階段 | 產物與獨立 commit | 驗收標準 | 進度 |
 | --- | --- | --- | --- |
 | P0 | 本文件與服務索引；`docs: plan cloud model provider implementation` | 範圍、契約、分期、驗收與外部限制可追溯 | 完成：`594f322` |
-| P1 | Protocol、OpenRouterClient、共用任務／HTTP／usage 拆分；`refactor: isolate OpenRouter model client` | OpenRouter request、結果、price routing、usage、日誌遮罩及既有測試保持；worker 不依賴具體 client | 完成：126 tests 通過，待本階段提交 |
-| P2 | OllamaCloudClient、provider factory／設定、跨 provider translation fallback；`feat: add Ollama Cloud model provider` | 兩層可獨立選 provider；Cloud key／model 缺失 fail fast；參數隔離；strict JSON 與業務驗證；每次呼叫預算／usage；無隱藏重試 | 待開始 |
+| P1 | Protocol、OpenRouterClient、共用任務／HTTP／usage 拆分；`refactor: isolate OpenRouter model client` | OpenRouter request、結果、price routing、usage、日誌遮罩及既有測試保持；worker 不依賴具體 client | 完成：`d4f0673`；126 tests 通過 |
+| P2 | OllamaCloudClient、provider factory／設定、跨 provider translation fallback；`feat: add Ollama Cloud model provider` | 兩層可獨立選 provider；Cloud key／model 缺失 fail fast；參數隔離；strict JSON 與業務驗證；每次呼叫預算／usage；無隱藏重試 | 完成：228 tests 通過，隨本階段提交 |
 | P3 | 移除 local route、Compose／env examples、服務文件與整合回歸；`refactor: retire local model routes and document cloud providers` | active runtime／設定樣板無 local route；舊 local 選擇明確報錯；Compose 使用假資料驗證；完整服務測試通過 | 待開始 |
 | P4 | 最終差異審查、驗收證據、進度結案；`docs: close cloud model provider implementation` | P0–P3 提交可追溯、工作產物已提交、無關修改未納入；清楚列出未執行的真實 Cloud 驗證與部署 | 待開始 |
 
@@ -65,7 +65,7 @@
 ## TODOs
 
 - [x] P1 完成；程式與本記錄於同一階段提交。
-- [ ] P2 完成並提交。
+- [x] P2 完成；程式與本記錄於同一階段提交。
 - [ ] P3 完成並提交。
 - [ ] P4 審查與結案提交。
 - 後續獨立工作：使用者選定 Cloud model／帳戶額度後，再安排有明確請求與成本上限的真實 API、品質與延遲評估；本次不自動執行。
@@ -75,3 +75,6 @@
 - 基準：先前針對 model client／settings／translation runtime／Luna runtime 的 50 個 mock tests 通過；未呼叫真實 API。
 
 - P1：`services/normalizer-classifier/.venv/bin/python -m pytest services/normalizer-classifier/tests -q --disable-warnings --tb=short`：126 passed；compileall 與 `git diff --check` 通過。既有 warning 為 Python 3.14／pytest-asyncio deprecation。日誌模組改為 `model_transport`，事件名稱與遮罩行為保持。
+
+- P2：完整 normalizer-classifier suite：228 passed；compileall 與 `git diff --check` 通過。新增 Cloud request／response／業務驗證、各層 provider／timeout 設定與跨 provider fallback 測試；worker 測試覆蓋逐次預算／usage、認證錯誤停止、quota 阻擋與分類先儲存後翻譯。
+- P2 實作細節：OpenRouter identity 明確固定，不再由 URL 猜測；Ollama Cloud 限直接 `https://ollama.com/v1`，不支援本機 daemon／任意 proxy。拒絕未設定語言的輸出；原有額外日語測試改為明確要求日語。 malformed envelope／usage 可記錄失敗，不遺漏 attempt。
