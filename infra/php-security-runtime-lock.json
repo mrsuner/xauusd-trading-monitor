@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "php": "8.4.27",
+  "registryArtifact": "ghcr.io/mrsuner/xauusd-trading-monitor/notification:php-security-20261021-8e5fdc31-8.4.27@sha256:ec790b54ed39f60019bc044d0d6fc41f893f0ab5bb63a5b51aa53c838128d249",
+  "registryIndexDigest": "sha256:e1bc97a10d5090462ec7cdf52a05c68df378fb7c5eebd00151749dcf06085c33",
+  "verifiedImportedRuntime": "ghcr.io/mrsuner/xauusd-trading-monitor/notification@sha256:2c8f904b57cea5dc5152b6c5eb13d2882ce0061a1169cd7af11bc85ac45ee770",
+  "importedDigestIsRegistryPullTarget": false,
+  "base": "ghcr.io/mrsuner/php-runtime:8.4.27-fpm-alpine3.24-20261021@sha256:e947dbecce00902c4a76d63afc902ddcb880ffa6227273167f00d4170a8a4033",
+  "applicationSourcePolicy": "unchanged deployed immutable application/vendor/assets; no local WIP",
+  "sourceImageId": "sha256:8e5fdc31e2b6f72bc7935d55b9a293a4f51f83383c46377affcfbd404c82bff7",
+  "infraBaselineSourceSha": "540cccf9379a154b62977172c382323d710fb5e5",
+  "modelSha256": "2c1a8d31ad582601076175d86b26a2baf947c0770bfbc7857c767998a852bc56",
+  "operation": "xauusd-20261021T165509Z-4e48a52d",
+  "backupGeneration": "vps82-20261021T162530Z-pre-migration-74e055bb",
+  "backupArchiveSha256": "79c7a4340dfb36270d751fb83c51637f402071cfe28f5a6f7c873204f8e8af40",
+  "nativeRestoreDatasets": 36,
+  "candidateMigrationRehearsal": true,
+  "runtimeOnlyProduction": true,
+  "schemaMutationPerformed": false,
+  "credentialsChanged": false,
+  "observedAt": "2026-10-21T17:24:53+00:00",
+  "checks": {
+    "php": "8.4.27",
+    "role": "xauusd_notify_runtime",
+    "postgres": "18.6 (Debian 18.6-1.pgdg13+2)",
+    "schemaCreateDenied": true,
+    "cacheReadWrite": true,
+    "cacheLock": true,
+    "queueSizeReadable": true,
+    "redisPing": true
+  },
+  "publicChecks": [
+    {
+      "name": "public-health",
+      "url": "https://news-api.thetickbase.com/health",
+      "status": 200,
+      "expected": 200
+    }
+  ],
+  "longObservation": "owner-deferred"
+}

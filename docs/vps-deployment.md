@@ -182,3 +182,11 @@ enable schedules. M8/M9 subsequently installed the normal release gate and
 central3/14/7 timers; current acceptance is above. Old backup jobs/data remain intact. HomeLab200 private pipeline is a separate
 recovery scope: its native checkpoint does not imply an ongoing VPS82 schedule
 covers private collectors, inference state, publishers or Telegram sessions.
+
+## PHP security runtime — 2026-10-22
+
+Production is restored on **PHP8.4.27**. The [immutable runtime lock](../infra/php-security-runtime-lock.json) records the exact published GHCR artifact, verified target-host image, unchanged deployed source policy, frozen36-dataset native/candidate gate and semantic acceptance. All PHP roles for this project use the same reviewed runtime. No live migrations, seeders, Redis flush, secret rotation or data restore ran.
+
+The local canonical Dockerfile pins the reviewed PHP8.4.27 base and existing PECL versions. For future transfer/pull, use **registryArtifact** and verify the host import identity; imported-only digests are not automatically registry pull targets. The published infra SHA identifies the accepted baseline; this emergency image/helper overlay is separately recorded, not an invented source commit.
+
+Only notification PHP roles changed; public-api and HomeLab private pipeline images are unchanged. The exact previously stopped public-syncer container was resumed after shared ingress acceptance. Original credentials, data, protected backups and old images remain retained. Long observation and post-upgrade backup monitoring are deferred by Owner; current health does not certify all authenticated/provider/business flows.
