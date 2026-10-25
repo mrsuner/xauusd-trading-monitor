@@ -2,7 +2,7 @@
 
 ## Status
 
-- 狀態：Done（P0–P4／R1、T1–T3、P5–P6 完成；HomeLab normalizer 已部署 GLM／low 並通過真實新聞驗證；VPS／公開網站未部署）
+- 狀態：P0–P6 已完成；R2 target-script 修正本地完成、未部署。HomeLab 仍為 P6 的 `abc6107`／GLM／low；VPS／公開網站未部署本次變更。
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
@@ -17,6 +17,7 @@
 - OpenRouter 與 Ollama Cloud 各有獨立實作類別，以小型 `ModelClient` Protocol 對接 worker；不使用共同 provider 父類別，也不建立 registry／plugin framework。
 - 共用新聞 prompt、輸入組裝、schema、業務驗證、結果／錯誤／usage 契約，以及無 provider 判斷的 HTTP／log 工具。各 client 自行客製化 payload、headers、response 解析與能力限制。
 - 所有 API attempt 由 worker 的現有預算與 fallback 流程掌握；client 單次操作只呼叫一次 HTTP，不隱藏重試、切換 provider 或 JSON 修復。
+- R2：Ollama Cloud Layer 1 僅在 target-script 驗證失敗時，由 worker 最多新增一次帶欄位回饋的修正呼叫；所有 configured routes 共用此一次上限，逐次預算與 usage 留存。OpenRouter 不新增同 client 重試；timeout 與其他無效輸出不觸發此修正。
 
 ## 外部契約與限制（2026-10-21 查核）
 
@@ -49,6 +50,7 @@
 | P4 | 最終差異審查、驗收證據、進度結案；`docs: close cloud model provider implementation` | P0–P3 提交可追溯、工作產物已提交、無關修改未納入；清楚列出未執行的真實 Cloud 驗證與部署 | 完成：審查與驗收證據隨本階段文件提交 |
 
 | R1 | Code review 修復與回歸驗證；`fix: harden cloud model failure handling after review` | 下列五項問題修復；針對性回歸與完整服務測試通過，無關修改不納入 | 完成：20 個針對性回歸／完整服務 261 tests 通過；隨 R1 獨立提交 |
+| R2 | Layer 1 target-script 修正；`fix: retry Ollama translations once after script validation failure` | 保留驗證、定位所有錯誤欄位、補強全文提示；修正呼叫最多一次且遵守預算，不重播分類；完整 mock suite 通過 | 本地完成：19 個新增案例／完整服務 284 tests 通過；不改配置、不部署，長文／timeout 另議 |
 
 每階段先完成對應驗證，再在同一 commit 更新本文件；下一階段補記前一階段 SHA，避免自指 commit hash。單純本地實作不改 production env 或 runtime。
 
@@ -296,3 +298,30 @@ Layer 2 平均 5.347 s（4.297–6.248 s），成功的 Layer 1 四語呼叫平�
 Git：首次 scope 從 `1ee96ae` fast-forward 至 `293a5f0`，摘要修正再 fast-forward 至 `abc6107`；原本 11 個階段 commit 保留為重放後的獨立提交，修正另有獨立 commit。原本 32 檔未提交內容經逐檔 SHA256 保留，其他本機既有未發布 commits 未推送，本機 develop 已整合遠端而無 behind 分歧。main 維持 `3de3c102`。本節與證據另以文件 commit 同步到 develop，不更動已部署 application image。
 
 完整非敏感的備份／還原 receipts、兩次 rollout、image config／manifest 身分、runtime clients、實際 request 參數、逐筆 usage、樣本翻譯長度／hash 與 Git 邊界見 [P6 deployment evidence](evidence/2026-10-21-ollama-cloud-homelab-deployment.json)。完整新聞文字與輸出只留在 ignored 本地 evidence，沒有提交 production env、API key 或 DB dump。
+
+## Layer 1 target-script 修正（R2，2026-10-25，本地完成）
+
+2026-10-22 的唯讀觀察發現：P6 摘要長度修正後約 17 小時，Layer 2 為 179／179 成功；Layer 1 為 179／181 成功（含兩則部署時的明確補跑）。兩次失敗分別為長文 `ReadTimeout` 及短文 `missing target script: zh-Hant`。後者的實際 HTTP 回應為 200／stop，繁中、泰文、日文摘要已翻譯，但三語 `full_translation` 全部沿用英文；原驗證器只回報第一個繁中欄位。這是全文輸出錯誤，不能透過放寬字元驗證解決，也不是繁簡字判斷問題。
+
+使用者要求先修正字元檢查相關問題，長文方案另議。本階段不調整 timeout／model／reasoning／key／fallback 設定，不修改 DB schema，不部署、不補跑 production 新聞。HomeLab 仍使用 P6 `abc6107`，本地測試不呼叫真實 API 或連線 DB。
+
+實作：
+
+- 保留原有摘要字數、完整語言、非空全文與目標 script 驗證。新增 `TranslationScriptError`，一次收集所有錯誤語言與欄位，例如 `zh-Hant.full_translation`、`th.full_translation`、`ja.full_translation`；`ModelClientError` 帶出結構化欄位清單供 worker 判斷，usage 同時保留可讀錯誤。若同時有缺語言、缺全文或摘要超長，優先維持原錯誤，不進入此次 script 修正。
+- 僅補強 Ollama Layer 1 prompt：逐語獨立檢查摘要與全文，只有與原文同語言的全文欄位可以沿用原文；英文來源的繁中／泰文／日文全文必須實際翻譯。人名、帳號可保留於已翻譯的句子內。
+- Worker 僅對 Ollama Cloud 的 target-script 錯誤新增一次明確修正呼叫，帶入錯誤欄位，從原文重新產生整組翻譯。每個 client 單次操作仍只有一次 HTTP；修正次數跨 primary／fallback 共用上限，不新增持久化重試 queue，也不局部填補或拼接錯誤全文。
+- 每次修正前重新通過既有 translation／daily／paid-fallback 預算，成功與失敗 usage 分別入帳；整組通過原有驗證後才寫入結果。未開 fallback 時最多兩次呼叫；已開 fallback 時最多為原有 routes 數加一次修正，不自行啟用其他 provider。OpenRouter 維持原有同 client 不重試行為；timeout、認證、JSON、摘要過長及缺全文等錯誤不觸發新的 script 修正。
+- 分類先提交的順序維持；修正失敗、預算不足或結果寫入失敗均不重播 Layer 2。儲存錯誤不觸發模型重送，也不把已成功的模型結果覆寫為 failed rows。
+
+驗收結果：
+
+| 驗收項目 | 結果 |
+| --- | --- |
+| 重現三語全文複製英文 | 19 個新增 mock 案例之一；一次回報三個全文欄位，client 本身不重試 |
+| 首次錯誤、修正成功／再次失敗 | 最多一次修正，保持原文與整組四語要求；分別保存兩次 usage，只有整組成功才寫入結果 |
+| 預算與 fallback | Daily／per-run／budget store 不可用都會阻擋額外請求；各 route 共用一次修正上限，OpenRouter 不新增同 client 重試 |
+| 非 script 錯誤與儲存錯誤 | timeout／auth／JSON／摘要超長／缺全文不進入 script 修正；修正成功後儲存失敗不呼叫 fallback |
+| 分類獨立性 | 完整 worker loop 覆蓋一次分類、兩次翻譯失敗；分類只提交一次，未呼叫分類失敗重排程 |
+| 完整回歸 | 在 `services/normalizer-classifier` 執行 `.venv/bin/python -m pytest tests -q --disable-warnings --tb=short --maxfail=3`：284 passed、1054 warnings、1.59 s；7 個修改／新增 Python 檔 AST parse 與 `git diff --check` 通過 |
+
+本次為本地程式與 mock 回歸完成，不宣稱模型真實輸出已驗收或 production 失敗新聞已恢復。長文處理策略與真實 Cloud／HomeLab 驗收待後續授權；timeout 仍維持原值，不沿用討論中的 120 秒建議。本階段以表列 commit message 獨立提交，不推送、不部署。

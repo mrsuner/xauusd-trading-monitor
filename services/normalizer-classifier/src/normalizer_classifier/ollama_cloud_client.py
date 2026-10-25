@@ -50,10 +50,11 @@ class OllamaCloudClient:
 
     async def summarize_and_translate(self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem,
                                      *, full_translation_required: bool = True, input_text: str | None = None,
-                                     truncated: bool = False, taxonomy_context: TaxonomyContext | None = None) -> AuxiliaryModelResponse:
+                                     truncated: bool = False, taxonomy_context: TaxonomyContext | None = None,
+                                     script_repair_fields: tuple[str, ...] = ()) -> AuxiliaryModelResponse:
         return await model_tasks.summarize_and_translate(self, raw_item, source, normalized,
             full_translation_required=full_translation_required, input_text=input_text, truncated=truncated,
-            taxonomy_context=taxonomy_context)
+            taxonomy_context=taxonomy_context, script_repair_fields=script_repair_fields)
 
     async def _post_chat_completions(self, payload: dict[str, Any], *, ai_layer: str, request_kind: str) -> dict[str, Any]:
         return await self.transport.post(payload, ai_layer=ai_layer, request_kind=request_kind)
@@ -78,6 +79,13 @@ class OllamaCloudClient:
                 "Put supporting details in full_translation rather than the summary. "
                 "Preserve attribution and uncertainty even in the short summary. "
                 "Check summary length before returning JSON and shorten it if needed."
+                " Validate summary and full_translation independently for every output language. "
+                "When full_translation_required is true, translate the entire supplied text in each "
+                "language's full_translation even when its summary is already translated. "
+                "Copy source text only into the full_translation whose target language matches the source. "
+                "For an English source, only en may reuse English text: zh-Hant, th, and ja "
+                "full_translation must be Traditional Chinese, Thai, and Japanese respectively. "
+                "Names and handles may remain unchanged within an otherwise translated sentence."
             )
         payload["stream"] = False
         if self.reasoning_effort:

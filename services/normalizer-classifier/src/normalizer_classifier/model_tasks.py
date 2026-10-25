@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 
-from .model_contracts import ModelClientError, is_retryable_model_error
+from .model_contracts import ModelClientError, TranslationScriptError, is_retryable_model_error
 from .models import AuxiliaryModelResponse, AuxiliaryTextResult, ClassificationResult, ModelResponse, NormalizedItem, RawItem, SourceMetadata
 from .taxonomy import TaxonomyContext
 
@@ -158,6 +158,7 @@ async def summarize_and_translate(
     input_text: str | None = None,
     truncated: bool = False,
     taxonomy_context: TaxonomyContext | None = None,
+    script_repair_fields: tuple[str, ...] = (),
 ) -> AuxiliaryModelResponse:
     payload = {
         "model": client.model,
@@ -210,6 +211,14 @@ async def summarize_and_translate(
         ),
         ai_layer="translation_summary",
     )
+    if script_repair_fields:
+        payload["messages"][0]["content"] += (
+            " A previous attempt failed target-script validation for these fields: "
+            + ", ".join(script_repair_fields)
+            + ". Regenerate the complete translations array directly from the original source. "
+            "Write each flagged field in its requested language; do not copy source text in a different language into it. "
+            "Translate the entire supplied text in each required full_translation, not just the summary."
+        )
     started = time.perf_counter()
     try:
         body = await client._post_chat_completions(
@@ -254,7 +263,10 @@ async def summarize_and_translate(
             success=False,
             error=exc,
         )
-        raise ModelClientError(f"invalid auxiliary model response: {exc}", usage=usage, retryable=is_retryable_model_error(exc)) from exc
+        raise ModelClientError(
+            f"invalid auxiliary model response: {exc}", usage=usage, retryable=is_retryable_model_error(exc),
+            script_validation_fields=exc.fields if isinstance(exc, TranslationScriptError) else (),
+        ) from exc
 
     usage = client._build_usage(
         payload=payload,
@@ -503,6 +515,7 @@ def validate_auxiliary_text_result(
         raise ValueError("missing or unsupported translation languages")
     if len(actual_languages) != len(set(actual_languages)):
         raise ValueError("duplicate translation languages")
+    script_errors: list[str] = []
     for translation in result.translations:
         # Script presence catches obvious English copies, not semantic mistakes.
         script = {"zh-Hant": r"[\u3400-\u9fff]", "ja": r"[\u3040-\u30ff\u3400-\u9fff]",
@@ -510,9 +523,10 @@ def validate_auxiliary_text_result(
         limit = 280 if translation.language == "zh-Hant" else 400
         if translation.summary and len(translation.summary) > limit:
             raise ValueError(f"summary too long: {translation.language}")
-        for field in (translation.summary, translation.full_translation):
+        for field_name in ("summary", "full_translation"):
+            field = getattr(translation, field_name)
             if field and script and not re.search(script, field):
-                raise ValueError(f"missing target script: {translation.language}")
+                script_errors.append(f"{translation.language}.{field_name}")
     missing_languages = [language for language in languages if language not in actual_languages] if require_all_languages else []
     incomplete_languages: list[str] = []
     for translation in result.translations:
@@ -529,3 +543,5 @@ def validate_auxiliary_text_result(
         if incomplete_languages:
             parts.append(f"incomplete languages: {', '.join(incomplete_languages)}")
         raise ValueError("; ".join(parts))
+    if script_errors:
+        raise TranslationScriptError(tuple(script_errors))
