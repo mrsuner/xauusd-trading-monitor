@@ -9,10 +9,18 @@ from .taxonomy import TaxonomyContext
 
 
 class ModelClientError(RuntimeError):
-    def __init__(self, message: str, *, usage: AIModelCallUsage | None = None, retryable: bool = True) -> None:
+    def __init__(self, message: str, *, usage: AIModelCallUsage | None = None, retryable: bool = True,
+                 script_validation_fields: tuple[str, ...] = ()) -> None:
         super().__init__(message)
         self.usage = usage
         self.retryable = retryable
+        self.script_validation_fields = script_validation_fields
+
+
+class TranslationScriptError(ValueError):
+    def __init__(self, fields: tuple[str, ...]) -> None:
+        super().__init__(f"missing target script: {', '.join(fields)}")
+        self.fields = fields
 
 
 class ModelClient(Protocol):
@@ -30,6 +38,7 @@ class ModelClient(Protocol):
         self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem,
         *, full_translation_required: bool = True, input_text: str | None = None,
         truncated: bool = False, taxonomy_context: TaxonomyContext | None = None,
+        script_repair_fields: tuple[str, ...] = (),
     ) -> AuxiliaryModelResponse: ...
 
 

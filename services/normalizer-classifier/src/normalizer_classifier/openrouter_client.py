@@ -58,10 +58,11 @@ class OpenRouterClient:
 
     async def summarize_and_translate(self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem,
                                      *, full_translation_required: bool = True, input_text: str | None = None,
-                                     truncated: bool = False, taxonomy_context: TaxonomyContext | None = None) -> AuxiliaryModelResponse:
+                                     truncated: bool = False, taxonomy_context: TaxonomyContext | None = None,
+                                     script_repair_fields: tuple[str, ...] = ()) -> AuxiliaryModelResponse:
         return await model_tasks.summarize_and_translate(self, raw_item, source, normalized,
             full_translation_required=full_translation_required, input_text=input_text, truncated=truncated,
-            taxonomy_context=taxonomy_context)
+            taxonomy_context=taxonomy_context, script_repair_fields=script_repair_fields)
 
     async def _post_chat_completions(self, payload: dict[str, Any], *, ai_layer: str, request_kind: str) -> dict[str, Any]:
         return await self.transport.post(payload, ai_layer=ai_layer, request_kind=request_kind)

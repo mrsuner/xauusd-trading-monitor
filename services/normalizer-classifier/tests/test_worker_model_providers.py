@@ -16,9 +16,9 @@ from test_translation_runtime import result as translations
 
 
 def make_worker(**overrides):
-    config = settings(TRANSLATION_MODEL_PROVIDER="ollama_cloud", TRANSLATION_FALLBACK_PROVIDER="openrouter",
-                      TRANSLATION_PAID_FALLBACK_ENABLED=True, TRANSLATION_FALLBACK_MODEL_NAME="router-fallback",
-                      **overrides)
+    config = settings(**(dict(TRANSLATION_MODEL_PROVIDER="ollama_cloud", TRANSLATION_FALLBACK_PROVIDER="openrouter",
+                             TRANSLATION_PAID_FALLBACK_ENABLED=True, TRANSLATION_FALLBACK_MODEL_NAME="router-fallback")
+                         | overrides))
     db = SimpleNamespace(**{name: AsyncMock() for name in (
         "reserve_ai_request", "update_translation_result", "insert_ai_model_call",
         "update_translation_failed", "update_translation_skipped",

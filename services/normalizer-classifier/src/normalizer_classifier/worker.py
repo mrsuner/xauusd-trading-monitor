@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
+from collections import deque
 from uuid import uuid4
 
 from .db import Database
@@ -194,8 +195,13 @@ class NormalizerClassifierWorker:
         last_error = None
         last_client = None
 
-        for index, client in enumerate(self.translation_model_clients):
-            is_fallback = index > 0
+        # At most one explicit script repair across all configured routes.
+        attempts: deque[tuple[ModelClient, bool, tuple[str, ...]]] = deque(
+            (client, index > 0, ()) for index, client in enumerate(self.translation_model_clients)
+        )
+        script_repair_used = False
+        while attempts:
+            client, is_fallback, repair_fields = attempts.popleft()
             if is_fallback and not await self._reserve_translation_paid_fallback_call():
                 last_error = "translation_paid_fallback_budget_reached"
                 break
@@ -217,6 +223,7 @@ class NormalizerClassifierWorker:
                     full_translation_required=full_translation_required,
                     input_text=text,
                     truncated=truncated,
+                    **({"script_repair_fields": repair_fields} if repair_fields else {}),
                 )
             except Exception as exc:
                 last_error = str(exc)
@@ -235,6 +242,14 @@ class NormalizerClassifierWorker:
                 )
                 if not isinstance(exc, ModelClientError) or not exc.retryable:
                     break
+                if (client.api_provider == "ollama_cloud" and exc.script_validation_fields
+                        and not script_repair_used):
+                    script_repair_used = True
+                    attempts.appendleft((client, is_fallback, exc.script_validation_fields))
+                    logger.info(
+                        "translation script repair scheduled raw_item_id=%s provider=%s model=%s fields=%s",
+                        task.raw_item.id, client.provider, client.model, exc.script_validation_fields,
+                    )
                 continue
 
             # Storage failures are not model failures: do not call another
