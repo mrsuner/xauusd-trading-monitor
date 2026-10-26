@@ -496,16 +496,19 @@ class Database:
         reason: str = "model_call_budget_reached",
     ) -> None:
         async with self.cursor() as cur:
+            # Admission failed before HTTP; undo this claim's attempt only once.
             await cur.execute(
                 """
                 update raw_item_processing
                 set status = 'retry',
                     next_retry_at = now() + interval '1 hour',
+                    attempt_count = greatest(attempt_count - 1, 0),
                     locked_by = null,
                     locked_at = null,
                     error_message = %(reason)s,
                     updated_at = now()
                 where id = %(processing_id)s
+                  and status = 'running'
                 """,
                 {"processing_id": processing_id, "reason": reason},
             )

@@ -247,6 +247,7 @@ class NormalizerClassifierWorker:
             if not translation_reserved:
                 last_error = "translation_call_budget_reached"
                 break
+            previous_client = last_client
             last_client = client
             try:
                 response = await client.summarize_and_translate(
@@ -259,6 +260,12 @@ class NormalizerClassifierWorker:
                     token_budget=self._request_token_budget(task.raw_item.id),
                     **({"script_repair_fields": repair_fields} if repair_fields else {}),
                 )
+            except ModelBudgetError as exc:
+                # The request guard runs before HTTP. Keep the last actual attempt.
+                last_client = previous_client
+                last_error = str(exc)
+                logger.info("translation budget blocked raw_item_id=%s reason=%s", task.raw_item.id, last_error)
+                break
             except Exception as exc:
                 last_error = str(exc)
                 if isinstance(exc, ModelClientError) and exc.usage:
