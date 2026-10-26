@@ -4,6 +4,7 @@
 
 - 2026-10-26，Asia/Bangkok；使用者授權先訂計畫／驗收，再推進本地實作，暫不部署。
 - 本地 P0–P3 已完成；未推送、未部署，沒有真實 Cloud 呼叫。HomeLab 仍為 `abc6107`。
+- R1 code review 已完成，兩項重試／歸因問題已本地修復；並行預留與 summary_only 轉換補上真實 PG 驗證，見下節。
 - 沿用 `develop`，各階段獨立提交並回寫進度；不推送、不呼叫真實模型、不變更私有 env 或 HomeLab／VPS／公開網站 runtime。
 - 前置：provider 拆分／HomeLab `abc6107` 已部署；R2 script 修正 `fc4a423` 僅本地。本文為後續長文工作權威；前案見 [provider 實作計畫](2026-10-21-news-model-providers-implementation-plan.md)。
 
@@ -52,6 +53,23 @@ source tokens 固定用既有 `o200k_base` 相容估算；不是 GLM 原生 toke
 - P3：最終 normalizer suite 339 passed（含原 provider／R2 回歸），syncer 37 passed，public-api 48 passed／4 skipped；skipped 為既有 content lifecycle 的 opt-in DB 測試，不是本次驗收。Dashboard `npm run typecheck`、AST parse、`git diff --check` 通過。公用範本均以測試用 key 與 DB URL render，未讀取或覆蓋私有 env。
 - P3：PG16.14 verifier 另走實際 `update_translation_result`／SQL 聚合、syncer SQL選取／payload、public-api request 驗證與 repository ingest，四語均保存為 summary_only、全文 null、原文保持。Private 與 public DB 都拒絕 summary_only 寫入全文；帶摘要資料 downgrade 後改為 skipped 並保留摘要，再 upgrade 不會假造 completed。完整 DB 路徑不使用 production 資料；container／tmpfs 已刪除，沒有留下測試服務。
 - P3：原工作目錄既有 public-syncer DB／測試修改逐 patch 比對保留，提交只包含本階段 status 篩選變更；其他 public-web／public-api／infra 的既有修改未納入。本地分支原有 ahead／behind 分歧不在本次發布範圍，未推送或合併 main。
+
+## Code review（R1，2026-10-26，本地完成）
+
+審查範圍為 `0ad897d` 至 `cfbe07c` 的長文分流／token budget 實作，重點是並行預留、修正／fallback 是否可繞過預算，以及 summary_only 狀態一致性。沒有變更門檻、預算值、私有 env、schema 或 runtime，未推送與部署。
+
+| 優先級／位置 | 問題與影響 | 修復與回歸 |
+| --- | --- | --- |
+| P2／`Database.defer_for_model_budget` | Claim 先增加 attempt_count，budget 在 HTTP 前擋住後卻不復原；多次 daily 延後可能讓第一次實際模型錯誤立即達到 max_attempts | 只對 running task 復原一次 claim 的計數，最小為0；已轉為 retry 的重複 defer 不再扣次。PG 修復前重現 `(retry, 1)`，期望 `(retry, 0)`；修復後連續3次預算延後不耗分類 retry，首次真正模型失敗仍可 retry；先前已有2次模型嘗試的 task 重複 defer 也保留2次 |
+| P2／`Worker._run_translation_summary` | Token guard 在 client 內、HTTP 前執行，last_client 卻事先切換；初次 budget block 被記成模型失敗，未送出的 fallback 被錯記為最後使用 provider | 單獨捕捉 ModelBudgetError，恢復最後實際 attempt 的 client 並停止後續 calls；零 HTTP 時記 skipped 與 budget reason，不產生 provider 失敗／usage；已有模型失敗則保留實際 provider。新增4個 mock 案例，修復前4 failed，修復後全部通過 |
+
+補強驗證：
+
+- 兩個獨立 connection pools 的10個並行預留共用 daily cap；daily=30、每次10僅3次成功。相同 item cap=25、每次10僅2次成功，拒絕不扣另一份額度。新 client／daily reset 均不清掉 item 額度，未發現此已配置路徑可突破預留上限。
+- 使用真實 PG 預留與 worker、僅 mock HTTP：primary script 失敗後修正一次亦失敗，共2次 Ollama calls、2筆失敗 usage，實際保守預留23,403；item cap=29,000，因此 fallback 在 HTTP 前被擋住，fallback HTTP=0，最後 provider 仍為 translation_primary／fixture。不是以 mock DB 直接回傳拒絕來替代此驗收。
+- 狀態回歸從既有 completed／非空全文開始，再更新相同 private item 及相同 public idempotency key 為 summary_only。四語舊全文均清為 null，private 聚合與 public rows 保持 summary_only；兩側 DB 仍拒絕 summary_only 搭配全文。狀態轉換未發現需修改的實作缺陷。
+- 測試：normalizer 343 passed、syncer 37 passed、public-api 48 passed／4個既有 opt-in tests skipped；針對 worker／長文／script／本次回歸為72 passed。PG16.14 verifier 的競爭、重排程、真實預算＋mock HTTP、跨服務狀態、migration upgrade/downgrade 全部通過；disposable container 已移除。
+- 完成 `git diff --check` 與修改檔 AST parse。使用者原有未提交修改不納入；真實 Cloud output cap／原生 token 校準仍未執行。本次以 `fix: preserve retries and provider attribution on token budget blocks` 獨立提交。
 
 ## 限制與後續
 
