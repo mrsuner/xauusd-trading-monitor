@@ -34,8 +34,8 @@ source tokens 固定用既有 `o200k_base` 相容估算；不是 GLM 原生 toke
 
 | 階段 | 產物與獨立提交 | 驗收標準 | 進度 |
 | --- | --- | --- | --- |
-| P0 | 本計畫；`docs: plan source token routing and bounded model budgets` | 明列門檻、預算、狀態、失敗處置、邊界案例及部署範圍 | 已完成計畫，待提交 |
-| P1 | Token policy、設定、request output/input guard、持久化原子預留與 migration；`feat: bound news model requests with shared token reservations` | 2,499／2,500／2,501／7,999／8,000／8,001 邊界；完整 payload／schema／repair 計入；超限或估算／DB 失敗零 HTTP；兩 provider 有 output cap；多連線競爭與同 item 跨日仍不超限 | 待實作 |
+| P0 | 本計畫；`docs: plan source token routing and bounded model budgets` | 明列門檻、預算、狀態、失敗處置、邊界案例及部署範圍 | 完成，`0ad897d` |
+| P1 | Token 設定、request output/input guard、持久化原子預留與 migration；`feat: bound news model requests with shared token reservations` | 完整 payload／schema／repair 計入；超限或估算／DB 失敗零 HTTP；兩 provider 有 output cap；多連線競爭與同 item 跨日仍不超限。Source 分流邊界隨 P2 驗收 | 完成：針對性 132／完整服務 306 tests；PG16.14 競爭與 migration 驗證通過 |
 | P2 | Worker 分流、R2 budget 整合、summary_only 狀態與同步相容；`feat: preserve summary-only news without claiming full translation` | 超 8,000 兩層零呼叫；來源 full／summary_only／disabled 與 always_full 組合；摘要 null 全文；分類先提交，修正／fallback 額度不足不多送；狀態聚合、公開 payload／驗證一致 | 待實作 |
 | P3 | 設定 wiring、服務說明、完整回歸與本地 DB 驗證紀錄；`test: verify news token budget and summary-only contracts` | normalizer／syncer／public-api 相關測試、dashboard typecheck、公用 env→Compose→factory、全新及既有 DB migration upgrade/downgrade、真實 PostgreSQL 競爭預留；git diff 檢查；測試資源清除 | 待實作 |
 
@@ -43,4 +43,6 @@ source tokens 固定用既有 `o200k_base` 相容估算；不是 GLM 原生 toke
 
 ## 實作紀錄
 
-- P0：計畫已整理。尚未更改程式、配置或 runtime。
+- P0：計畫已整理並獨立提交 `0ad897d`。
+- P1：新增 `token_budget.py`、正值 Settings、兩 provider 的最終 payload input guard／output cap，以及 `0027_ai_token_budgets` 與原子預留。完整 normalizer suite 306 passed（1.68 s），其中 token／provider 針對性 132 passed。預算 guard 尚未接入 worker，該整合屬 P2，不宣稱現階段 production 已受保護。
+- P1：以 `services/normalizer-classifier/.venv/bin/python db/tools/verify_news_token_budgets.py` 啟動僅綁 localhost 隨機 port、tmpfs、無 production 資料的 PostgreSQL16.14；10 個並行預留在 daily=30／每次10 時僅3個成功，在 item=25／每次10 時僅2個成功，拒絕不扣另一預算。新 client 與 daily reset 不會重設 item 額度，既有 request-count 預算仍有效。Private fresh upgrade／downgrade至0026／upgrade、public fresh upgrade 通過；驗證 container 已移除。未連線 HomeLab 或呼叫模型。

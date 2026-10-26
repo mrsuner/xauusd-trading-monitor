@@ -538,6 +538,31 @@ class Database:
             )
             return await cur.fetchone() is not None
 
+    async def reserve_ai_tokens(self, *, raw_item_id: Any, tokens: int, item_limit: int, daily_limit: int) -> str | None:
+        if tokens <= 0 or item_limit <= 0 or daily_limit <= 0:
+            raise ValueError("token reservations and limits must be positive")
+        async with self.cursor() as cur:
+            # All workers lock daily before item, and debit only after both checks.
+            await cur.execute("""insert into ai_daily_budgets (budget_date)
+                values ((now() at time zone 'UTC')::date) on conflict do nothing""")
+            await cur.execute("""select tokens_reserved from ai_daily_budgets
+                where budget_date=(now() at time zone 'UTC')::date for update""")
+            daily = await cur.fetchone()
+            if daily["tokens_reserved"] + tokens > daily_limit:
+                return "daily_token_budget_reached"
+            await cur.execute("""insert into ai_item_token_budgets (raw_item_id)
+                values (%(raw_item_id)s) on conflict do nothing""", {"raw_item_id": raw_item_id})
+            await cur.execute("""select tokens_reserved from ai_item_token_budgets
+                where raw_item_id=%(raw_item_id)s for update""", {"raw_item_id": raw_item_id})
+            item = await cur.fetchone()
+            if item["tokens_reserved"] + tokens > item_limit:
+                return "item_token_budget_reached"
+            await cur.execute("""update ai_daily_budgets set tokens_reserved=tokens_reserved+%(tokens)s, updated_at=now()
+                where budget_date=(now() at time zone 'UTC')::date""", {"tokens": tokens})
+            await cur.execute("""update ai_item_token_budgets set tokens_reserved=tokens_reserved+%(tokens)s, updated_at=now()
+                where raw_item_id=%(raw_item_id)s""", {"tokens": tokens, "raw_item_id": raw_item_id})
+        return None
+
     async def complete_skipped(self, *, processing_id: Any, normalized: NormalizedItem) -> None:
         async with self.cursor() as cur:
             await cur.execute(

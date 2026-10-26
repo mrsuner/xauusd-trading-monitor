@@ -6,6 +6,7 @@ import httpx
 
 from .models import AIModelCallUsage, AuxiliaryModelResponse, ModelResponse, NormalizedItem, RawItem, SourceMetadata
 from .taxonomy import TaxonomyContext
+from .token_budget import RequestTokenBudget
 
 
 class ModelClientError(RuntimeError):
@@ -32,6 +33,7 @@ class ModelClient(Protocol):
         self, raw_item: RawItem, source: SourceMetadata, normalized: NormalizedItem,
         *, taxonomy_context: TaxonomyContext | None = None,
         domain_modules: list[str] | None = None, enabled_domain_keys: list[str] | None = None,
+        token_budget: RequestTokenBudget | None = None,
     ) -> ModelResponse: ...
 
     async def summarize_and_translate(
@@ -39,6 +41,7 @@ class ModelClient(Protocol):
         *, full_translation_required: bool = True, input_text: str | None = None,
         truncated: bool = False, taxonomy_context: TaxonomyContext | None = None,
         script_repair_fields: tuple[str, ...] = (),
+        token_budget: RequestTokenBudget | None = None,
     ) -> AuxiliaryModelResponse: ...
 
 
