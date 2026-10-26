@@ -5,6 +5,12 @@ from .openrouter_client import OpenRouterClient
 from .ollama_cloud_client import OllamaCloudClient
 from .settings import Settings
 
+
+def _token_limits(settings: Settings, *, translation: bool = False) -> dict[str, int]:
+    return dict(max_input_tokens=settings.ai_max_input_tokens,
+                max_output_tokens=settings.translation_max_output_tokens if translation else settings.classification_max_output_tokens,
+                summary_output_tokens=settings.summary_max_output_tokens)
+
 def build_model_client(settings: Settings) -> ModelClient:
     if settings.model_route == "cloud_small" and settings.classification_model_provider == "ollama_cloud":
         return OllamaCloudClient(
@@ -12,6 +18,7 @@ def build_model_client(settings: Settings) -> ModelClient:
             model=settings.ollama_cloud_classification_model,
             timeout_seconds=settings.ollama_cloud_classification_timeout_seconds,
             reasoning_effort=settings.ollama_cloud_classification_reasoning_effort,
+            **_token_limits(settings),
         )
 
     if settings.model_route == "cloud_small":
@@ -27,6 +34,7 @@ def build_model_client(settings: Settings) -> ModelClient:
             timeout_seconds=settings.cloud_model_timeout_seconds or settings.model_timeout_seconds,
             response_format=settings.cloud_model_response_format,
             reasoning_effort=settings.cloud_model_reasoning_effort,
+            **_token_limits(settings),
             classification_provider_options={
                 "sort": "price",
                 "require_parameters": True,
@@ -63,6 +71,7 @@ def build_auxiliary_model_client(settings: Settings) -> ModelClient | None:
             translation_output_languages=settings.translation_output_languages,
             translation_language_labels=settings.translation_language_labels,
             translation_require_all_languages=settings.translation_require_all_languages,
+            **_token_limits(settings, translation=True),
         )
 
     raise ValueError(f"unsupported AUXILIARY_MODEL_ROUTE: {settings.auxiliary_model_route}")
@@ -90,6 +99,7 @@ def _build_translation_client(settings: Settings, *, api_provider: str, route_na
             model=model or settings.ollama_cloud_translation_model,
             timeout_seconds=settings.ollama_cloud_translation_timeout_seconds,
             reasoning_effort=settings.ollama_cloud_translation_reasoning_effort,
+            **_token_limits(settings, translation=True),
             translation_output_languages=settings.translation_output_languages,
             translation_language_labels=settings.translation_language_labels,
             translation_require_all_languages=settings.translation_require_all_languages,
@@ -118,6 +128,7 @@ def _build_translation_client(settings: Settings, *, api_provider: str, route_na
         translation_output_languages=settings.translation_output_languages,
         translation_language_labels=settings.translation_language_labels,
         translation_require_all_languages=settings.translation_require_all_languages,
+        **_token_limits(settings, translation=True),
         translation_provider_options={"sort": "price", "require_parameters": True,
             "max_price": {"prompt": settings.translation_max_prompt_price,
                           "completion": settings.translation_max_completion_price}},

@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from .model_contracts import ModelClientError, TranslationScriptError, is_retryable_model_error
 from .models import AuxiliaryModelResponse, AuxiliaryTextResult, ClassificationResult, ModelResponse, NormalizedItem, RawItem, SourceMetadata
 from .taxonomy import TaxonomyContext
+from .token_budget import RequestTokenBudget, prepare_bounded_request
 
 if TYPE_CHECKING:
     from .openrouter_client import OpenRouterClient
@@ -24,6 +25,7 @@ async def classify(
     taxonomy_context: TaxonomyContext | None = None,
     domain_modules: list[str] | None = None,
     enabled_domain_keys: list[str] | None = None,
+    token_budget: RequestTokenBudget | None = None,
 ) -> ModelResponse:
     taxonomy_context = taxonomy_context or TaxonomyContext()
     payload = {
@@ -85,6 +87,7 @@ async def classify(
         ),
         ai_layer="classification_reasoning",
     )
+    await prepare_bounded_request(client, payload, output_limit=client.max_output_tokens, token_budget=token_budget)
     started = time.perf_counter()
     try:
         body = await client._post_chat_completions(
@@ -159,6 +162,7 @@ async def summarize_and_translate(
     truncated: bool = False,
     taxonomy_context: TaxonomyContext | None = None,
     script_repair_fields: tuple[str, ...] = (),
+    token_budget: RequestTokenBudget | None = None,
 ) -> AuxiliaryModelResponse:
     payload = {
         "model": client.model,
@@ -219,6 +223,11 @@ async def summarize_and_translate(
             "Write each flagged field in its requested language; do not copy source text in a different language into it. "
             "Translate the entire supplied text in each required full_translation, not just the summary."
         )
+    await prepare_bounded_request(
+        client, payload,
+        output_limit=client.max_output_tokens if full_translation_required else client.summary_output_tokens,
+        token_budget=token_budget,
+    )
     started = time.perf_counter()
     try:
         body = await client._post_chat_completions(

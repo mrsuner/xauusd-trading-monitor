@@ -4,7 +4,7 @@ import json
 import re
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LANGUAGE_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
@@ -91,6 +91,20 @@ class Settings(BaseSettings):
     ai_daily_request_limit: int = Field(default=0, alias="AI_DAILY_REQUEST_LIMIT")
     ai_daily_classification_limit: int = Field(default=0, alias="AI_DAILY_CLASSIFICATION_LIMIT")
     ai_daily_translation_limit: int = Field(default=0, alias="AI_DAILY_TRANSLATION_LIMIT")
+    translation_full_source_tokens: int = Field(default=2500, gt=0, alias="TRANSLATION_FULL_SOURCE_TOKENS")
+    ai_max_source_tokens: int = Field(default=8000, gt=0, alias="AI_MAX_SOURCE_TOKENS")
+    ai_max_input_tokens: int = Field(default=16000, gt=0, alias="AI_MAX_INPUT_TOKENS")
+    classification_max_output_tokens: int = Field(default=2048, gt=0, alias="CLASSIFICATION_MAX_OUTPUT_TOKENS")
+    translation_max_output_tokens: int = Field(default=10000, gt=0, alias="TRANSLATION_MAX_OUTPUT_TOKENS")
+    summary_max_output_tokens: int = Field(default=1500, gt=0, alias="SUMMARY_MAX_OUTPUT_TOKENS")
+    ai_item_token_limit: int = Field(default=30000, gt=0, alias="AI_ITEM_TOKEN_LIMIT")
+    ai_daily_token_limit: int = Field(default=5000000, gt=0, alias="AI_DAILY_TOKEN_LIMIT")
+
+    @model_validator(mode="after")
+    def validate_token_thresholds(self) -> "Settings":
+        if self.translation_full_source_tokens > self.ai_max_source_tokens:
+            raise ValueError("TRANSLATION_FULL_SOURCE_TOKENS must not exceed AI_MAX_SOURCE_TOKENS")
+        return self
 
     model_timeout_seconds: float = Field(default=30.0, gt=0, allow_inf_nan=False, alias="MODEL_TIMEOUT_SECONDS")
     max_model_calls_per_run: int = Field(default=0, alias="MAX_MODEL_CALLS_PER_RUN")
