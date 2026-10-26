@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 INFRA=Path(__file__).resolve().parents[1]
 PARTS=('compose','public','public-migrator','notification','notification-migrator')
-PUBLIC_IMAGE='ghcr.io/mrsuner/xauusd-trading-monitor/public-api@sha256:ae1fef09a507cc4c1e6b916f0793c9ee066757fe44305170aee5daaaea6d800e'
+PUBLIC_IMAGE='ghcr.io/mrsuner/xauusd-trading-monitor/public-api@sha256:10d1416e54ab45d7949e1942300b97c799c1f5c579ad9e652e045fc613ea773a'
 NOTIFICATION_IMAGE='ghcr.io/mrsuner/xauusd-trading-monitor/notification@sha256:2c8f904b57cea5dc5152b6c5eb13d2882ce0061a1169cd7af11bc85ac45ee770'
 
 

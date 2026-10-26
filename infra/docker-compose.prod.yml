@@ -27,7 +27,7 @@ services:
       - xauusd
 
   db-migrate:
-    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/db-migrate:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/db-migrate:${DB_MIGRATE_IMAGE_TAG:-${IMAGE_TAG}}
     restart: "no"
     logging: *default-logging
     depends_on:
@@ -421,7 +421,7 @@ services:
       - xauusd
 
   public-syncer:
-    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/public-syncer:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/public-syncer:${PUBLIC_SYNCER_IMAGE_TAG:-${IMAGE_TAG}}
     restart: unless-stopped
     logging: *default-logging
     profiles:
@@ -498,7 +498,7 @@ services:
       - xauusd
 
   dashboard-web:
-    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/dashboard-web:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/dashboard-web:${DASHBOARD_WEB_IMAGE_TAG:-${IMAGE_TAG}}
     restart: unless-stopped
     logging: *default-logging
     depends_on:
