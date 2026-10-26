@@ -179,12 +179,14 @@ class PublicRawItemTranslationInput(BaseModel):
     def validate_status(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        if value not in {"pending", "completed", "completed_truncated", "skipped", "failed"}:
+        if value not in {"pending", "completed", "completed_truncated", "skipped", "failed", "summary_only"}:
             raise ValueError("invalid translation status")
         return value
 
     @model_validator(mode="after")
     def require_public_content(self) -> PublicRawItemTranslationInput:
+        if self.status == "summary_only" and (not self.summary or self.full_translation is not None):
+            raise ValueError("summary_only requires a summary and null full_translation")
         if not self.summary and not self.full_translation:
             raise ValueError("translation requires summary or full_translation")
         return self

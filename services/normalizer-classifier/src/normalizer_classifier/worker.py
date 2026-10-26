@@ -10,6 +10,7 @@ from .db import Database
 from .model_contracts import ModelClientError, ModelClient
 from .normalization import normalize_item
 from .settings import Settings
+from .token_budget import ModelBudgetError, RequestTokenBudget, source_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,12 @@ class NormalizerClassifierWorker:
                     logger.info("skipped raw_item_id=%s reason=%s", task.raw_item.id, normalized.filter_reason)
                     continue
 
+                if source_tokens(normalized.text_clean) > self.settings.ai_max_source_tokens:
+                    await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason="source_token_limit_exceeded")
+                    await self.db.complete_skipped(processing_id=task.id,
+                        normalized=normalized.model_copy(update={"filter_reason": "source_token_limit_exceeded"}))
+                    continue
+
                 try:
                     classification_reserved = await self._reserve_classification_call()
                 except Exception:
@@ -93,6 +100,7 @@ class NormalizerClassifierWorker:
                     taxonomy_context=taxonomy_context,
                     domain_modules=routing_context.prompt_modules(tuple(normalized.selected_domains)),
                     enabled_domain_keys=[domain.key for domain in routing_context.domains],
+                    token_budget=self._request_token_budget(task.raw_item.id),
                 )
                 event_id = await self.db.complete_processed(
                     task=task,
@@ -121,6 +129,15 @@ class NormalizerClassifierWorker:
                     # The classification transaction has committed. A subsequent
                     # usage/translation storage failure must not replay classification.
                     logger.exception("post-classification processing failed raw_item_id=%s", task.raw_item.id)
+                    continue
+                if isinstance(exc, ModelBudgetError):
+                    reason = str(exc)
+                    if reason in {"daily_token_budget_reached", "token_budget_store_unavailable"}:
+                        await self.db.defer_for_model_budget(processing_id=task.id, reason=reason)
+                    else:
+                        await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason=reason)
+                        await self.db.complete_skipped(processing_id=task.id,
+                            normalized=normalized.model_copy(update={"filter_reason": reason}))
                     continue
                 logger.exception("failed raw_item_id=%s", task.raw_item.id)
                 if isinstance(exc, ModelClientError) and exc.usage:
@@ -182,6 +199,9 @@ class NormalizerClassifierWorker:
             self._translation_paid_fallback_call_count += 1
             return True
 
+    def _request_token_budget(self, raw_item_id) -> RequestTokenBudget:  # noqa: ANN001
+        return RequestTokenBudget(self.db, raw_item_id, self.settings.ai_item_token_limit, self.settings.ai_daily_token_limit)
+
     async def _run_translation_summary(self, task, normalized: object) -> None:  # noqa: ANN001
         if not self.translation_model_clients:
             await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason="translation_model_disabled")
@@ -190,8 +210,21 @@ class NormalizerClassifierWorker:
             await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason="source_translation_disabled")
             return
 
+        try:
+            tokens = source_tokens(normalized.text_clean)
+        except ModelBudgetError as exc:
+            await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason=str(exc))
+            return
+        if tokens > self.settings.ai_max_source_tokens:
+            await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason="source_token_limit_exceeded")
+            return
         text, truncated = self._translation_input_text(task.source, normalized.text_clean)
-        full_translation_required = task.source.translation_policy == "full" or task.source.always_full_translate
+        if truncated:
+            await self.db.update_translation_skipped(raw_item_id=task.raw_item.id, reason="translation_input_char_limit_exceeded")
+            return
+        full_translation_required = (
+            task.source.translation_policy == "full" and tokens <= self.settings.translation_full_source_tokens
+        )
         last_error = None
         last_client = None
 
@@ -223,6 +256,7 @@ class NormalizerClassifierWorker:
                     full_translation_required=full_translation_required,
                     input_text=text,
                     truncated=truncated,
+                    token_budget=self._request_token_budget(task.raw_item.id),
                     **({"script_repair_fields": repair_fields} if repair_fields else {}),
                 )
             except Exception as exc:
@@ -262,7 +296,7 @@ class NormalizerClassifierWorker:
             await self.db.update_translation_result(
                 raw_item_id=task.raw_item.id,
                 response=response,
-                status="completed_truncated" if truncated else "completed",
+                status="completed" if full_translation_required else "summary_only",
                 input_chars=len(text),
             )
             logger.info(

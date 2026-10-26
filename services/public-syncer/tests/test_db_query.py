@@ -31,7 +31,7 @@ def test_raw_item_translations_select_sql_reads_completed_rows() -> None:
 
     assert "from raw_item_translations rit" in sql
     assert "where rit.raw_item_id = r.id" in sql
-    assert "rit.status in ('completed', 'completed_truncated')" in sql
+    assert "rit.status in ('completed', 'completed_truncated', 'summary_only')" in sql
     assert "'full_translation', rit.full_translation" in sql
     assert "'input_chars', rit.input_chars" in sql
 
