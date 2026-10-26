@@ -5,7 +5,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from .usage import estimate_text_tokens
+import tiktoken
 
 
 class ModelBudgetError(RuntimeError):
@@ -14,7 +14,7 @@ class ModelBudgetError(RuntimeError):
 
 def source_tokens(text: str) -> int:
     try:
-        return estimate_text_tokens("glm-5.3-flash", text)
+        return len(tiktoken.get_encoding("o200k_base").encode(text, disallowed_special=()))
     except Exception as exc:
         raise ModelBudgetError("token_estimation_failed") from exc
 

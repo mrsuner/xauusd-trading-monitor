@@ -3,6 +3,7 @@
 ## Status
 
 - 狀態：P0–P6 已完成；R2 target-script 修正本地完成、未部署。HomeLab 仍為 P6 的 `abc6107`／GLM／low；VPS／公開網站未部署本次變更。
+- 後續長文分流、輸入／輸出／修正預算與 summary_only 契約改由 [2026-10-26 token budget 計畫](2026-10-26-news-token-budget-plan.md) 追蹤；同樣僅本地實作，未部署。
 - 建立日期：2026-10-21；時區：Asia/Bangkok。
 - 授權：使用者已要求依本文件推進本地實作，各階段獨立提交並回寫進度。
 - 所屬 repo：`xauusd-trading-monitor`，直接使用 `develop`；不納入 checkout 中既有、與本工作無關的修改。
