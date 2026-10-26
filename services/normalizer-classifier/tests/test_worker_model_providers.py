@@ -20,10 +20,11 @@ def make_worker(**overrides):
                              TRANSLATION_PAID_FALLBACK_ENABLED=True, TRANSLATION_FALLBACK_MODEL_NAME="router-fallback")
                          | overrides))
     db = SimpleNamespace(**{name: AsyncMock() for name in (
-        "reserve_ai_request", "update_translation_result", "insert_ai_model_call",
+        "reserve_ai_request", "reserve_ai_tokens", "update_translation_result", "insert_ai_model_call",
         "update_translation_failed", "update_translation_skipped",
     )})
     db.reserve_ai_request.return_value = True
+    db.reserve_ai_tokens.return_value = None
     worker = NormalizerClassifierWorker(config, db, build_model_client(config), build_translation_model_clients(config))
     raw, source, normalized = make_objects()
     return worker, db, SimpleNamespace(raw_item=raw, source=source), normalized

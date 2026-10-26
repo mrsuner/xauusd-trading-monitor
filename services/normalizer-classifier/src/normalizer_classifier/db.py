@@ -43,9 +43,11 @@ def aggregate_raw_item_translation_status(statuses: list[str]) -> str:
         return "skipped"
     if all(status == "failed" for status in statuses):
         return "failed"
+    if all(status == "summary_only" for status in statuses):
+        return "summary_only"
     if all(status in RAW_ITEM_TRANSLATION_COMPLETED_STATUSES for status in statuses):
         return "completed_truncated" if "completed_truncated" in statuses else "completed"
-    if any(status in RAW_ITEM_TRANSLATION_COMPLETED_STATUSES for status in statuses):
+    if any(status in RAW_ITEM_TRANSLATION_COMPLETED_STATUSES | {"summary_only"} for status in statuses):
         return "partial_completed"
     if "pending" in statuses:
         return "pending"
@@ -908,8 +910,9 @@ class Database:
                 bool_and(status = 'pending') as all_pending,
                 bool_and(status = 'skipped') as all_skipped,
                 bool_and(status = 'failed') as all_failed,
+                bool_and(status = 'summary_only') as all_summary_only,
                 bool_and(status in ('completed', 'completed_truncated')) as all_completed,
-                bool_or(status in ('completed', 'completed_truncated')) as has_completed,
+                bool_or(status in ('completed', 'completed_truncated', 'summary_only')) as has_completed,
                 bool_or(status = 'completed_truncated') as has_truncated,
                 bool_or(status = 'pending') as has_pending,
                 bool_or(status = 'failed') as has_failed,
@@ -925,6 +928,7 @@ class Database:
                   when all_pending then 'pending'
                   when all_skipped then 'skipped'
                   when all_failed then 'failed'
+                  when all_summary_only then 'summary_only'
                   when all_completed then
                     case when has_truncated then 'completed_truncated' else 'completed' end
                   when has_completed then 'partial_completed'
@@ -941,7 +945,7 @@ class Database:
                 translation_error = case
                   when aggregate_status.status in ('failed', 'partial_completed')
                     then coalesce(aggregate_status.failed_errors, raw_items.translation_error)
-                  when aggregate_status.status in ('completed', 'completed_truncated')
+                  when aggregate_status.status in ('completed', 'completed_truncated', 'summary_only')
                     then null
                   else raw_items.translation_error
                 end,

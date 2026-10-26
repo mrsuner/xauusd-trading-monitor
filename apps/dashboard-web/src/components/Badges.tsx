@@ -27,7 +27,7 @@ export function StatusBadge({ value }: { value?: string | null }) {
       ? "badge-success"
       : value === "failed"
         ? "badge-error"
-        : value === "running" || value === "retry" || value === "partial_completed"
+        : value === "running" || value === "retry" || value === "partial_completed" || value === "summary_only"
           ? "badge-warning"
           : "badge-ghost";
 

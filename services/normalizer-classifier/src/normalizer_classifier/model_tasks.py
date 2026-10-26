@@ -545,6 +545,8 @@ def validate_auxiliary_text_result(
             continue
         if full_translation_required and not translation.full_translation:
             incomplete_languages.append(language)
+        if not full_translation_required and translation.full_translation is not None:
+            raise ValueError(f"unexpected full_translation in summary-only mode: {language}")
     if missing_languages or incomplete_languages:
         parts: list[str] = []
         if missing_languages:

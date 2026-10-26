@@ -50,7 +50,7 @@ def raw_item_translations_select_sql(*, raw_alias: str = "r", translation_alias:
 {indent}    )
 {indent}    from raw_item_translations {translation_alias}
 {indent}    where {translation_alias}.raw_item_id = {raw_alias}.id
-{indent}      and {translation_alias}.status in ('completed', 'completed_truncated')
+{indent}      and {translation_alias}.status in ('completed', 'completed_truncated', 'summary_only')
 {indent}  ),
 {indent}  '[]'::jsonb
 {indent})"""
@@ -222,7 +222,7 @@ class Database:
                     select max(updated_at) as updated_at
                     from raw_item_translations rit
                     where rit.raw_item_id = r.id
-                      and rit.status in ('completed', 'completed_truncated')
+                      and rit.status in ('completed', 'completed_truncated', 'summary_only')
                   ) translation_state on true
                   left join public_raw_item_sync_state state on state.raw_item_id = r.id
                   where s.archived_at is null
@@ -234,12 +234,12 @@ class Database:
                       )
                     )
                     and (
-                      r.translation_status in ('completed', 'completed_truncated', 'skipped')
+                      r.translation_status in ('completed', 'completed_truncated', 'summary_only', 'skipped')
                       or exists (
                         select 1
                         from raw_item_translations rit
                         where rit.raw_item_id = r.id
-                          and rit.status in ('completed', 'completed_truncated')
+                          and rit.status in ('completed', 'completed_truncated', 'summary_only')
                       )
                     )
                     and (
