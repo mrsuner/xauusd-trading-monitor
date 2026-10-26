@@ -107,10 +107,27 @@ HomeLab `luke@100.73.66.125` SSH 連通，Docker29.3.1、現有 Compose config �
 | 階段 | 驗收 | 進度 |
 | --- | --- | --- |
 | D0 Cloud 有界驗收 | 同一把 production key；最多5次／50,000保守預留；短文四語全文、長文分類與純摘要、output cap 實證 | 通過：4次／29,653預留；20-token短文全文2.464s，3,588-token長文分類3.914s／摘要3.028s；四語齊全、摘要全文皆null；16-token探針回傳length及16 completion tokens |
-| D1 備份與恢復 | HomeLab新一致性snapshot、age加密離機副本、獨立PG16還原／0027→0028演練；VPS新frozen full36 native＋candidate migration gate | 執行中；未更動production schema/runtime |
-| D2 Public API | 中央shared82 release controller升級0010、原通知映像與同ID syncer恢復、公開路由／roles驗收 | 等待D1 |
-| D3 HomeLab | 透過Tailscale更新限定服務至0028，驗證同key／GLM low、真實新聞兩層、summary_only／四語與DB預留上限 | 等待D2 |
+| D1 備份與恢復 | HomeLab新一致性snapshot、age加密離機副本、獨立PG16還原／0027→0028演練；VPS新frozen full36 native＋candidate migration gate | HomeLab通過：25表筆數／指紋、roles／ownership、PG16.14 network none、0028 migration與雙pool競爭預留；VPS frozen full36／candidate migrations／post-migration backup／roles／network-none cleanup全部通過 |
+| D2 Public API | 中央shared82 release controller升級0010、原通知映像與同ID syncer恢復、公開路由／roles驗收 | 完成：operation `xauusd-20261026T065903Z-684a4936` accepted；public0010健康、9項公開路由200、原通知3個container IDs／映像保留，原syncer同ID恢復後通過finish |
+| D3 HomeLab | 透過Tailscale更新限定服務至0028，驗證同key／GLM low、真實新聞兩層、summary_only／四語與DB預留上限 | 完成：0028、normalizer 2 replicas、同key／GLM low、4語短文full與長文summary_only、private→public狀態與live budget拒絕驗證通過；其餘9個容器不變 |
 
-部署來源為乾淨已發布的 `c300b425c30084be179b4aeb3c90ac7ddea62c2b`，不包含原工作目錄其他未發布變更。映像沿用原runtime基底；normalizer補入驗證使用的tiktoken0.13.0並預載o200k_base cache，避免runtime首次下載。Compose新增可選 `DB_MIGRATE_IMAGE_TAG`／`PUBLIC_SYNCER_IMAGE_TAG`／`DASHBOARD_WEB_IMAGE_TAG`，配合既有 `NORMALIZER_IMAGE_TAG` 限定本次更新，global IMAGE_TAG保留。public-api使用immutable digest；notification pin保持既有PHP8.4.27映像。
+Application部署來源為乾淨已發布的 `c300b425c30084be179b4aeb3c90ac7ddea62c2b`，限定部署infra／cache設定為 `24bdc002c1c6867d6814f8fa59080fe4178c3c62`，不包含原工作目錄其他未發布變更。映像沿用原runtime基底；normalizer保留基底既有tiktoken0.14.0／regex2026.9.29並預載o200k_base cache，避免runtime首次下載。Compose新增可選 `DB_MIGRATE_IMAGE_TAG`／`PUBLIC_SYNCER_IMAGE_TAG`／`DASHBOARD_WEB_IMAGE_TAG`，配合既有 `NORMALIZER_IMAGE_TAG` 限定本次更新，global IMAGE_TAG保留。public-api使用immutable digest；notification pin保持既有PHP8.4.27映像。
 
 Cloud驗收採用既有真實短文與先前timeout的State Department長文，在本地client執行且不寫production DB；此證據不替代部署後的worker／DB／sync實際驗收。證據位於ignored `var/evaluations/news-budget-deploy-20261026/`，包含Cloud receipt、image digests與備份／恢復／部署紀錄，不提交keys或新聞原始payload。
+
+- D1 private backup：`news-budget-20261026T064851Z.tar.gz.age`，271,527,299 bytes，SHA-256 `1660f61d6c5fb5323f333a33a9b427ac3565e0e76c95ddeb034f6ce08a504bfb`；HomeLab199獨立還原及Mac離機hash驗證通過。25張表全部筆數／指紋一致，0028升級保留既有筆數；daily=30／10每次僅3成功，item=25／10每次僅2成功。Disposable PostgreSQL／volume／明文已清除。
+
+- Candidate dependency review：最初normalizer `c300b42`候選固定本機tiktoken0.13.0，對基底構成2項非必要降版，因此未部署並棄用。最終normalizer使用`24bdc00`（其餘服務`c300b42`），保留所有既有Python依賴版本；normalizer／syncer逐套件比對無變動，network-none tokenizer cache驗證通過。VPS gate曾因排程consumer的pool lock延後，等待現有job釋放後走原中央流程，未強制停止或繞過驗證。
+
+- Final tokenizer compatibility：保留production tiktoken0.14.0／regex2026.9.29，兩則真實新聞的離線估算仍為20／3,588 source tokens，與Cloud有界驗收一致；最終normalizer digest=`sha256:d4eeaec9bf3507b5df1169feb68e62ebd46a517436bdeb0ce0b22c5a85f4c09e`。VPS凍結備份generation=`vps82-20261026T070734Z-pre-migration-b6887dfb`，archive SHA-256=`f44ac494fb2c98d36f1f8be0d2cd23d2996d7974743f5bfd346053151275e52f`。
+
+
+### Deployment acceptance
+
+- VPS：public-api digest `sha256:10d1416e54ab45d7949e1942300b97c799c1f5c579ad9e652e045fc613ea773a`，schema `0010_summary_only_status`。中央controller依序plan／freeze／backup／independent native＋candidate gate／admit／migrate／up／semantic finish，最終accepted。公開health、events/list/detail、raw-items/list/detail、tags、categories、subscription-catalog、stats均200；runtime role `xauusd_runtime`無schema CREATE且保留ingest權限。Notification原PHP8.4.27 digest與3個container IDs保留，DB role `xauusd_notify_runtime`、Redis `xauusd_state`／`xauusd:`連線正常。原public-syncer同ID恢復後才完成VPS operation，隨後才在HomeLab更新syncer映像。
+- 維護窗口：public API從07:06:55Z凍結至約08:16Z恢復（約70分鐘）；包括全量備份、等待既有排程pool lock、獨立恢復與candidate gate。Source backup的SSH連線曾中斷，已確認原程序持續執行並完成，未重啟重複備份。後續release應在凍結前確認獨立驗證pool及排程窗口，降低等待時間；本輪未停用排程或繞過鎖。
+- HomeLab：08:18:10Z啟動新版兩個normalizer replicas，schema `0028_summary_only_status`。同key、兩層`glm-5.3-flash`／`low`、四語及8項token設定皆以runtime env比對確認。normalizer=`24bdc00`／`sha256:d4eeaec9bf3507b5df1169feb68e62ebd46a517436bdeb0ce0b22c5a85f4c09e`；public-syncer=`c300b42`／`sha256:ea0611193a6a4450d6c9afcd476a30e2e486a23e56559d70da21ebc1c40814f9`；db-migrate=`c300b42`／`sha256:52a22acb60fbd7fb573cfabe4c01c502e74e7b2cb5f68b0535b14aaa02cef82b`；內部dashboard-web=`c300b42`／`sha256:10bac614b4f712b26fd40924014d55d9e658c2a3495aa492768d4ce2fd5f48cf`。global IMAGE_TAG、collectors／event-router／dashboard-api／datastore等9個其他容器的ID、image、started_at均未變；public-web／main／Pages未發布。
+- 部署後小樣本（08:18:07Z–08:21:30Z）：自然進入的Tasnim短文Layer2 1/1成功，3.890s；四語摘要＋全文完成，Layer1 5.505s。另1則自然新聞由prefilter略過，不計模型失敗。之前timeout的真實State Department長文（raw `7ce747da-8af0-4573-ac79-ce470e56ce8e`）僅補跑Layer1，預設限制最多2 calls，實際1 call／2.889s、7,776預留；完整request source為3,588 tokens。四語summary_only、full_translation均null，原分類processing row逐欄未變。這不是重跑分類或回填歷史completed。
+- 合計Layer1 2/2成功（平均約4.10s）、Layer2 1/1成功；此為短期小樣本，不能當長期成功率。未見新的摘要超長、timeout或script-validation錯誤；完成短文／長文四語皆完整。長文public id `3f69a81e-8083-41de-8710-2e6110ff9861`，四種lang的GET皆選到對應摘要，translations四語全為summary_only、全文null；既有公開原文4000字元展示限制不變。
+- Live budget guard：以同一已存在item分別要求超過item／daily cap的預留，回傳`item_token_budget_reached`／`daily_token_budget_reached`；item 7,776、daily 26,626在拒絕前後完全一致，零provider request、未改production config。部署client的超大payload亦回`request_input_token_limit_exceeded`。截至上述觀察點，daily 26,626／5,000,000，最高item 18,850／30,000，所有新模型calls均有item預留，summary_only無資料不一致或摘要超長寫入。並行與修正重試的超限驗收另由native restore與既有426項published-candidate tests佐證，不刻意耗盡production額度。
+- 原已接受的模型品質限制及60秒timeout保留；本次不提高預算／timeout、不改模型、不部署公開網站。Private備份使用HomeLab199既有age identity，Mac持有加密離機副本；恢復資源及明文清理已獨立核對。
