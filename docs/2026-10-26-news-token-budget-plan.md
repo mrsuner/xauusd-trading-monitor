@@ -98,3 +98,19 @@ HomeLab `luke@100.73.66.125` SSH 連通，Docker29.3.1、現有 Compose config �
 - 5,000,000／日是保守「預留量」初值，未用實際低用量退額；高流量下可能提早停用當日模型處理。該行為是成本保護，不自動加額或繞過。單則額度耗盡不自動跨日重置；原文仍留存，可在後續明確決策後人工處理。
 - 網站列表／RSS 摘要沒有因此變成網站全文，本輪不新增正文擷取、分段翻譯、全文按需執行器或新 provider。現有 60 秒 timeout 保持，未自動重試 timeout。
 - 未來部署需有 fresh backup／restore gate、private migration、public-api 契約相容順序，以及 scoped image／runtime 驗收；本輪只完成本地實作。
+
+
+## Deployment（2026-10-26，使用者已授權，執行中）
+
+本次僅更新 public-api 與 HomeLab normalizer／public-syncer／db-migrate／內部 dashboard-web；保留通知映像、既有 credentials、`glm-5.3-flash`／`low` 與四語，main／Pages／public-web 不發布。
+
+| 階段 | 驗收 | 進度 |
+| --- | --- | --- |
+| D0 Cloud 有界驗收 | 同一把 production key；最多5次／50,000保守預留；短文四語全文、長文分類與純摘要、output cap 實證 | 通過：4次／29,653預留；20-token短文全文2.464s，3,588-token長文分類3.914s／摘要3.028s；四語齊全、摘要全文皆null；16-token探針回傳length及16 completion tokens |
+| D1 備份與恢復 | HomeLab新一致性snapshot、age加密離機副本、獨立PG16還原／0027→0028演練；VPS新frozen full36 native＋candidate migration gate | 執行中；未更動production schema/runtime |
+| D2 Public API | 中央shared82 release controller升級0010、原通知映像與同ID syncer恢復、公開路由／roles驗收 | 等待D1 |
+| D3 HomeLab | 透過Tailscale更新限定服務至0028，驗證同key／GLM low、真實新聞兩層、summary_only／四語與DB預留上限 | 等待D2 |
+
+部署來源為乾淨已發布的 `c300b425c30084be179b4aeb3c90ac7ddea62c2b`，不包含原工作目錄其他未發布變更。映像沿用原runtime基底；normalizer補入驗證使用的tiktoken0.13.0並預載o200k_base cache，避免runtime首次下載。Compose新增可選 `DB_MIGRATE_IMAGE_TAG`／`PUBLIC_SYNCER_IMAGE_TAG`／`DASHBOARD_WEB_IMAGE_TAG`，配合既有 `NORMALIZER_IMAGE_TAG` 限定本次更新，global IMAGE_TAG保留。public-api使用immutable digest；notification pin保持既有PHP8.4.27映像。
+
+Cloud驗收採用既有真實短文與先前timeout的State Department長文，在本地client執行且不寫production DB；此證據不替代部署後的worker／DB／sync實際驗收。證據位於ignored `var/evaluations/news-budget-deploy-20261026/`，包含Cloud receipt、image digests與備份／恢復／部署紀錄，不提交keys或新聞原始payload。
