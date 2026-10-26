@@ -6,6 +6,15 @@
 
 此服務是 collector 與 event-router 之間的語義處理層。它使用規則初篩與 OpenRouter／Ollama Cloud API 提供模型能力，但不得輸出交易方向或自動交易建議。
 
+長文與預算契約（本地已實作，未部署）見 [token budget 計畫與驗收](../2026-10-26-news-token-budget-plan.md)：
+
+- 完整 normalized source ≤ 2,500 estimated tokens 可依來源 policy 翻譯全文；2,501–8,000 僅產生多語摘要；> 8,000 兩層均不呼叫模型。RSS／Telegram／website 使用同一門檻，來源優先級不能繞過。估算不是 GLM 原生 token 數。
+- `summary_only` 表示摘要已完成、全文未翻譯，所有 `full_translation` 為 null；不使用 `completed`／`completed_truncated`。`completed` 的全文僅指已擷取的輸入內容，不保證 RSS 摘要或網站列表包含整篇文章。
+- 所有最終 payload 含 schema／修正回饋，保守估算 `ceil(tokens × 1.25) + 256`，input 上限16,000；分類 output 2,048、全文 output 10,000、摘要 output 1,500，實際 request 帶 `max_tokens`。到頂或不合契約的答案不成功。
+- 每次 attempt 在 HTTP 前持久化預留 input＋output；單則30,000、每日UTC跨worker共用5,000,000，修正與fallback也重新扣額。預留不退還，timeout／crash 不會重新取得同額度；原 request-count／per-run 限制亦保留。新 token 設定只能是正值，不能用0關閉保護。
+- Daily 額度不足／預算DB不可用時分類延後；source／request input／item 額度超限明確略過。翻譯受阻不重播已完成分類。字元上限不足以容納完整輸入時略過，不靜默截短。
+- 公用設定：`TRANSLATION_FULL_SOURCE_TOKENS`、`AI_MAX_SOURCE_TOKENS`、`AI_MAX_INPUT_TOKENS`、`CLASSIFICATION_MAX_OUTPUT_TOKENS`、`TRANSLATION_MAX_OUTPUT_TOKENS`、`SUMMARY_MAX_OUTPUT_TOKENS`、`AI_ITEM_TOKEN_LIMIT`、`AI_DAILY_TOKEN_LIMIT`。Private migration 至0028／public至0010；未來部署須先更新 public 狀態接收契約，再允許 HomeLab 送出，另依部署 runbook 備份還原 gate。
+
 ## 2. V1 目標
 
 - 從 processing table 或 `raw_item_created` notification 取得待處理 `raw_item_id`。

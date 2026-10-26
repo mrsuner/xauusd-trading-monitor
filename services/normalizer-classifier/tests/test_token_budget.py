@@ -86,7 +86,7 @@ async def test_reservation_failure_prevents_http(monkeypatch, reason):
 def test_token_estimation_failure_is_fail_closed(monkeypatch):
     def fail(*args):
         raise OSError("fixture tokenizer unavailable")
-    monkeypatch.setattr(token_budget, "estimate_text_tokens", fail)
+    monkeypatch.setattr(token_budget.tiktoken, "get_encoding", fail)
     with pytest.raises(ModelBudgetError, match="token_estimation_failed"):
         token_budget.source_tokens("source")
 

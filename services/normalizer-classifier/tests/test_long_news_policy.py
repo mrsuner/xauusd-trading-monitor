@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from normalizer_classifier.db import aggregate_raw_item_translation_status
-from normalizer_classifier.model_contracts import ModelClientError
+from normalizer_classifier.token_budget import ModelBudgetError
 from normalizer_classifier.taxonomy import TaxonomyContext
 from test_ollama_cloud import envelope
 from test_translation_runtime import result
@@ -116,7 +116,8 @@ async def test_old_character_limit_does_not_silently_truncate_translation(monkey
 
 @pytest.mark.parametrize("case,reason", [("source", "source_token_limit_exceeded"),
     ("input", "request_input_token_limit_exceeded"), ("item", "item_token_budget_reached"),
-    ("daily", "daily_token_budget_reached"), ("store", "token_budget_store_unavailable")])
+    ("daily", "daily_token_budget_reached"), ("store", "token_budget_store_unavailable"),
+    ("tokenizer", "token_estimation_failed")])
 async def test_worker_blocks_before_classification_and_uses_correct_state(monkeypatch, case, reason):
     worker, db, task, normalized = make_worker(AI_MAX_INPUT_TOKENS=1 if case == "input" else 16000)
     task.id, task.attempt_count = "processing", 0
@@ -135,6 +136,10 @@ async def test_worker_blocks_before_classification_and_uses_correct_state(monkey
     db.defer_for_model_budget = AsyncMock(side_effect=stop)
     if case == "source":
         monkeypatch.setattr("normalizer_classifier.worker.source_tokens", lambda text: 8001)
+    elif case == "tokenizer":
+        def unavailable(text):
+            raise ModelBudgetError("token_estimation_failed")
+        monkeypatch.setattr("normalizer_classifier.worker.source_tokens", unavailable)
     elif case in {"item", "daily"}:
         db.reserve_ai_tokens.return_value = reason
     elif case == "store":

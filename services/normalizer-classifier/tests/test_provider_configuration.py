@@ -42,6 +42,10 @@ def test_public_env_samples_preserve_openrouter_defaults(example):
     assert config.translation_fallback_provider is None
     assert config.cloud_model_timeout_seconds is None
     assert config.translation_model_timeout_seconds is None
+    assert config.translation_full_source_tokens == 2500
+    assert config.ai_max_source_tokens == 8000
+    assert config.ai_item_token_limit == 30000
+    assert config.ai_daily_token_limit == 5000000
 
 
 def compose_environment(overrides):
@@ -81,6 +85,14 @@ def test_compose_passes_provider_settings_to_worker(provider):
     classifier = build_model_client(config)
     translators = build_translation_model_clients(config)
     assert classifier.api_provider == translators[0].api_provider == provider
+    assert classifier.max_input_tokens == translators[0].max_input_tokens == 16000
+    assert classifier.max_output_tokens == 2048
+    assert translators[0].max_output_tokens == 10000
+    assert translators[0].summary_output_tokens == 1500
+    assert config.translation_full_source_tokens == 2500
+    assert config.ai_max_source_tokens == 8000
+    assert config.ai_item_token_limit == 30000
+    assert config.ai_daily_token_limit == 5000000
     if provider == "ollama_cloud":
         assert classifier.timeout_seconds == 71
         assert classifier.reasoning_effort == "low"
