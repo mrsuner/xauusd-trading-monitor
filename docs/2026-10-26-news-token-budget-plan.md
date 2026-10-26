@@ -3,9 +3,9 @@
 ## 狀態與授權
 
 - 2026-10-26，Asia/Bangkok；使用者授權先訂計畫／驗收，再推進本地實作，暫不部署。
-- 本地 P0–P3 已完成；未推送、未部署，沒有真實 Cloud 呼叫。HomeLab 仍為 `abc6107`。
+- 本地 P0–P3／R1 已完成，依後續授權 scoped 推送 develop；未部署，沒有真實 Cloud 呼叫。HomeLab 仍為 `abc6107`。
 - R1 code review 已完成，兩項重試／歸因問題已本地修復；並行預留與 summary_only 轉換補上真實 PG 驗證，見下節。
-- 沿用 `develop`，各階段獨立提交並回寫進度；不推送、不呼叫真實模型、不變更私有 env 或 HomeLab／VPS／公開網站 runtime。
+- 沿用 `develop`，各階段獨立提交並回寫進度；後續已明確授權 Git 推送與唯讀 Tailscale 更新前檢查。不呼叫真實模型、不變更私有 env 或 HomeLab／VPS／公開網站 runtime。
 - 前置：provider 拆分／HomeLab `abc6107` 已部署；R2 script 修正 `fc4a423` 僅本地。本文為後續長文工作權威；前案見 [provider 實作計畫](2026-10-21-news-model-providers-implementation-plan.md)。
 
 ## 已確認的資料與契約
@@ -70,6 +70,27 @@ source tokens 固定用既有 `o200k_base` 相容估算；不是 GLM 原生 toke
 - 狀態回歸從既有 completed／非空全文開始，再更新相同 private item 及相同 public idempotency key 為 summary_only。四語舊全文均清為 null，private 聚合與 public rows 保持 summary_only；兩側 DB 仍拒絕 summary_only 搭配全文。狀態轉換未發現需修改的實作缺陷。
 - 測試：normalizer 343 passed、syncer 37 passed、public-api 48 passed／4個既有 opt-in tests skipped；針對 worker／長文／script／本次回歸為72 passed。PG16.14 verifier 的競爭、重排程、真實預算＋mock HTTP、跨服務狀態、migration upgrade/downgrade 全部通過；disposable container 已移除。
 - 完成 `git diff --check` 與修改檔 AST parse。使用者原有未提交修改不納入；真實 Cloud output cap／原生 token 校準仍未執行。本次以 `fix: preserve retries and provider attribution on token budget blocks` 獨立提交。
+
+## Git 推送與 Tailscale 更新前檢查（2026-10-26）
+
+使用者後續要求推送並檢查能否經 Tailscale 更新 HomeLab。本輪僅 Git 發布與唯讀檢查，未部署；沒有建立／推送新 image、套用 migration、變更 production env、執行備份寫入或啟停服務。
+
+為排除本機其他未發布工作，6個相關 commits 在遠端最新 develop `2c20e5a` 上 scoped 重放並 fast-forward 推送至 application review commit `b3ce415`；保留原有 PHP security commit，沒有 force push、main merge 或 Pages 發布。原本來源與正式發布對照：
+
+| 階段 | 本地來源 | 遠端 develop 發布 |
+| --- | --- | --- |
+| R2 script 修正 | fc4a423 | df26923 |
+| P0 計畫 | 0ad897d | e376630 |
+| P1 token budgets | 02003c1 | f5ef0c9 |
+| P2 summary_only | 974f743 | 152a250 |
+| P3 驗收 | cfbe07c | 91e636d |
+| R1 review 修復 | 78be845 | b3ce415 |
+
+以不含其他本機修改的正式候選重跑：normalizer 343／syncer 36／public-api 47，合計426 passed、無 skipped；和上節本機測試數差異來自排除其他未提交測試。PG16.14 verifier 的並行、修正／fallback 預算、狀態轉換與 migration roundtrip 再驗證通過。此段檢查紀錄另以文件 commit 發布，不改 application source。
+
+HomeLab `luke@100.73.66.125` SSH 連通，Docker29.3.1、現有 Compose config 驗證通過、目前 GHCR image manifest 可存取，磁碟剩餘348 GiB。兩個 normalizer 仍為 `abc6107`、public-syncer 仍為 `c8dbf85`；兩層有效設定維持 Ollama Cloud `glm-5.3-flash`／low、四語。唯讀觀察最近一小時兩層各11次呼叫全部成功。Private schema仍為0026、尚無 token 預算表，未套用0027／0028。
+
+另唯讀確認現行 VPS public-api schema為0009，實際 request model 拒絕 summary_only。結論是 Tailscale 網路具備 HomeLab 更新條件，但本次功能尚不能只更換 normalizer：需要 public-api 先部署相容契約／0010，並完成 fresh 備份／還原、真實 Cloud output cap／token 校準、相關 images 建置發布，以及 HomeLab private migrations／normalizer／syncer／dashboard 的 scoped 更新驗收。這些 production 動作均未在本輪執行，VPS／公開網站未變更。
 
 ## 限制與後續
 
