@@ -1,4 +1,22 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+const previousRuntime = vi.hoisted(() => {
+  const previous = window.__TICKBASE_NEWS_CONFIG__;
+  // Firebase is mocked below; configuration must not depend on ignored local env files.
+  window.__TICKBASE_NEWS_CONFIG__ = {
+    FIREBASE_API_KEY: "fixture-api-key",
+    FIREBASE_AUTH_DOMAIN: "fixture.example.invalid",
+    FIREBASE_PROJECT_ID: "fixture-project",
+    FIREBASE_MESSAGING_SENDER_ID: "123456",
+    FIREBASE_APP_ID: "fixture-app",
+    FIREBASE_VAPID_KEY: "fixture-vapid-key"
+  };
+  return previous;
+});
+
+afterAll(() => {
+  window.__TICKBASE_NEWS_CONFIG__ = previousRuntime;
+});
 
 const mocks = vi.hoisted(() => ({
   accountRequest: vi.fn(),
