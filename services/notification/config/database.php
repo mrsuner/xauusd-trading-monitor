@@ -86,6 +86,8 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
+            // Laravel binds Carbon values without offsets; use UTC for all timestamptz writes.
+            'timezone' => 'UTC',
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
@@ -95,7 +97,6 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'search_path' => env('DB_SEARCH_PATH', 'notify,public'),
         ],
