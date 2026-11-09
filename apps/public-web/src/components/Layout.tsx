@@ -411,11 +411,15 @@ function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.3fr_0.8fr_0.9fr_1.2fr] lg:px-8">
         <div className="max-w-sm sm:col-span-2 lg:col-span-1">
           <Logo />
-          <p className="mt-4 text-sm leading-6 text-base-content/60">{t.footer.summary}</p>
+          <p className="mt-4 text-sm leading-6 text-base-content/60">
+            {t.footer.summary}
+          </p>
         </div>
         <FooterGroup title={t.footer.explore}>
           <NavLink to={to("/events")}>{t.footer.latestEvents}</NavLink>
-          <NavLink to={to("/events", "?severity=S")}>{t.footer.highImpact}</NavLink>
+          <NavLink to={to("/events", "?severity=S")}>
+            {t.footer.highImpact}
+          </NavLink>
           <NavLink to={to("/raw")}>{t.footer.rawFeed}</NavLink>
           <NavLink to={to("/topics")}>{t.footer.topics}</NavLink>
         </FooterGroup>
@@ -424,11 +428,18 @@ function Footer() {
           <NavLink to={to("/about")}>{t.footer.methodology}</NavLink>
           <NavLink to={to("/status")}>{t.footer.apiStatus}</NavLink>
           <NavLink to={to("/support")}>{t.footer.support}</NavLink>
-          <a href="https://thetickbase.com" rel="noreferrer">{t.footer.mainTickBase}</a>
+          <a href="https://thetickbase.com/content-policy">
+            {t.footer.contentPolicy}
+          </a>
+          <a href="https://thetickbase.com" rel="noreferrer">
+            {t.footer.mainTickBase}
+          </a>
         </FooterGroup>
         <div>
           <h3 className="text-sm font-semibold">{t.footer.dataBoundary}</h3>
-          <p className="mt-3 text-sm leading-6 text-base-content/60">{t.footer.dataBoundaryBody}</p>
+          <p className="mt-3 text-sm leading-6 text-base-content/60">
+            {t.footer.dataBoundaryBody}
+          </p>
         </div>
       </div>
     </footer>

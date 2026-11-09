@@ -7,16 +7,21 @@ export const zhHant = {
     body: "閱讀重要事件、查看多方來源，接收你關注的新聞通知。",
     featuresTitle: "更清楚地掌握新聞。",
     feedTitle: "重要事件，一眼掌握",
-    feedBody: "依主題與影響程度篩選最新新聞，開啟事件查看詳細內容，追蹤你關注的發展。",
+    feedBody:
+      "依主題與影響程度篩選最新新聞，開啟事件查看詳細內容，追蹤你關注的發展。",
     sourcesTitle: "多方來源，交叉參考",
-    sourcesBody: "查看不同渠道對同一事件的相關報導，透過來源數量與參考連結，自行交叉查證。",
+    sourcesBody:
+      "查看不同渠道對同一事件的相關報導，透過來源數量與參考連結，自行交叉查證。",
     readerTitle: "按照你的習慣閱讀",
-    readerBody: "未登入也能收藏新聞與設定閱讀偏好；登入後可同步偏好，並啟用新聞通知。",
+    readerBody:
+      "未登入也能收藏新聞與設定閱讀偏好；登入後可同步偏好，並啟用新聞通知。",
     digestTitle: "將每日事件，整理成脈絡。",
     digestBody: "把重要事件整理成容易閱讀的每日摘要，隨時快速掌握重點。",
-    proNote: "每日摘要與新聞通知需要登入並具備 News Pro。新聞閱讀與收藏免費提供。",
+    proNote:
+      "每日摘要與新聞通知需要登入並具備 News Pro。新聞閱讀與收藏免費提供。",
     downloadTitle: "即將來到你的手機。",
-    languagesBody: "支援中文、英文、泰文與日文。介面依裝置語言自動選擇，不支援的語言預設使用英文；未登入也能自行切換。",
+    languagesBody:
+      "支援中文、英文、泰文與日文。介面依裝置語言自動選擇，不支援的語言預設使用英文；未登入也能自行切換。",
     feedAlt: "TheTickBase News iOS App 的最新新聞畫面",
     digestAlt: "TheTickBase News iOS App 的每日摘要畫面",
   },
@@ -39,10 +44,12 @@ export const zhHant = {
     openMenu: "開啟選單",
     closeMenu: "關閉選單",
     tickbaseHome: "TickBase News 首頁",
-    toggleTheme: "切換主題"
+    toggleTheme: "切換主題",
   },
   footer: {
-    summary: "追蹤可能影響市場的宏觀、黃金、地緣政治、能源與政策事件。內容不構成投資建議。",
+    contentPolicy: "內容政策與申訴",
+    summary:
+      "追蹤可能影響市場的宏觀、黃金、地緣政治、能源與政策事件。內容不構成投資建議。",
     explore: "瀏覽",
     product: "產品",
     latestEvents: "最新事件",
@@ -55,7 +62,7 @@ export const zhHant = {
     mainTickBase: "TickBase 主站",
     dataBoundary: "資料邊界",
     dataBoundaryBody:
-      "本站只顯示 public-safe 摘要與來源歸屬，不發布內部 raw item、prompt、usage cost、session 或私人通知狀態。"
+      "本站只顯示 public-safe 摘要與來源歸屬，不發布內部 raw item、prompt、usage cost、session 或私人通知狀態。",
   },
   account: {
     loading: "正在檢查帳戶",
@@ -66,7 +73,7 @@ export const zhHant = {
     accountSubscription: "帳戶與訂閱",
     signOut: "登出",
     signingOut: "正在登出...",
-    signOutError: "無法登出，請再試一次。"
+    signOutError: "無法登出，請再試一次。",
   },
   auth: {
     signInTitle: "登入",
@@ -86,7 +93,7 @@ export const zhHant = {
     noAccount: "還沒有 TickBase 帳戶？",
     haveAccount: "已經有帳戶？",
     passwordMismatch: "兩次輸入的密碼不一致。",
-    genericError: "目前無法完成帳戶請求。"
+    genericError: "目前無法完成帳戶請求。",
   },
   reader: {
     eyebrow: "個人閱讀體驗",
@@ -99,7 +106,8 @@ export const zhHant = {
     loadError: "閱讀偏好暫時無法使用。",
     retry: "重試",
     accountSettings: "帳戶同步設定",
-    accountSettingsBody: "這些選項會套用至網站與手機 App。網站介面語言獨立切換，列表網址中的篩選條件可覆蓋預設優先級。",
+    accountSettingsBody:
+      "這些選項會套用至網站與手機 App。網站介面語言獨立切換，列表網址中的篩選條件可覆蓋預設優先級。",
     contentLanguage: "新聞內容語言",
     contentLanguageHint: "選擇網站與手機 App 使用的新聞內容語言。",
     traditionalChinese: "繁體中文",
@@ -118,7 +126,7 @@ export const zhHant = {
     save: "儲存偏好",
     saving: "儲存中…",
     saved: "閱讀偏好已儲存至帳戶。",
-    saveError: "無法儲存閱讀偏好，請再試一次。"
+    saveError: "無法儲存閱讀偏好，請再試一次。",
   },
   topics: {
     eyebrow: "探索",
@@ -127,20 +135,23 @@ export const zhHant = {
     loading: "正在載入主題...",
     emptyTitle: "目前沒有主題",
     emptyBody: "公開事件同步後，相關主題會顯示在這裡。",
-    eventCount: (count: number) => `${count} 則事件`
+    eventCount: (count: number) => `${count} 則事件`,
   },
   notifications: {
     eyebrow: "個人投遞",
     title: "新聞通知",
     body: "選擇你關注的公開主題，並透過 Telegram 或瀏覽器接收符合條件的提醒。個人投遞需要有效的 News 訂閱。",
     signInTitle: "登入後管理通知",
-    signInBody: "TickBase Account 管理共用的瀏覽器 session。請先登入，再回到此頁。",
+    signInBody:
+      "TickBase Account 管理共用的瀏覽器 session。請先登入，再回到此頁。",
     signIn: "登入 TickBase",
     loadError: "通知設定暫時無法使用。",
-    upgradeRequired: "公開新聞仍可正常閱讀。修改投遞範圍或啟用個人提醒需要有效的 News 訂閱。",
+    upgradeRequired:
+      "公開新聞仍可正常閱讀。修改投遞範圍或啟用個人提醒需要有效的 News 訂閱。",
     requestError: "目前無法完成請求。",
     preferencesTitle: "投遞偏好",
-    preferencesBody: "所選 category 與 tag 採交集比對；事件必須同時符合兩組條件。",
+    preferencesBody:
+      "所選 category 與 tag 採交集比對；事件必須同時符合兩組條件。",
     masterLabel: "個人提醒",
     masterBody: "關閉後停止匹配新事件，但保留選擇、Telegram 綁定與瀏覽器登錄。",
     severity: "最低分級",
@@ -156,7 +167,8 @@ export const zhHant = {
     save: "儲存偏好",
     telegramBody: "綁定一個私人 Telegram chat。單次連結會在 10 分鐘後失效。",
     pushTitle: "瀏覽器推播",
-    pushBody: "即使關閉 News 分頁，也能收到符合設定的即時事件。須由你主動啟用此瀏覽器。",
+    pushBody:
+      "即使關閉 News 分頁，也能收到符合設定的即時事件。須由你主動啟用此瀏覽器。",
     pushUnsupported: "此瀏覽器不支援 Web Push，或目前頁面不是安全連線。",
     pushUnconfigured: "瀏覽器推播尚未完成設定。",
     pushBlocked: "通知權限已封鎖。請在瀏覽器的網站設定允許通知後重試。",
@@ -166,7 +178,8 @@ export const zhHant = {
     pushDisableBrowser: "停用此瀏覽器",
     pushEnableAccount: "恢復帳戶推播",
     pushDisableAccount: "暫停所有裝置推播",
-    pushScope: "帳戶的篩選條件與推播開關會套用至瀏覽器與 News App。每日摘要不會推播。",
+    pushScope:
+      "帳戶的篩選條件與推播開關會套用至瀏覽器與 News App。每日摘要不會推播。",
     pushError: "無法更新瀏覽器推播，請重試。",
     pushMasterRequired: "請先啟用此瀏覽器，再開啟「個人提醒」並儲存投遞偏好。",
     pushAccountPaused: "帳戶推播已暫停；此瀏覽器仍保留登錄。",
@@ -178,15 +191,15 @@ export const zhHant = {
     checkLink: "檢查狀態",
     linked: "Telegram 已綁定",
     channelEnabled: "啟用 Telegram 投遞",
-    channelNeedsAttention: "Telegram 投遞需要處理；若問題持續，請重新綁定 chat。",
+    channelNeedsAttention:
+      "Telegram 投遞需要處理；若問題持續，請重新綁定 chat。",
     unlink: "解除 Telegram 綁定",
-    unlinkConfirm: "確定解除 Telegram 綁定並取消待送項目嗎？"
+    unlinkConfirm: "確定解除 Telegram 綁定並取消待送項目嗎？",
   },
   events: {
     eyebrow: "公開事件雷達",
     title: "TickBase News",
-    body:
-      "去敏後的公開事件流，聚焦 XAUUSD、Fed、Trump、Iran、IRGC、能源與地緣風險。內容用於追蹤消息與來源確認狀態，不提供交易建議。",
+    body: "去敏後的公開事件流，聚焦 XAUUSD、Fed、Trump、Iran、IRGC、能源與地緣風險。內容用於追蹤消息與來源確認狀態，不提供交易建議。",
     filters: "篩選",
     searchPlaceholder: "搜尋公開摘要",
     search: "搜尋",
@@ -203,21 +216,22 @@ export const zhHant = {
       S: "S - 最高公開優先級",
       A: "A - 高公開優先級",
       B: "B - 觀察",
-      C: "C - 背景"
+      C: "C - 背景",
     },
     confirmationOptions: {
       confirmed: "已確認",
       partially_confirmed: "部分確認",
       unconfirmed: "未確認",
-      contradicted: "有相反口徑"
+      contradicted: "有相反口徑",
     },
     emptyTitle: "沒有符合條件的公開事件",
-    emptyBody: "請調整 severity、category、tag 或搜尋字串。公開網站只顯示已核准同步的 public-safe events。",
+    emptyBody:
+      "請調整 severity、category、tag 或搜尋字串。公開網站只顯示已核准同步的 public-safe events。",
     pageStatus: (current: number, totalPages: number, total: number) =>
       `第 ${current} / ${totalPages} 頁，共 ${total} 筆公開事件。`,
     previousPage: "上一頁",
     nextPage: "下一頁",
-    reset: "重設"
+    reset: "重設",
   },
   raw: {
     eyebrow: "公開原始資料源",
@@ -249,7 +263,7 @@ export const zhHant = {
     relevance: "相關度",
     supportingItems: "相關原始資料",
     noSupportingItems: "此事件尚未連結相關原始資料。",
-    viewRawItem: "查看原始資料"
+    viewRawItem: "查看原始資料",
   },
   detail: {
     eyebrow: "公開事件詳情",
@@ -261,18 +275,19 @@ export const zhHant = {
     eventTime: "事件時間：",
     category: "分類：",
     summaryTitle: "公開摘要",
-    boundary: "此頁只包含 public-safe 摘要與來源歸屬，不包含 raw item 全文、私人通知狀態、prompt 或模型用量資料。",
+    boundary:
+      "此頁只包含 public-safe 摘要與來源歸屬，不包含 raw item 全文、私人通知狀態、prompt 或模型用量資料。",
     sources: "來源",
     noSources: "目前沒有公開來源連結。",
     source: "來源",
-    tagsActors: "標籤與角色"
+    tagsActors: "標籤與角色",
   },
   tag: {
     eyebrow: "主題標籤",
     fallbackTitle: "unknown",
     body: "依 topic tag 聚合的公開事件流。Tag 來自事件處理流程中的 public-safe taxonomy，用於檢索與分組。",
     emptyTitle: "此 tag 尚無公開事件",
-    emptyBody: "後續同步事件時會自動出現在這裡。"
+    emptyBody: "後續同步事件時會自動出現在這裡。",
   },
   about: {
     eyebrow: "關於",
@@ -281,66 +296,60 @@ export const zhHant = {
     sections: [
       {
         title: "系統定位",
-        body:
-          "本網站不是交易訊號服務。它的任務是把不同立場、不同速度、不同權力層級的消息來源整理成可追蹤的公開事件流，幫助讀者快速理解某個消息是否有官方確認、是否存在相反口徑，以及可能透過哪些公開敘事影響市場。"
+        body: "本網站不是交易訊號服務。它的任務是把不同立場、不同速度、不同權力層級的消息來源整理成可追蹤的公開事件流，幫助讀者快速理解某個消息是否有官方確認、是否存在相反口徑，以及可能透過哪些公開敘事影響市場。",
       },
       {
         title: "事件分級",
-        body:
-          "Severity 反映事件在系統規則與模型流程中的相對重要性。S 與 A 表示更值得優先查看，但不表示任何交易方向，也不代表結果一定會影響金價。"
+        body: "Severity 反映事件在系統規則與模型流程中的相對重要性。S 與 A 表示更值得優先查看，但不表示任何交易方向，也不代表結果一定會影響金價。",
       },
       {
         title: "分級說明",
-        body:
-          "S 代表最高優先級，通常是具直接市場影響潛力，或涉及重大政策、地緣政治、金融市場結構的事件。A 代表重要事件，值得及時查看。B 是觀察項，具有敘事或訊號價值，但優先級或確認度較低。C 是背景項，用來補足公開敘事的上下文。"
+        body: "S 代表最高優先級，通常是具直接市場影響潛力，或涉及重大政策、地緣政治、金融市場結構的事件。A 代表重要事件，值得及時查看。B 是觀察項，具有敘事或訊號價值，但優先級或確認度較低。C 是背景項，用來補足公開敘事的上下文。",
       },
       {
         title: "確認狀態",
-        body:
-          "confirmed、partially confirmed、unconfirmed 與 contradicted 用於標示來源之間的確認程度。未確認事件應被視為待觀察，而不是事實結論。"
+        body: "confirmed、partially confirmed、unconfirmed 與 contradicted 用於標示來源之間的確認程度。未確認事件應被視為待觀察，而不是事實結論。",
       },
       {
         title: "來源背景",
-        body:
-          "來源標籤可能附帶簡短背景說明。這些說明用來描述來源的公開角色或常見編輯脈絡，不代表本站背書、可信度評分，也不能替代閱讀原始連結。"
+        body: "來源標籤可能附帶簡短背景說明。這些說明用來描述來源的公開角色或常見編輯脈絡，不代表本站背書、可信度評分，也不能替代閱讀原始連結。",
       },
       {
         title: "資料邊界",
-        body:
-          "公開網站不保存 HomeLab 內部 raw item 全文、AI prompt、token usage、私人通知記錄、Telegram session 或任何內部管理資料。所有內容都經由 public sync 流程產生。"
+        body: "公開網站不保存 HomeLab 內部 raw item 全文、AI prompt、token usage、私人通知記錄、Telegram session 或任何內部管理資料。所有內容都經由 public sync 流程產生。",
       },
       {
         title: "免責聲明",
-        body: "本網站內容僅供資訊與研究用途，不構成投資建議、交易建議、法律建議或財務建議。"
-      }
-    ]
+        body: "本網站內容僅供資訊與研究用途，不構成投資建議、交易建議、法律建議或財務建議。",
+      },
+    ],
   },
   support: {
     eyebrow: "支持",
     title: "用愛發電，維持雷達運轉",
-    body:
-      "TickBase News 的公開 feed 維持免費閱讀。如果它為你帶來價值，自願捐助可以協助公開服務持續運作；付費個人投遞會另外管理。",
+    body: "TickBase News 的公開 feed 維持免費閱讀。如果它為你帶來價值，自願捐助可以協助公開服務持續運作；付費個人投遞會另外管理。",
     costsTitle: "你的支持會用在哪裡",
     costs: [
       {
         title: "AI 調用",
-        body: "翻譯、摘要與相關度判斷都跑在付費模型 API 上。隨著覆蓋範圍擴大，這是最主要的持續性成本。"
+        body: "翻譯、摘要與相關度判斷都跑在付費模型 API 上。隨著覆蓋範圍擴大，這是最主要的持續性成本。",
       },
       {
         title: "伺服器與基礎設施",
-        body: "公開網站、public API 與資料庫跑在 VPS 上，必須全天候在線才能維持 feed 的即時性。"
+        body: "公開網站、public API 與資料庫跑在 VPS 上，必須全天候在線才能維持 feed 的即時性。",
       },
       {
         title: "日常開發維護",
-        body: "每日維護、新增來源與功能開發，讓事件雷達持續準確、快速且實用。"
-      }
+        body: "每日維護、新增來源與功能開發，讓事件雷達持續準確、快速且實用。",
+      },
     ],
     ctaTitle: "幫雷達續一分鐘，或一小時",
     ctaBody:
       "在 Ko-fi 你可以用任意金額為本站「續時」，以分鐘或小時計。每一份支持都直接抵銷 AI、伺服器與維護成本。",
     ctaButton: "前往 Ko-fi 支持",
     ctaNote: "捐助完全出於自願，也不會啟用個人投遞；公開 feed 仍對所有人開放。",
-    disclaimer: "支持是維持站點運轉，而非購買投資建議。所有內容仍僅供資訊與研究用途。"
+    disclaimer:
+      "支持是維持站點運轉，而非購買投資建議。所有內容仍僅供資訊與研究用途。",
   },
   status: {
     eyebrow: "狀態",
@@ -349,17 +358,17 @@ export const zhHant = {
     loading: "正在檢查 public API...",
     api: "API",
     database: "database",
-    unknown: "unknown"
+    unknown: "unknown",
   },
   states: {
     loading: "正在載入公開事件...",
-    apiErrorTitle: "Public API 暫時無法讀取"
+    apiErrorTitle: "Public API 暫時無法讀取",
   },
   stats: {
     publicEvents: "公開事件",
     sSeverity: "S 分級",
     aSeverity: "A 分級",
-    latest: "最新"
+    latest: "最新",
   },
   badges: {
     unknown: "unknown",
@@ -367,39 +376,52 @@ export const zhHant = {
       S: "最高優先級公開事件，通常具有直接政策、地緣、金融市場結構或黃金/宏觀高影響相關性。",
       A: "重要公開事件，值得及時查看，但即時優先級低於 S。",
       B: "觀察項，具備訊號或敘事變化價值，但信心或市場優先級較低。",
-      C: "背景項，用來補足更大的公開敘事脈絡。"
+      C: "背景項，用來補足更大的公開敘事脈絡。",
     },
     confirmation: {
       confirmed: "已確認",
       partially_confirmed: "部分確認",
       unconfirmed: "未確認",
-      contradicted: "有相反口徑"
+      contradicted: "有相反口徑",
     },
     confirmationDescriptions: {
       confirmed: "已有官方來源或多個高品質公開來源支持。",
       partially_confirmed: "已有部分支持證據，但關鍵細節仍需要更強確認。",
       unconfirmed: "單一來源、早期消息或佐證不足，應作為觀察項處理。",
-      contradicted: "公開來源之間出現衝突，或後續報導否定原始說法。"
-    }
+      contradicted: "公開來源之間出現衝突，或後續報導否定原始說法。",
+    },
   },
   sources: {
-    fallback: "公開來源連結。請同時考慮來源角色、發布脈絡，以及是否有其他來源確認該說法。",
+    fallback:
+      "公開來源連結。請同時考慮來源角色、發布脈絡，以及是否有其他來源確認該說法。",
     backgrounds: {
-      "Federal Reserve": "美國中央銀行官方來源。對 Fed 決議、演說、會議紀要與政策溝通具最高權威性。",
-      "White House": "美國行政部門官方來源。適合確認政府立場，但通常帶有行政部門的政治表述框架。",
-      "Reuters": "全球通訊社，金融與機構讀者使用度高。速度快、被廣泛引用；政策類說法仍建議對照 primary source。",
-      "AP": "全球通訊社，偏向廣泛新聞覆蓋。適合做基準報導與發展中事件的交叉確認。",
-      "Bloomberg": "金融新聞服務，市場導向強。適合觀察市場反應與政策報導；部分內容可能依賴匿名消息源。",
-      "Tasnim": "伊朗媒體，常被視為保守派或 IRGC-adjacent 口徑。適合觀察伊朗強硬派敘事，不等同中立官方聲明。",
-      "Press TV": "伊朗國家資助的國際廣播媒體。適合觀察伊朗官方或 state-aligned 的對外英文敘事。",
-      "IRNA": "伊朗國家通訊社。適合確認伊朗政府正式訊息與國家層級表述。",
-      "Mehr News": "伊朗半官方通訊社。適合觀察伊朗國內政治與政策敘事；敏感主張仍需交叉確認。",
-      "US State Department": "美國外交政策官方來源。對美國外交立場、制裁公告與正式聲明具高權威性。",
-      "IDF Official": "以色列國防軍官方來源。對 IDF 聲明與軍事行動主張具高權威性，但代表軍事行為者立場。",
-      "Khamenei English": "伊朗最高領袖官方英文頻道。適合觀察正式領導層訊息與意識形態表述。",
-      "Trump Truth Social": "Trump-aligned 的直接政治訊息來源。適合追蹤 Trump 的 primary statement，但事實主張需要獨立確認。",
-      "TrumpsTruth": "Trump-aligned 社群/媒體 feed。適合觀察直接政治訊息，但具體主張需要獨立來源確認。"
-    }
+      "Federal Reserve":
+        "美國中央銀行官方來源。對 Fed 決議、演說、會議紀要與政策溝通具最高權威性。",
+      "White House":
+        "美國行政部門官方來源。適合確認政府立場，但通常帶有行政部門的政治表述框架。",
+      Reuters:
+        "全球通訊社，金融與機構讀者使用度高。速度快、被廣泛引用；政策類說法仍建議對照 primary source。",
+      AP: "全球通訊社，偏向廣泛新聞覆蓋。適合做基準報導與發展中事件的交叉確認。",
+      Bloomberg:
+        "金融新聞服務，市場導向強。適合觀察市場反應與政策報導；部分內容可能依賴匿名消息源。",
+      Tasnim:
+        "伊朗媒體，常被視為保守派或 IRGC-adjacent 口徑。適合觀察伊朗強硬派敘事，不等同中立官方聲明。",
+      "Press TV":
+        "伊朗國家資助的國際廣播媒體。適合觀察伊朗官方或 state-aligned 的對外英文敘事。",
+      IRNA: "伊朗國家通訊社。適合確認伊朗政府正式訊息與國家層級表述。",
+      "Mehr News":
+        "伊朗半官方通訊社。適合觀察伊朗國內政治與政策敘事；敏感主張仍需交叉確認。",
+      "US State Department":
+        "美國外交政策官方來源。對美國外交立場、制裁公告與正式聲明具高權威性。",
+      "IDF Official":
+        "以色列國防軍官方來源。對 IDF 聲明與軍事行動主張具高權威性，但代表軍事行為者立場。",
+      "Khamenei English":
+        "伊朗最高領袖官方英文頻道。適合觀察正式領導層訊息與意識形態表述。",
+      "Trump Truth Social":
+        "Trump-aligned 的直接政治訊息來源。適合追蹤 Trump 的 primary statement，但事實主張需要獨立確認。",
+      TrumpsTruth:
+        "Trump-aligned 社群/媒體 feed。適合觀察直接政治訊息，但具體主張需要獨立來源確認。",
+    },
   },
   format: {
     untitled: "未命名公開事件",
@@ -411,7 +433,7 @@ export const zhHant = {
     high: "高",
     watch: "觀察",
     info: "資訊",
-    uncategorized: "未分類"
+    uncategorized: "未分類",
   },
   categories: {
     diplomacy: "外交",
@@ -425,6 +447,6 @@ export const zhHant = {
     technology: "科技",
     routine: "日常",
     social: "社會",
-    other: "其他"
-  }
+    other: "其他",
+  },
 } satisfies Dictionary;

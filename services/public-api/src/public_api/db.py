@@ -170,6 +170,16 @@ class PublicRepository:
             "route_metadata": Jsonb(payload.route_metadata),
         }
         async with self.db.conn.cursor() as cur:
+            await cur.execute("select pg_advisory_xact_lock(hashtext(%s))", (str(payload.upstream_event_id),))
+            await cur.execute(
+                "select id from public_events where upstream_event_id = %s and invalidated_at is not null limit 1",
+                (payload.upstream_event_id,),
+            )
+            withdrawn = await cur.fetchone()
+            if withdrawn is not None:
+                await self.db.conn.commit()
+                return {"status": "duplicate", "public_event_id": withdrawn["id"],
+                        "idempotency_key": payload.idempotency_key, "withdrawn": True}
             await cur.execute(
                 """
                 insert into public_events (
@@ -342,6 +352,16 @@ class PublicRepository:
             "scrub_metadata": Jsonb(payload.scrub_metadata),
         }
         async with self.db.conn.cursor() as cur:
+            await cur.execute("select pg_advisory_xact_lock(hashtext(%s))", ("raw:" + str(payload.upstream_raw_item_id),))
+            await cur.execute(
+                "select id from public_raw_items where upstream_raw_item_id = %s and is_visible = false limit 1",
+                (payload.upstream_raw_item_id,),
+            )
+            withdrawn = await cur.fetchone()
+            if withdrawn is not None:
+                await self.db.conn.commit()
+                return {"status": "duplicate", "public_raw_item_id": withdrawn["id"],
+                        "idempotency_key": payload.idempotency_key, "withdrawn": True}
             await cur.execute(
                 """
                 insert into public_raw_items (
@@ -679,12 +699,13 @@ class PublicRepository:
     ) -> dict[str, Any] | None:
         request_hash = body_sha256(raw_body)
         async with self.db.conn.cursor() as cur:
+            await cur.execute("select pg_advisory_xact_lock(hashtext(%s))", (str(upstream_event_id),))
             await cur.execute(
                 """
                 select id, invalidated_at
                 from public_events
                 where upstream_event_id = %(upstream_event_id)s
-                order by received_at
+                order by (invalidated_at is not null), received_at
                 limit 1
                 for update
                 """,
@@ -705,10 +726,10 @@ class PublicRepository:
                         invalidation_kind = %(invalidation_kind)s,
                         invalidation_reason = %(invalidation_reason)s,
                         updated_at = now()
-                    where id = %(public_event_id)s
+                    where upstream_event_id = %(upstream_event_id)s
                     """,
                     {
-                        "public_event_id": event["id"],
+                        "upstream_event_id": upstream_event_id,
                         "invalidated_at": payload.occurred_at,
                         "invalidation_kind": payload.kind,
                         "invalidation_reason": payload.reason,

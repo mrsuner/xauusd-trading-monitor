@@ -7,16 +7,22 @@ export const en = {
     body: "Read important events, compare sources, and get alerts for the news you follow.",
     featuresTitle: "A clearer way to follow the news.",
     feedTitle: "Important events, at a glance",
-    feedBody: "Filter the latest news by topic and impact. Open an event to read its details and follow the developments that matter to you.",
+    feedBody:
+      "Filter the latest news by topic and impact. Open an event to read its details and follow the developments that matter to you.",
     sourcesTitle: "More sources, more context",
-    sourcesBody: "See related reports from different channels, with source counts and links for your own cross-checking.",
+    sourcesBody:
+      "See related reports from different channels, with source counts and links for your own cross-checking.",
     readerTitle: "Your reading, your way",
-    readerBody: "Save articles and choose your reading preferences, even before signing in. Sign in to sync preferences and enable news alerts.",
+    readerBody:
+      "Save articles and choose your reading preferences, even before signing in. Sign in to sync preferences and enable news alerts.",
     digestTitle: "The day's events, brought together.",
-    digestBody: "Daily digests turn important events into a concise overview you can read on the go.",
-    proNote: "Daily digests and news alerts require a signed-in account with News Pro. Reading the news and saving articles are free.",
+    digestBody:
+      "Daily digests turn important events into a concise overview you can read on the go.",
+    proNote:
+      "Daily digests and news alerts require a signed-in account with News Pro. Reading the news and saving articles are free.",
     downloadTitle: "Coming to your phone.",
-    languagesBody: "Available in Chinese, English, Thai, and Japanese. The interface follows your device language, with English as the fallback. You can change it without signing in.",
+    languagesBody:
+      "Available in Chinese, English, Thai, and Japanese. The interface follows your device language, with English as the fallback. You can change it without signing in.",
     feedAlt: "TheTickBase News iOS app showing the latest news feed",
     digestAlt: "TheTickBase News iOS app showing a daily digest",
   },
@@ -39,10 +45,12 @@ export const en = {
     openMenu: "Open menu",
     closeMenu: "Close menu",
     tickbaseHome: "TickBase News home",
-    toggleTheme: "Toggle theme"
+    toggleTheme: "Toggle theme",
   },
   footer: {
-    summary: "Public event radar for market-moving macro, gold, geopolitics, energy, and policy news. Not investment advice.",
+    contentPolicy: "Content policy & complaints",
+    summary:
+      "Public event radar for market-moving macro, gold, geopolitics, energy, and policy news. Not investment advice.",
     explore: "Explore",
     product: "Product",
     latestEvents: "Latest events",
@@ -55,7 +63,7 @@ export const en = {
     mainTickBase: "Main TickBase",
     dataBoundary: "Data Boundary",
     dataBoundaryBody:
-      "This site only displays public-safe summaries and source attribution. Internal raw items, prompts, usage cost, sessions, and private delivery states are not published."
+      "This site only displays public-safe summaries and source attribution. Internal raw items, prompts, usage cost, sessions, and private delivery states are not published.",
   },
   account: {
     loading: "Checking account",
@@ -66,13 +74,15 @@ export const en = {
     accountSubscription: "Account & subscription",
     signOut: "Sign out",
     signingOut: "Signing out...",
-    signOutError: "Could not sign out. Please try again."
+    signOutError: "Could not sign out. Please try again.",
   },
   auth: {
     signInTitle: "Sign in",
-    signInBody: "Use your TickBase account to manage news preferences, notifications, and daily digests.",
+    signInBody:
+      "Use your TickBase account to manage news preferences, notifications, and daily digests.",
     registerTitle: "Create your account",
-    registerBody: "Create one TickBase account for your News preferences and delivery settings.",
+    registerBody:
+      "Create one TickBase account for your News preferences and delivery settings.",
     name: "Name",
     email: "Email",
     password: "Password",
@@ -86,7 +96,7 @@ export const en = {
     noAccount: "New to TickBase?",
     haveAccount: "Already have an account?",
     passwordMismatch: "The password confirmation does not match.",
-    genericError: "The account request could not be completed."
+    genericError: "The account request could not be completed.",
   },
   reader: {
     eyebrow: "Your reading experience",
@@ -99,26 +109,30 @@ export const en = {
     loadError: "Reading preferences are temporarily unavailable.",
     retry: "Retry",
     accountSettings: "Account-synced settings",
-    accountSettingsBody: "These choices apply to both Web and Mobile. The website interface language stays separate, and a feed filter in the URL can override your default priority.",
+    accountSettingsBody:
+      "These choices apply to both Web and Mobile. The website interface language stays separate, and a feed filter in the URL can override your default priority.",
     contentLanguage: "News content language",
-    contentLanguageHint: "Choose the news content language used by Web and Mobile.",
+    contentLanguageHint:
+      "Choose the news content language used by Web and Mobile.",
     traditionalChinese: "Traditional Chinese",
     english: "English",
     minSeverity: "Minimum event priority",
-    minSeverityHint: "Choose the default minimum priority for both latest feeds.",
+    minSeverityHint:
+      "Choose the default minimum priority for both latest feeds.",
     severityAll: "All events (C and above)",
     severityWatch: "Watch and above (B)",
     severityHigh: "High impact and above (A)",
     severityMajor: "Major only (S)",
     colorScheme: "Appearance",
-    colorSchemeHint: "Choose a preferred color scheme for your reading experience.",
+    colorSchemeHint:
+      "Choose a preferred color scheme for your reading experience.",
     system: "Follow system",
     light: "Light",
     dark: "Dark",
     save: "Save preferences",
     saving: "Saving…",
     saved: "Reading preferences saved to your account.",
-    saveError: "Could not save reading preferences. Please try again."
+    saveError: "Could not save reading preferences. Please try again.",
   },
   topics: {
     eyebrow: "Explore",
@@ -127,66 +141,81 @@ export const en = {
     loading: "Loading topics...",
     emptyTitle: "No topics are available yet",
     emptyBody: "Topics will appear as public events are synchronized.",
-    eventCount: (count: number) => `${count} ${count === 1 ? "event" : "events"}`
+    eventCount: (count: number) =>
+      `${count} ${count === 1 ? "event" : "events"}`,
   },
   notifications: {
     eyebrow: "Personal delivery",
     title: "News notifications",
     body: "Choose the public topics you follow and receive eligible alerts in Telegram or your browser. Personal delivery requires an active News subscription.",
     signInTitle: "Sign in to manage notifications",
-    signInBody: "TickBase Account owns your shared browser session. Sign in there, then return to this page.",
+    signInBody:
+      "TickBase Account owns your shared browser session. Sign in there, then return to this page.",
     signIn: "Sign in to TickBase",
     loadError: "Notification settings are temporarily unavailable.",
-    upgradeRequired: "Your public news feed remains available. An active News subscription is required to change delivery scope or enable personal alerts.",
+    upgradeRequired:
+      "Your public news feed remains available. An active News subscription is required to change delivery scope or enable personal alerts.",
     requestError: "The request could not be completed.",
     preferencesTitle: "Delivery preferences",
-    preferencesBody: "Selected categories are combined with selected tags. A matching event must satisfy both groups.",
+    preferencesBody:
+      "Selected categories are combined with selected tags. A matching event must satisfy both groups.",
     masterLabel: "Personal alerts",
-    masterBody: "Turn off to stop future matching without deleting your choices, Telegram binding, or browser registration.",
+    masterBody:
+      "Turn off to stop future matching without deleting your choices, Telegram binding, or browser registration.",
     severity: "Minimum severity",
     language: "Delivery language",
     categories: "Categories",
     allCategories: "Match every active category",
     tags: "Topic tags",
-    tagsBody: "Leave tags empty to match any tag within the selected categories.",
-    catalogError: "The subscription catalog is unavailable. Existing choices have not been changed.",
+    tagsBody:
+      "Leave tags empty to match any tag within the selected categories.",
+    catalogError:
+      "The subscription catalog is unavailable. Existing choices have not been changed.",
     unavailableSelections: "Unavailable saved selections",
     saved: "Preferences saved.",
     saving: "Saving…",
     save: "Save preferences",
-    telegramBody: "Link one private Telegram chat. Linking creates a single-use link that expires after 10 minutes.",
+    telegramBody:
+      "Link one private Telegram chat. Linking creates a single-use link that expires after 10 minutes.",
     pushTitle: "Browser push",
-    pushBody: "Receive matching live events even when this News tab is closed. You choose whether to enable this browser.",
-    pushUnsupported: "This browser does not support Web Push, or this page is not secure.",
+    pushBody:
+      "Receive matching live events even when this News tab is closed. You choose whether to enable this browser.",
+    pushUnsupported:
+      "This browser does not support Web Push, or this page is not secure.",
     pushUnconfigured: "Browser push is not configured yet.",
-    pushBlocked: "Notifications are blocked. Allow them in your browser site settings, then try again.",
+    pushBlocked:
+      "Notifications are blocked. Allow them in your browser site settings, then try again.",
     pushThisBrowserEnabled: "This browser is registered for News push.",
     pushThisBrowserOff: "This browser is not registered.",
     pushEnableBrowser: "Enable this browser",
     pushDisableBrowser: "Disable this browser",
     pushEnableAccount: "Resume push for my account",
     pushDisableAccount: "Pause push for all devices",
-    pushScope: "Your account filters and push switch apply across browsers and the News app. Daily digests are not pushed.",
+    pushScope:
+      "Your account filters and push switch apply across browsers and the News app. Daily digests are not pushed.",
     pushError: "Could not update browser push. Please try again.",
-    pushMasterRequired: "Enable this browser first, then turn on Personal alerts and save your preferences.",
-    pushAccountPaused: "Push is paused for your account. This browser remains registered.",
+    pushMasterRequired:
+      "Enable this browser first, then turn on Personal alerts and save your preferences.",
+    pushAccountPaused:
+      "Push is paused for your account. This browser remains registered.",
     channelLoadError: "Telegram status is temporarily unavailable.",
     creatingLink: "Creating link…",
     linkTelegram: "Link Telegram",
-    openTelegramBody: "Open Telegram and start the bot. Return here afterward and check the link status.",
+    openTelegramBody:
+      "Open Telegram and start the bot. Return here afterward and check the link status.",
     openTelegram: "Open Telegram",
     checkLink: "Check status",
     linked: "Telegram linked",
     channelEnabled: "Enable Telegram delivery",
-    channelNeedsAttention: "Telegram delivery needs attention. Re-link the chat if the issue continues.",
+    channelNeedsAttention:
+      "Telegram delivery needs attention. Re-link the chat if the issue continues.",
     unlink: "Unlink Telegram",
-    unlinkConfirm: "Unlink Telegram and cancel pending deliveries?"
+    unlinkConfirm: "Unlink Telegram and cancel pending deliveries?",
   },
   events: {
     eyebrow: "Public event radar",
     title: "TickBase News",
-    body:
-      "A public-safe event stream focused on XAUUSD, the Fed, Trump, Iran, the IRGC, energy, and geopolitical risk. It tracks source confirmation state and does not provide trading advice.",
+    body: "A public-safe event stream focused on XAUUSD, the Fed, Trump, Iran, the IRGC, energy, and geopolitical risk. It tracks source confirmation state and does not provide trading advice.",
     filters: "Filters",
     searchPlaceholder: "Search public summaries",
     search: "Search",
@@ -203,27 +232,27 @@ export const en = {
       S: "S - highest public priority",
       A: "A - high public priority",
       B: "B - watch",
-      C: "C - context"
+      C: "C - context",
     },
     confirmationOptions: {
       confirmed: "confirmed",
       partially_confirmed: "partially confirmed",
       unconfirmed: "unconfirmed",
-      contradicted: "contradicted"
+      contradicted: "contradicted",
     } satisfies Record<ConfirmationState, string>,
     emptyTitle: "No public events match these filters",
-    emptyBody: "Adjust severity, category, tag, or search text. The public website only shows approved public-safe events.",
+    emptyBody:
+      "Adjust severity, category, tag, or search text. The public website only shows approved public-safe events.",
     pageStatus: (current: number, totalPages: number, total: number) =>
       `Showing page ${current} of ${totalPages}, ${total} public events.`,
     previousPage: "Previous page",
     nextPage: "Next page",
-    reset: "Reset"
+    reset: "Reset",
   },
   raw: {
     eyebrow: "Public raw feed",
     title: "Raw Source Feed",
-    body:
-      "Public-safe source items synchronized independently from event summaries. Each item shows cleaned original content and available full translation.",
+    body: "Public-safe source items synchronized independently from event summaries. Each item shows cleaned original content and available full translation.",
     filters: "Filters",
     searchPlaceholder: "Search raw source items",
     search: "Search",
@@ -250,7 +279,7 @@ export const en = {
     relevance: "Relevance",
     supportingItems: "Supporting raw items",
     noSupportingItems: "No supporting raw items are linked to this event yet.",
-    viewRawItem: "View raw item"
+    viewRawItem: "View raw item",
   },
   detail: {
     eyebrow: "Public event detail",
@@ -267,83 +296,77 @@ export const en = {
     sources: "Sources",
     noSources: "No public source links available.",
     source: "Source",
-    tagsActors: "Tags & Actors"
+    tagsActors: "Tags & Actors",
   },
   tag: {
     eyebrow: "Topic tag",
     fallbackTitle: "unknown",
     body: "Public events grouped by topic tag. Tags come from public-safe taxonomy in the event processing pipeline.",
     emptyTitle: "No public events for this tag yet",
-    emptyBody: "Future synced events will appear here automatically."
+    emptyBody: "Future synced events will appear here automatically.",
   },
   about: {
     eyebrow: "About",
     title: "Market-moving news, structured for verification",
-    body:
-      "TickBase News is the public outlet of XAUUSD Event Radar. It only shows approved public-safe event summaries, severity, confirmation state, and source attribution.",
+    body: "TickBase News is the public outlet of XAUUSD Event Radar. It only shows approved public-safe event summaries, severity, confirmation state, and source attribution.",
     sections: [
       {
         title: "System Role",
-        body:
-          "This site is not a trading signal service. It organizes sources with different viewpoints, speeds, and authority levels into a traceable public event stream, helping readers understand whether a claim has official confirmation, whether contradictory narratives exist, and how public narratives may affect markets."
+        body: "This site is not a trading signal service. It organizes sources with different viewpoints, speeds, and authority levels into a traceable public event stream, helping readers understand whether a claim has official confirmation, whether contradictory narratives exist, and how public narratives may affect markets.",
       },
       {
         title: "Event Severity",
-        body:
-          "Severity reflects relative importance in the system rules and model workflow. S and A events deserve higher reading priority, but they do not imply trade direction or guarantee gold-price impact."
+        body: "Severity reflects relative importance in the system rules and model workflow. S and A events deserve higher reading priority, but they do not imply trade direction or guarantee gold-price impact.",
       },
       {
         title: "Severity Levels",
-        body:
-          "S marks top-priority events with direct market-moving potential or major policy/geopolitical implications. A marks important events that deserve timely review. B marks watch items with useful but lower-priority signal value. C marks context items that help explain the narrative background."
+        body: "S marks top-priority events with direct market-moving potential or major policy/geopolitical implications. A marks important events that deserve timely review. B marks watch items with useful but lower-priority signal value. C marks context items that help explain the narrative background.",
       },
       {
         title: "Confirmation State",
-        body:
-          "confirmed, partially confirmed, unconfirmed, and contradicted describe the degree of source confirmation. Unconfirmed events should be treated as watch items, not factual conclusions."
+        body: "confirmed, partially confirmed, unconfirmed, and contradicted describe the degree of source confirmation. Unconfirmed events should be treated as watch items, not factual conclusions.",
       },
       {
         title: "Source Background",
-        body:
-          "Source labels may include short background notes. These notes describe the public role or common editorial context of a source; they are not endorsements, credibility scores, or a substitute for reading the linked source."
+        body: "Source labels may include short background notes. These notes describe the public role or common editorial context of a source; they are not endorsements, credibility scores, or a substitute for reading the linked source.",
       },
       {
         title: "Data Boundary",
-        body:
-          "The public website does not store HomeLab raw item text, AI prompts, token usage, private notification records, Telegram sessions, or internal management data. All content is generated through the public sync flow."
+        body: "The public website does not store HomeLab raw item text, AI prompts, token usage, private notification records, Telegram sessions, or internal management data. All content is generated through the public sync flow.",
       },
       {
         title: "Disclaimer",
-        body: "This website is for information and research only. It is not investment, trading, legal, or financial advice."
-      }
-    ]
+        body: "This website is for information and research only. It is not investment, trading, legal, or financial advice.",
+      },
+    ],
   },
   support: {
     eyebrow: "Support",
     title: "Powered by goodwill. Keep the radar running",
-    body:
-      "The TickBase News public feed remains free to read. If it creates value for you, a voluntary donation helps keep the public service online; paid personal delivery is managed separately.",
+    body: "The TickBase News public feed remains free to read. If it creates value for you, a voluntary donation helps keep the public service online; paid personal delivery is managed separately.",
     costsTitle: "Where your support goes",
     costs: [
       {
         title: "AI inference",
-        body: "Translation, summarization, and relevance judgement run on paid model APIs. This is the largest recurring cost as coverage grows."
+        body: "Translation, summarization, and relevance judgement run on paid model APIs. This is the largest recurring cost as coverage grows.",
       },
       {
         title: "Servers & infrastructure",
-        body: "The public site, public API, and database run on a VPS that has to stay online around the clock to keep the feed fresh."
+        body: "The public site, public API, and database run on a VPS that has to stay online around the clock to keep the feed fresh.",
       },
       {
         title: "Ongoing development",
-        body: "Daily maintenance, new sources, and feature work that keep the event radar accurate, fast, and useful."
-      }
+        body: "Daily maintenance, new sources, and feature work that keep the event radar accurate, fast, and useful.",
+      },
     ],
     ctaTitle: "Buy the radar a minute or an hour",
     ctaBody:
-      "On Ko-fi you can chip in any amount to \"top up\" the site's running time, by the minute or by the hour. Every bit directly offsets AI, server, and upkeep costs.",
+      'On Ko-fi you can chip in any amount to "top up" the site\'s running time, by the minute or by the hour. Every bit directly offsets AI, server, and upkeep costs.',
     ctaButton: "Support on Ko-fi",
-    ctaNote: "Donations are voluntary and do not activate personal delivery. The public feed remains open to everyone.",
-    disclaimer: "Support keeps the lights on; it does not buy investment advice. All content remains information and research only."
+    ctaNote:
+      "Donations are voluntary and do not activate personal delivery. The public feed remains open to everyone.",
+    disclaimer:
+      "Support keeps the lights on; it does not buy investment advice. All content remains information and research only.",
   },
   status: {
     eyebrow: "Status",
@@ -352,17 +375,17 @@ export const en = {
     loading: "Checking public API...",
     api: "API",
     database: "database",
-    unknown: "unknown"
+    unknown: "unknown",
   },
   states: {
     loading: "Loading public events...",
-    apiErrorTitle: "Public API is temporarily unavailable"
+    apiErrorTitle: "Public API is temporarily unavailable",
   },
   stats: {
     publicEvents: "Public events",
     sSeverity: "S severity",
     aSeverity: "A severity",
-    latest: "Latest"
+    latest: "Latest",
   },
   badges: {
     unknown: "unknown",
@@ -370,20 +393,24 @@ export const en = {
       S: "Top-priority public event. Usually direct policy, geopolitical, market-structure, or high-impact gold/macro relevance.",
       A: "Important public event. Worth timely review, but with less immediate priority than S.",
       B: "Watch item. Useful signal or narrative movement, but lower confidence or lower market priority.",
-      C: "Context item. Background information that helps explain the broader public narrative."
+      C: "Context item. Background information that helps explain the broader public narrative.",
     },
     confirmation: {
       confirmed: "confirmed",
       partially_confirmed: "partially confirmed",
       unconfirmed: "unconfirmed",
-      contradicted: "contradicted"
+      contradicted: "contradicted",
     } satisfies Record<ConfirmationState, string>,
     confirmationDescriptions: {
-      confirmed: "Supported by official or multiple high-quality public sources.",
-      partially_confirmed: "Some supporting evidence exists, but key details still need stronger confirmation.",
-      unconfirmed: "Single-source, early, or insufficiently corroborated. Treat as a watch item.",
-      contradicted: "Public sources conflict or later reporting disputes the claim."
-    } satisfies Record<ConfirmationState, string>
+      confirmed:
+        "Supported by official or multiple high-quality public sources.",
+      partially_confirmed:
+        "Some supporting evidence exists, but key details still need stronger confirmation.",
+      unconfirmed:
+        "Single-source, early, or insufficiently corroborated. Treat as a watch item.",
+      contradicted:
+        "Public sources conflict or later reporting disputes the claim.",
+    } satisfies Record<ConfirmationState, string>,
   },
   sources: {
     fallback:
@@ -393,18 +420,16 @@ export const en = {
         "Official US central bank source. Highest authority for Fed decisions, speeches, minutes, and policy communications.",
       "White House":
         "Official US executive branch source. Useful for administration positions, but political framing should be expected.",
-      "Reuters":
+      Reuters:
         "Global wire service with institutional market readership. Often fast and broadly syndicated; still compare with primary sources for policy claims.",
-      "AP":
-        "Global wire service focused on broad news coverage. Useful for baseline reporting and cross-checking developing stories.",
-      "Bloomberg":
+      AP: "Global wire service focused on broad news coverage. Useful for baseline reporting and cross-checking developing stories.",
+      Bloomberg:
         "Financial news service with strong market focus. Useful for market reaction and policy reporting; some content may rely on unnamed sources.",
-      "Tasnim":
+      Tasnim:
         "Iranian outlet commonly associated with conservative or IRGC-adjacent perspectives. Useful for Iranian hardline framing, not a neutral official statement.",
       "Press TV":
         "Iranian state-funded international broadcaster. Useful for official or state-aligned Iranian framing, especially in external-facing English coverage.",
-      "IRNA":
-        "Iran's state news agency. Useful for official Iranian government messaging and formal state framing.",
+      IRNA: "Iran's state news agency. Useful for official Iranian government messaging and formal state framing.",
       "Mehr News":
         "Iranian semi-official news agency. Useful for domestic Iranian political and policy framing, but should be cross-checked on sensitive claims.",
       "US State Department":
@@ -415,9 +440,9 @@ export const en = {
         "Official English-language channel for Iran's Supreme Leader. Useful for formal leadership messaging and ideological framing.",
       "Trump Truth Social":
         "Trump-aligned direct political messaging source. Useful for primary statements from Trump, but factual claims need independent confirmation.",
-      "TrumpsTruth":
-        "Trump-aligned social/media feed. Useful for direct political messaging, but claims need independent confirmation."
-    } satisfies Record<string, string>
+      TrumpsTruth:
+        "Trump-aligned social/media feed. Useful for direct political messaging, but claims need independent confirmation.",
+    } satisfies Record<string, string>,
   },
   format: {
     untitled: "Untitled public event",
@@ -429,7 +454,7 @@ export const en = {
     high: "High",
     watch: "Watch",
     info: "Info",
-    uncategorized: "uncategorized"
+    uncategorized: "uncategorized",
   },
   categories: {
     diplomacy: "Diplomacy",
@@ -443,8 +468,8 @@ export const en = {
     technology: "Technology",
     routine: "Routine",
     social: "Social",
-    other: "Other"
-  } as Record<string, string>
+    other: "Other",
+  } as Record<string, string>,
 };
 
 export type Dictionary = typeof en;

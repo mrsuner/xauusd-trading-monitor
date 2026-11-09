@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { getRawItem } from "../api/client";
+import { getRawItem, isContentUnavailable } from "../api/client";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import {
   displayCategory,
@@ -11,7 +11,7 @@ import {
   rawItemSummary,
   rawItemTimestamp,
   rawItemTitle,
-  relevanceBand
+  relevanceBand,
 } from "../components/format";
 import { PageHeader } from "../components/PageHeader";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
@@ -26,7 +26,8 @@ export function RawItemDetailPage() {
   const query = useQuery({
     queryKey: ["public-raw-item", rawItemId, reader.contentLanguage],
     queryFn: () => getRawItem(rawItemId ?? "", reader.contentLanguage),
-    enabled: Boolean(rawItemId) && reader.ready
+    enabled: Boolean(rawItemId) && reader.ready,
+    retry: (count, error) => !isContentUnavailable(error) && count < 3,
   });
 
   if (!rawItemId) {
@@ -48,7 +49,14 @@ export function RawItemDetailPage() {
   if (query.isError) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <ErrorState message={(query.error as Error).message} />
+        {isContentUnavailable(query.error) ? (
+          <EmptyState
+            title={t.detail.notFoundTitle}
+            body={t.detail.notFoundBody}
+          />
+        ) : (
+          <ErrorState message={(query.error as Error).message} />
+        )}
       </section>
     );
   }
@@ -75,16 +83,26 @@ export function RawItemDetailPage() {
         aside={
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
-              <span className={`badge badge-sm ${relevance.className}`}>{relevance.label}</span>
-              {item.source_type && <span className="badge badge-ghost badge-sm font-mono">{item.source_type}</span>}
+              <span className={`badge badge-sm ${relevance.className}`}>
+                {relevance.label}
+              </span>
+              {item.source_type && (
+                <span className="badge badge-ghost badge-sm font-mono">
+                  {item.source_type}
+                </span>
+              )}
             </div>
             <div className="mt-4 space-y-2 text-sm text-base-content/65">
               <p>
-                <span className="font-semibold text-base-content">{t.detail.eventTime}</span>{" "}
+                <span className="font-semibold text-base-content">
+                  {t.detail.eventTime}
+                </span>{" "}
                 {formatFullTime(timestamp, lang, t)}
               </p>
               <p>
-                <span className="font-semibold text-base-content">{t.detail.category}</span>{" "}
+                <span className="font-semibold text-base-content">
+                  {t.detail.category}
+                </span>{" "}
                 {displayCategory(item.content_category, t)}
               </p>
             </div>
@@ -94,9 +112,18 @@ export function RawItemDetailPage() {
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         <article className="space-y-4">
-          <TextPanel title={t.raw.summary} body={rawItemSummary(item, t, reader.contentLanguage)} />
-          <TextPanel title={t.raw.originalContent} body={item.original_content || t.raw.noOriginalContent} />
-          <TextPanel title={t.raw.fullTranslation} body={fullTranslation || t.raw.noFullTranslation} />
+          <TextPanel
+            title={t.raw.summary}
+            body={rawItemSummary(item, t, reader.contentLanguage)}
+          />
+          <TextPanel
+            title={t.raw.originalContent}
+            body={item.original_content || t.raw.noOriginalContent}
+          />
+          <TextPanel
+            title={t.raw.fullTranslation}
+            body={fullTranslation || t.raw.noFullTranslation}
+          />
         </article>
 
         <aside className="space-y-4">
@@ -124,7 +151,11 @@ export function RawItemDetailPage() {
             <h3 className="text-sm font-semibold">{t.detail.tagsActors}</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {item.topic_tags.map((tag) => (
-                <Link key={tag} to={to("/raw", `?tag=${encodeURIComponent(tag)}`)} className="badge badge-ghost font-mono">
+                <Link
+                  key={tag}
+                  to={to("/raw", `?tag=${encodeURIComponent(tag)}`)}
+                  className="badge badge-ghost font-mono"
+                >
                   #{tag}
                 </Link>
               ))}

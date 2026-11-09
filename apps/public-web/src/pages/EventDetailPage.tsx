@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { getEvent, listRawItems } from "../api/client";
+import { getEvent, isContentUnavailable, listRawItems } from "../api/client";
 import { SeverityBadge } from "../components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "../components/DataState";
 import {
@@ -13,7 +13,7 @@ import {
   formatFullTime,
   relevanceBand,
   sourceBackground,
-  sourceLabel
+  sourceLabel,
 } from "../components/format";
 import { useI18n, useLanguage, useLocalizedPath } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
@@ -29,18 +29,27 @@ export function EventDetailPage() {
   const query = useQuery({
     queryKey: ["public-event", eventId, reader.contentLanguage],
     queryFn: () => getEvent(eventId ?? "", reader.contentLanguage),
-    enabled: Boolean(eventId) && reader.ready
+    enabled: Boolean(eventId) && reader.ready,
+    retry: (count, error) => !isContentUnavailable(error) && count < 3,
   });
   const rawItemsQuery = useQuery({
     queryKey: ["public-event-raw-items", eventId, reader.contentLanguage],
-    queryFn: () => listRawItems({ event_id: eventId, lang: reader.contentLanguage, page_size: 6 }),
-    enabled: Boolean(eventId) && reader.ready
+    queryFn: () =>
+      listRawItems({
+        event_id: eventId,
+        lang: reader.contentLanguage,
+        page_size: 6,
+      }),
+    enabled: Boolean(eventId) && reader.ready,
   });
 
   if (!eventId) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <EmptyState title={t.detail.missingIdTitle} body={t.detail.missingIdBody} />
+        <EmptyState
+          title={t.detail.missingIdTitle}
+          body={t.detail.missingIdBody}
+        />
       </section>
     );
   }
@@ -56,7 +65,14 @@ export function EventDetailPage() {
   if (query.isError) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <ErrorState message={(query.error as Error).message} />
+        {isContentUnavailable(query.error) ? (
+          <EmptyState
+            title={t.detail.notFoundTitle}
+            body={t.detail.notFoundBody}
+          />
+        ) : (
+          <ErrorState message={(query.error as Error).message} />
+        )}
       </section>
     );
   }
@@ -65,7 +81,10 @@ export function EventDetailPage() {
   if (!event) {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <EmptyState title={t.detail.notFoundTitle} body={t.detail.notFoundBody} />
+        <EmptyState
+          title={t.detail.notFoundTitle}
+          body={t.detail.notFoundBody}
+        />
       </section>
     );
   }
@@ -73,7 +92,10 @@ export function EventDetailPage() {
   const relevance = relevanceBand(event.relevance_score, t);
   const timestamp = eventTimestamp(event);
   const typeTag = eventTypeTag(event.event_type);
-  const heroTitle = eventHeadline(event, reader.contentLanguage) ?? typeTag ?? t.format.untitled;
+  const heroTitle =
+    eventHeadline(event, reader.contentLanguage) ??
+    typeTag ??
+    t.format.untitled;
 
   return (
     <>
@@ -85,17 +107,27 @@ export function EventDetailPage() {
           <div className="rounded-box border border-base-300 bg-base-200/60 p-4">
             <div className="flex flex-wrap gap-2">
               <SeverityBadge severity={event.severity} />
-              {typeTag && <span className="badge badge-primary badge-outline badge-sm font-mono">{typeTag}</span>}
-              <span className={`badge badge-sm ${relevance.className}`}>{relevance.label}</span>
+              {typeTag && (
+                <span className="badge badge-primary badge-outline badge-sm font-mono">
+                  {typeTag}
+                </span>
+              )}
+              <span className={`badge badge-sm ${relevance.className}`}>
+                {relevance.label}
+              </span>
             </div>
             <div className="mt-4 space-y-2 text-sm text-base-content/65">
               <p>
-                <span className="font-semibold text-base-content">{t.detail.eventTime}</span>{" "}
+                <span className="font-semibold text-base-content">
+                  {t.detail.eventTime}
+                </span>{" "}
                 {formatFullTime(timestamp, lang, t)}
               </p>
               {event.content_category && (
                 <p>
-                  <span className="font-semibold text-base-content">{t.detail.category}</span>{" "}
+                  <span className="font-semibold text-base-content">
+                    {t.detail.category}
+                  </span>{" "}
                   {categoryLabel(event.content_category, t)}
                 </p>
               )}
@@ -107,7 +139,9 @@ export function EventDetailPage() {
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         <article className="rounded-box border border-base-300 bg-base-200/40 p-5">
           <h2 className="text-lg font-semibold">{t.detail.summaryTitle}</h2>
-          <p className="mt-3 leading-7 text-base-content/75">{eventSummary(event, t, reader.contentLanguage)}</p>
+          <p className="mt-3 leading-7 text-base-content/75">
+            {eventSummary(event, t, reader.contentLanguage)}
+          </p>
           <p className="mt-5 text-xs leading-5 text-base-content/50">
             {t.detail.boundary}
           </p>
@@ -117,12 +151,22 @@ export function EventDetailPage() {
           <h2 className="text-lg font-semibold">{t.raw.supportingItems}</h2>
           <div className="mt-4 grid gap-3">
             {rawItemsQuery.isLoading && <LoadingState />}
-            {rawItemsQuery.isError && <ErrorState message={(rawItemsQuery.error as Error).message} />}
+            {rawItemsQuery.isError && (
+              <ErrorState message={(rawItemsQuery.error as Error).message} />
+            )}
             {rawItemsQuery.data?.items.length === 0 && (
-              <p className="text-sm text-base-content/60">{t.raw.noSupportingItems}</p>
+              <p className="text-sm text-base-content/60">
+                {t.raw.noSupportingItems}
+              </p>
             )}
             {rawItemsQuery.data?.items.map((item) => (
-              <RawItemCard key={item.id} item={item} compact showFullTranslation contentLanguage={reader.contentLanguage} />
+              <RawItemCard
+                key={item.id}
+                item={item}
+                compact
+                showFullTranslation
+                contentLanguage={reader.contentLanguage}
+              />
             ))}
           </div>
         </section>
@@ -155,7 +199,11 @@ export function EventDetailPage() {
             <h3 className="text-sm font-semibold">{t.detail.tagsActors}</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {event.topic_tags.map((tag) => (
-                <Link key={tag} to={to(`/tags/${encodeURIComponent(tag)}`)} className="badge badge-ghost font-mono">
+                <Link
+                  key={tag}
+                  to={to(`/tags/${encodeURIComponent(tag)}`)}
+                  className="badge badge-ghost font-mono"
+                >
                   #{tag}
                 </Link>
               ))}

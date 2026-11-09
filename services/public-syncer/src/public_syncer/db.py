@@ -226,6 +226,7 @@ class Database:
                   ) translation_state on true
                   left join public_raw_item_sync_state state on state.raw_item_id = r.id
                   where s.archived_at is null
+                    and s.enabled = true
                     and (
                       nullif(btrim(coalesce(r.text_clean, '')), '') is not null
                       or (
@@ -319,6 +320,13 @@ class Database:
                   select id
                   from public_outbox
                   where approved_for_public = true
+                    and not exists (
+                      select 1 from events blocked_event
+                      join raw_items blocked_item on blocked_item.id = any(blocked_event.raw_item_ids)
+                      join sources blocked_source on blocked_source.id = blocked_item.source_id
+                      where blocked_event.id = public_outbox.event_id
+                        and (blocked_source.enabled = false or blocked_source.archived_at is not null)
+                    )
                     and publish_status_web in ('pending', 'retry')
                     and retry_count_web < %(max_attempts)s
                     and (next_retry_web_at is null or next_retry_web_at <= now())
@@ -383,6 +391,12 @@ class Database:
                   select raw_item_id
                   from public_raw_item_sync_state
                   where publish_status in ('pending', 'retry')
+                    and exists (
+                      select 1 from raw_items eligible_item
+                      join sources eligible_source on eligible_source.id = eligible_item.source_id
+                      where eligible_item.id = public_raw_item_sync_state.raw_item_id
+                        and eligible_source.enabled = true and eligible_source.archived_at is null
+                    )
                     and retry_count < %(max_attempts)s
                     and (next_retry_at is null or next_retry_at <= now())
                     and (

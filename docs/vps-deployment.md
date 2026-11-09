@@ -1,5 +1,8 @@
 # XAUUSD VPS production authority
 
+Custody update2026-10-31: seven old `xauusd-public-api` containers (including the stopped migrator) and old PG/Redis volumes were archived, NAS-verified and retired. Current shared82 services, HomeLab200 writers, Pages, credentials and existing schedules were unchanged. Older retained-container claims below are historical. Use the [central custody record](/Users/lukesun/Projects/infra/docs/82-log-rotation-and-retirement-2026-10-31.md) for exact cold inputs; restore in isolation before any separately reviewed reverse transfer.
+
+
 Updated:2026-10-17. Shared82 migration is deployed and accepted. This document owns
 VPS public API/notification only. HomeLab200 pipeline and Pages are separate.
 The [dedicated82 runbook](vps-deployment-dedicated82-historical.md) is historical.
@@ -146,7 +149,9 @@ remain valid for their own scope.
 ## Accepted production evidence —2026-10-17
 
 Frozen ciphertext `4854d6d781e9d2bfea9064561653c98042ec83576db9fb59929ce52dca680367`
-is retained on Mac and HomeLab199. Logical PG16/18 and exact physical PG16 cold
+was originally retained on Mac and HomeLab199; Mac payloads moved to verifiedNAS
+custody on28Oct ([custody authority](/Users/lukesun/Projects/infra/docs/mac-backup-custody.md)).
+Logical PG16/18 and exact physical PG16 cold
 recovery passed:29 tables,2,059,614 rows,3 sequences, source extension versions,
 files/modes/owners and native source RDB. Same-point API/HMAC/idempotency/replay
 and a measured65s Horizon job under two consumers passed; one attempt and
@@ -160,8 +165,9 @@ Horizon job pass. TickBase account's existing notification secret returns200,
 missing secret401.22 public and32 notification app/provider settings match the
 original. Enabled delivery/admission/digest and dry_run=false are preserved.
 
-All six original runtime/PG/Redis containers keep exact IDs/volumes, stopped and
-restart=no.303 old Horizon keys are archived, not revived; business/cache keys
+The six original runtime/PG/Redis containers plus the old migrator, and the old
+PG/Redis volumes, were NAS-verified and retired31Oct.303 old Horizon keys remain
+in historical custody, not revived; business/cache keys
 had naturally expired, so zero stale keys were copied. The existing shared
 Tunnel, DNS, Pages and HomeLab200 pipeline/env/images are unchanged. The same
 paused syncer resumed with its original restart policy; two pending events became

@@ -1,5 +1,53 @@
 # public-api 功能需求
 
+## Content request operator workflow
+
+Public complaints are received manually at `support@alphablueth.com`. Record the
+affected public URLs/IDs and requested action without putting private complaint
+material into public invalidation reasons. A complaint is not automatically a
+valid removal request or evidence of licensing permission.
+
+1. For a source-wide stop, use the existing authenticated Dashboard source
+   disable/archive action. Both collectors and public-syncer exclude disabled or
+   archived sources. Stop/drain affected in-flight collector/classification/sync
+   work before withdrawal: already claimed work is not instantly recalled.
+2. Resolve the exact **public** raw item or event UUID. Use the existing verified
+   backup workflow before production writes; do not use an upstream UUID or copy
+   local environment files over production secrets.
+3. Run from `services/public-api` with an explicitly injected
+   `PUBLIC_DATABASE_URL` and an operator role allowed to update both `public` and
+   `notify`. Preview is read-only; never place the connection string in arguments
+   or paste its value into a log:
+
+   ```sh
+   uv run python -m public_api.content_requests --raw-item-id <public-uuid>
+   uv run python -m public_api.content_requests --raw-item-id <public-uuid> --apply
+   ```
+
+   Use `--event-id` instead for an event-only withdrawal. An optional `--reason`
+   must be a short non-sensitive public explanation. Review the preview's event,
+   digest and pending-notification counts before applying.
+4. Verify the target disappears from list/detail API responses in all languages,
+   linked editions are invalidated, pending/retry deliveries are canceled and a
+   resync does not restore it. Recheck for newly processed related events before
+   restarting work. Keep a restricted record of the request and outcome.
+
+A raw withdrawal also withdraws every public event version currently linked by
+the raw item's upstream event IDs; independently supported, differently keyed
+events remain visible. If a combined event depended on the removed source, do not
+assume its remaining citations make the existing text independent. Event-only
+withdrawal does not remove unrelated raw source items. Rows/translations and
+digest snapshots remain internally as tombstones, not public readable content;
+this is withdrawal, not erasure. Pending digest batches containing an affected
+edition are canceled conservatively, including any other editions in that batch.
+
+Sending/in-flight or delivered pushes/emails cannot reliably be recalled. Browser
+and device snapshots are not remotely erased; Mobile suppresses detail snapshots
+after a confirmed `404`/`410`, while keeping offline fallback for network failures.
+The bookmark list can still contain an old local preview until the user removes
+it. A fresh API response is required to discover withdrawal. No response SLA,
+automatic source rights assessment or blanket authorization is implied.
+
 ## 1. 服務定位
 
 `public-api` 部署在 VPS，負責接收 HomeLab `public-syncer` 推送的 public-safe events、可選 raw item feed 與版本化 subscription catalog，保存到 public database，並提供公共網站讀取 API。

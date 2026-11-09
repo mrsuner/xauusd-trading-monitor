@@ -126,6 +126,24 @@ class DeliveryProcessorTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_withdrawn_event_cancels_pending_push_and_telegram_before_provider(): void
+    {
+        Http::fake([
+            'http://account:8080/*' => Http::response(['data' => ['news' => ['access_allowed' => true]]]),
+        ]);
+        foreach (['push', 'telegram'] as $channelType) {
+            $delivery = $this->delivery(channelType: $channelType);
+            DB::table('public_events')->where('id', $delivery->public_event_id)->update(['is_visible' => false]);
+
+            self::assertNull(app(DeliveryProcessor::class)->process($delivery->id));
+            self::assertSame(DeliveryStatus::Canceled, $delivery->fresh()->status);
+            self::assertSame('event_unavailable', $delivery->fresh()->error_code);
+            self::assertSame(0, $delivery->fresh()->attempt_count);
+        }
+        Http::assertNotSent(fn (Request $request): bool => str_ends_with($request->url(), '/push')
+            || str_ends_with($request->url(), '/sendMessage'));
+    }
+
     public function test_inactive_access_and_changed_revision_cancel_before_provider(): void
     {
         $delivery = $this->delivery();

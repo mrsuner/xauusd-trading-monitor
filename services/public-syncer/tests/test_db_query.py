@@ -86,3 +86,12 @@ def test_subscription_catalog_query_only_exports_enabled_subscribable_rows() -> 
     assert source.count("where enabled = true and subscribable = true") == 2
     assert "coalesce(label_en, label) as label_en" in source
     assert "label_zh" in source
+
+
+def test_stopped_sources_are_excluded_from_refresh_and_claims() -> None:
+    refresh = _compact(inspect.getsource(Database.refresh_raw_item_sync_candidates))
+    raw_claim = _compact(inspect.getsource(Database.claim_next_raw_item))
+    event_claim = _compact(inspect.getsource(Database.claim_next_item))
+    assert "s.archived_at is null and s.enabled = true" in refresh
+    assert "eligible_source.enabled = true and eligible_source.archived_at is null" in raw_claim
+    assert "blocked_source.enabled = false or blocked_source.archived_at is not null" in event_claim
